@@ -23,8 +23,9 @@ import {
   Download, Plus, Clock, CheckCircle2, XCircle, AlertCircle, Banknote,
   MapPin, Phone, Mail, Star, TrendingUp, Award, BookOpen, Calendar,
   ListTodo, FolderKanban, ChevronRight, Circle, CheckSquare, ExternalLink,
-  Flame, Timer, Landmark, Send, RefreshCw,
+  Flame, Timer, Landmark, Send, RefreshCw, MessageSquareWarning,
 } from "lucide-react";
+import { apiErrorMessage } from "@/lib/api-error";
 import { formatDate, formatFCFA } from "@/lib/format";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -987,6 +988,190 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
 
 // ── Page principale ───────────────────────────────────────────────────────────
 
+// ── Onglet : Réclamations RH ──────────────────────────────────────────────────
+
+const CLAIM_CATEGORY_LABELS: Record<string, string> = {
+  salaire: "Salaire & Rémunération",
+  conges: "Congés & Absences",
+  conditions_travail: "Conditions de travail",
+  harcelement: "Harcèlement",
+  discrimination: "Discrimination",
+  securite: "Sécurité",
+  avantages: "Avantages sociaux",
+  carriere: "Carrière & Évolution",
+  remboursement: "Remboursement de frais",
+  autre: "Autre",
+};
+
+const CLAIM_STATUS: Record<string, { label: string; cls: string }> = {
+  brouillon:             { label: "Brouillon",         cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  soumise:               { label: "Soumise",           cls: "bg-blue-100 text-blue-700 border-blue-200" },
+  en_cours:              { label: "En cours",          cls: "bg-amber-100 text-amber-700 border-amber-200" },
+  infos_complementaires: { label: "Infos requises",    cls: "bg-orange-100 text-orange-700 border-orange-200" },
+  en_traitement:         { label: "En traitement",     cls: "bg-purple-100 text-purple-700 border-purple-200" },
+  resolue:               { label: "Résolue",           cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  refusee:               { label: "Refusée",           cls: "bg-red-100 text-red-700 border-red-200" },
+  cloturee:              { label: "Clôturée",          cls: "bg-slate-200 text-slate-700 border-slate-300" },
+};
+
+function ReclamationsTab() {
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    category: "", subject: "", description: "", priority: "normale", isAnonymous: false,
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["me-claims"],
+    queryFn: () => apiFetch<{ data: any[] }>("/api/hr/claims"),
+    retry: false,
+  });
+
+  const createMut = useMutation({
+    mutationFn: (body: object) => apiFetch("/api/hr/claims", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me-claims"] });
+      setShowForm(false);
+      setForm({ category: "", subject: "", description: "", priority: "normale", isAnonymous: false });
+      toast.success("Réclamation soumise avec succès");
+    },
+    onError: (e: any) => toast.error(apiErrorMessage(e)),
+  });
+
+  const claims = data?.data ?? [];
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.category || !form.subject || !form.description) {
+      toast.error("Catégorie, objet et description sont obligatoires.");
+      return;
+    }
+    createMut.mutate(form);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-foreground">Mes réclamations</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Suivez l'avancement de vos signalements et réclamations RH.
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setShowForm(true)} className="gap-1.5">
+          <Plus className="w-4 h-4" /> Nouvelle réclamation
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
+        </div>
+      ) : claims.length === 0 ? (
+        <div className="text-center py-16 text-slate-400">
+          <MessageSquareWarning className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm font-medium">Aucune réclamation soumise</p>
+          <p className="text-xs mt-1">Cliquez sur « Nouvelle réclamation » pour soumettre un signalement.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {claims.map((c: any) => {
+            const st = CLAIM_STATUS[c.status] ?? { label: c.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+            return (
+              <Link key={c.id} href={`/rh/reclamations/${c.id}`}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="py-3 px-4 flex items-center gap-3">
+                    <MessageSquareWarning className="w-5 h-5 text-slate-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{c.subject}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {CLAIM_CATEGORY_LABELS[c.category] ?? c.category} · {c.reference}
+                      </p>
+                    </div>
+                    <Badge className={`text-xs border font-medium shrink-0 ${st.cls}`}>{st.label}</Badge>
+                    <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquareWarning className="w-5 h-5 text-amber-500" />
+              Nouvelle réclamation
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Catégorie <span className="text-red-500">*</span></Label>
+              <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                <SelectTrigger><SelectValue placeholder="Sélectionner une catégorie" /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CLAIM_CATEGORY_LABELS).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Objet <span className="text-red-500">*</span></Label>
+              <Input
+                value={form.subject}
+                onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                placeholder="Résumé de votre réclamation en une ligne"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description <span className="text-red-500">*</span></Label>
+              <Textarea
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                rows={4}
+                placeholder="Décrivez votre situation avec précision : dates, faits, personnes concernées…"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Priorité</Label>
+              <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="faible">Faible</SelectItem>
+                  <SelectItem value="normale">Normale</SelectItem>
+                  <SelectItem value="haute">Haute</SelectItem>
+                  <SelectItem value="urgente">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="reclam-anon"
+                checked={form.isAnonymous}
+                onChange={e => setForm(f => ({ ...f, isAnonymous: e.target.checked }))}
+                className="rounded border-input w-4 h-4"
+              />
+              <Label htmlFor="reclam-anon" className="cursor-pointer font-normal text-sm">
+                Soumettre de manière anonyme
+              </Label>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Annuler</Button>
+              <Button type="submit" disabled={createMut.isPending}>
+                {createMut.isPending ? "Envoi en cours…" : "Soumettre"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function MonEspace() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -1047,7 +1232,7 @@ export default function MonEspace() {
       </div>
 
       <Tabs defaultValue="travaux">
-        <TabsList className="grid grid-cols-4 sm:grid-cols-8 h-auto p-1 bg-slate-100 rounded-xl mb-2">
+        <TabsList className="grid grid-cols-5 sm:grid-cols-9 h-auto p-1 bg-slate-100 rounded-xl mb-2">
           <TabsTrigger value="travaux" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
             <ListTodo className="w-4 h-4" /> Mes Travaux
           </TabsTrigger>
@@ -1068,6 +1253,9 @@ export default function MonEspace() {
           </TabsTrigger>
           <TabsTrigger value="training" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
             <GraduationCap className="w-4 h-4" /> Formations
+          </TabsTrigger>
+          <TabsTrigger value="reclamations" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+            <MessageSquareWarning className="w-4 h-4" /> Réclamations
           </TabsTrigger>
           <TabsTrigger value="profil" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
             <Landmark className="w-4 h-4" /> Profil
@@ -1094,6 +1282,9 @@ export default function MonEspace() {
         </TabsContent>
         <TabsContent value="training">
           <FormationsTab trainings={trainings} evaluations={evaluations} loadingT={loadingTrainings} loadingE={loadingEvals} />
+        </TabsContent>
+        <TabsContent value="reclamations">
+          <ReclamationsTab />
         </TabsContent>
         <TabsContent value="profil">
           <ProfilTab profile={profile ?? null} onRefreshProfile={() => qc.invalidateQueries({ queryKey: ["me-profile"] })} />
