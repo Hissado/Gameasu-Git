@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -174,8 +174,8 @@ export default function InvoiceScannerPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [selectedScan, setSelectedScan] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [fileUrl, setFileUrl] = useState("");
-  const [fileName, setFileName] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const { data: scans = [], isLoading } = useQuery<InvoiceScan[]>({
     queryKey: ["compliance-scans"],
@@ -189,29 +189,49 @@ export default function InvoiceScannerPage() {
 
   const selected = scans.find((s) => s.id === selectedScan);
 
-  const uploadMutation = useMutation({
-    mutationFn: (body: { fileUrl: string; fileName: string; mimeType?: string }) =>
-      apiFetch("/api/compliance/scan-invoice", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["compliance-scans"] });
-      setFileUrl("");
-      setFileName("");
-      toast({ title: "Document envoyé", description: "L'analyse IA est en cours…" });
-    },
-    onError: () => toast({ title: "Erreur", description: "Impossible d'envoyer le document.", variant: "destructive" }),
-  });
-
   const reprocessMutation = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/compliance/scans/${id}/reprocess`, { method: "POST" }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["compliance-scans"] }); toast({ title: "Retraitement lancé" }); },
   });
 
-  const handleUrlSubmit = () => {
-    if (!fileUrl || !fileName) return;
-    const ext = fileName.split(".").pop()?.toLowerCase();
-    const mimeType = ext === "pdf" ? "application/pdf" : ext === "png" ? "image/png" : ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "application/pdf";
-    uploadMutation.mutate({ fileUrl, fileName, mimeType });
+  const handleFile = useCallback(async (file: File) => {
+    const allowed = ["application/pdf", "image/png", "image/jpeg", "image/heic", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast({ title: "Format non supporté", description: "PDF, PNG, JPEG ou HEIC uniquement.", variant: "destructive" });
+      return;
+    }
+    setPendingFile(file);
+  }, [toast]);
+
+  const handleAnalyse = async () => {
+    if (!pendingFile) return;
+    setUploading(true);
+    try {
+      const { uploadURL, objectPath } = await apiFetch("/api/storage/uploads/request-url", {
+        method: "POST",
+        body: { name: pendingFile.name, size: pendingFile.size, contentType: pendingFile.type },
+      });
+      await fetch(uploadURL, { method: "PUT", body: pendingFile, headers: { "Content-Type": pendingFile.type } });
+      await apiFetch("/api/compliance/scan-invoice", {
+        method: "POST",
+        body: { fileUrl: `/api/storage${objectPath}`, fileName: pendingFile.name, mimeType: pendingFile.type },
+      });
+      qc.invalidateQueries({ queryKey: ["compliance-scans"] });
+      setPendingFile(null);
+      toast({ title: "Document envoyé", description: "L'analyse IA est en cours…" });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'envoyer le document.", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
   };
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  }, [handleFile]);
 
   const totalDone = scans.filter((s) => s.status === "done").length;
   const totalPending = scans.filter((s) => s.status === "processing" || s.status === "pending").length;
@@ -254,37 +274,61 @@ export default function InvoiceScannerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Colonne gauche : upload + liste */}
         <div className="lg:col-span-1 space-y-4">
-          {/* Formulaire upload par URL */}
+          {/* Formulaire upload fichier */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2"><Upload className="w-4 h-4" /> Soumettre un document</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div>
-                <Label className="text-xs">URL du fichier (PDF ou image)</Label>
-                <Input
-                  placeholder="https://… ou /api/storage/…"
-                  value={fileUrl}
-                  onChange={(e) => setFileUrl(e.target.value)}
-                  className="mt-1 text-sm"
+              {/* Zone drag-and-drop */}
+              <div
+                className={`relative border-2 border-dashed rounded-lg transition-colors cursor-pointer ${dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"}`}
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={onDrop}
+              >
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.heic,.webp"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
                 />
+                {pendingFile ? (
+                  <div className="p-4 flex items-center gap-3">
+                    <FileText className="w-8 h-8 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{pendingFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(pendingFile.size / 1024).toFixed(0)} Ko · {pendingFile.type.split("/")[1]?.toUpperCase()}</p>
+                    </div>
+                    <button
+                      className="ml-auto text-muted-foreground hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setPendingFile(null); }}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center">
+                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm font-medium">Glissez votre facture ici</p>
+                    <p className="text-xs text-muted-foreground mt-1">ou cliquez pour sélectionner</p>
+                    <p className="text-xs text-muted-foreground mt-2">PDF, PNG, JPEG, HEIC</p>
+                  </div>
+                )}
               </div>
-              <div>
-                <Label className="text-xs">Nom du fichier</Label>
-                <Input
-                  placeholder="facture-fournisseur.pdf"
-                  value={fileName}
-                  onChange={(e) => setFileName(e.target.value)}
-                  className="mt-1 text-sm"
-                />
-              </div>
+
               <Button
                 className="w-full"
-                onClick={handleUrlSubmit}
-                disabled={!fileUrl || !fileName || uploadMutation.isPending}
+                onClick={handleAnalyse}
+                disabled={!pendingFile || uploading}
               >
-                {uploadMutation.isPending ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Envoi…</> : <><ScanLine className="w-4 h-4 mr-2" /> Analyser</>}
+                {uploading
+                  ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Envoi en cours…</>
+                  : <><ScanLine className="w-4 h-4 mr-2" /> Analyser</>}
               </Button>
+
               <div className="flex items-start gap-2 p-2 rounded bg-blue-50 text-blue-800 text-xs">
                 <Info className="w-3 h-3 mt-0.5 shrink-0" />
                 <span>L'IA extrait le vendeur, client, montants, lignes et dates. Vérifiez et corrigez avant comptabilisation.</span>
