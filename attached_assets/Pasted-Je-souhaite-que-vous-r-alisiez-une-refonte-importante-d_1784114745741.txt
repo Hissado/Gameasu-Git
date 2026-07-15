@@ -1,0 +1,392 @@
+Je souhaite que vous réalisiez une refonte importante des modules Ressources Humaines, Comptabilité, Fiscalité, Facturation, Trésorerie et Infrastructure afin que Gameasu devienne un ERP de niveau international, comparable aux meilleures solutions du marché (SAP S/4HANA, Oracle NetSuite, Microsoft Dynamics 365, Sage X3, Odoo Enterprise, QuickBooks Enterprise, etc.), tout en restant adapté aux réalités africaines, notamment celles des pays membres de l’OHADA.
+
+Je vous demande d’utiliser les documents joints comme références fonctionnelles et réglementaires afin d’enrichir les fonctionnalités existantes et de garantir leur conformité. Les fonctionnalités proposées doivent être génériques et configurables par pays, afin qu’elles puissent être adaptées facilement aux administrations fiscales locales.
+
+⸻
+
+1. Module RH – Gestion des avances sur salaire
+
+Le module RH doit intégrer une gestion complète des avances sur salaire.
+
+Fonctionnalités attendues
+
+Un employé doit pouvoir :
+
+* demander une avance sur salaire ;
+* choisir si cette avance est remboursée :
+    * sur le salaire du mois en cours ;
+    * sur plusieurs mois ;
+    * selon un échéancier personnalisé.
+
+Exemple :
+
+Salaire mensuel : 100 000 FCFA
+
+Le 10 du mois :
+
+* avance demandée : 50 000 FCFA
+
+Choix :
+
+* déduction intégrale en fin de mois ;
+* remboursement sur 2 mois ;
+* remboursement sur 3 mois ;
+* montant personnalisé chaque mois.
+
+Le système doit automatiquement :
+
+* calculer les retenues mensuelles ;
+* alimenter la paie ;
+* mettre à jour les écritures comptables ;
+* afficher le solde restant dû ;
+* empêcher les avances dépassant les plafonds définis par la politique RH.
+
+Prévoir également :
+
+* workflow d’approbation ;
+* notifications ;
+* historique complet ;
+* pièces jointes ;
+* signature électronique des validations.
+
+⸻
+
+2. Comptabilité – Gestion avancée de la trésorerie
+
+En vous inspirant du document joint sur la gestion de trésorerie, intégrer un véritable module de pilotage de la trésorerie. GESTION TRESORERIE ET FACTURE REGULIERE OK.pdf
+
+Le module doit permettre :
+
+Prévisions
+
+* prévisions annuelles ;
+* trimestrielles ;
+* mensuelles ;
+* hebdomadaires ;
+* journalières.
+
+Gestion des flux
+
+Suivi de :
+
+* banques ;
+* caisse ;
+* chèques ;
+* dépôts ;
+* virements ;
+* effets ;
+* encaissements ;
+* décaissements ;
+* échéances fournisseurs ;
+* échéances clients.
+
+Contrôles internes
+
+Prévoir :
+
+* workflow d’approbation ;
+* validation DAF ;
+* validation Direction Générale ;
+* contrôle des pièces justificatives ;
+* rapprochements bancaires automatiques.
+
+Tableaux de bord
+
+Créer des dashboards :
+
+* position de trésorerie ;
+* besoins futurs ;
+* prévisions ;
+* alertes de liquidité ;
+* échéances importantes ;
+* cash forecast.
+
+⸻
+
+3. Gestion des factures régulières et conformité fiscale
+
+Le module Facturation doit respecter les exigences fiscales applicables (ex. Togo) tout en restant configurable selon le pays. GESTION TRESORERIE ET FACTURE REGULIERE OK.pdf
+
+Les modèles de facture doivent intégrer toutes les mentions obligatoires, notamment :
+
+* numéro unique de facture ;
+* série continue ;
+* NIF ;
+* RCCM ;
+* date ;
+* fournisseur ;
+* client ;
+* adresse ;
+* objet ;
+* prix HT ;
+* TVA ;
+* taux de TVA ;
+* exonérations ;
+* total TTC ;
+* devise ;
+* mentions légales ;
+* toutes les informations exigées par les réglementations nationales.
+
+Toutes ces informations devront être configurables selon le pays sélectionné lors de la création du tenant.
+
+⸻
+
+4. Signature numérique et cachet
+
+Permettre à chaque entreprise d’enregistrer :
+
+* une signature numérique ;
+* plusieurs signatures (DG, DAF, Comptable…) ;
+* plusieurs cachets numériques.
+
+Possibilité également :
+
+* signer directement depuis une tablette ou un écran tactile ;
+* signer avec la souris ;
+* signer avec un stylet.
+
+L’utilisateur pourra choisir :
+
+* quelles signatures apparaissent ;
+* quels cachets apparaissent ;
+* sur quels documents.
+
+Documents concernés :
+
+* factures ;
+* devis ;
+* bons de commande ;
+* contrats ;
+* bulletins de paie ;
+* attestations ;
+* rapports.
+
+⸻
+
+5. Scanner intelligent de factures (OCR + IA)
+
+Le module Comptabilité doit permettre :
+
+* prendre une photo d’une facture ;
+* scanner un document PDF ;
+* importer une facture.
+
+L’IA devra :
+
+* lire automatiquement la facture (OCR) ;
+* identifier le fournisseur ;
+* extraire les montants ;
+* identifier la TVA ;
+* détecter la devise ;
+* détecter les dates ;
+* identifier les échéances.
+
+Ensuite, effectuer automatiquement plusieurs contrôles.
+
+⸻
+
+Contrôle de conformité
+
+L’IA doit vérifier :
+
+* facture normalisée ;
+* mentions obligatoires ;
+* cohérence TVA ;
+* calculs ;
+* doublons ;
+* NIF ;
+* numéro de facture ;
+* validité des dates ;
+* montants incohérents.
+
+En cas d’anomalie :
+
+Afficher une alerte.
+
+Exemple :
+
+⚠ TVA incorrecte
+
+⚠ Facture non conforme
+
+⚠ NIF manquant
+
+⚠ Numéro déjà utilisé
+
+⚠ Montant incohérent
+
+⸻
+
+Justification utilisateur
+
+L’utilisateur pourra :
+
+* corriger immédiatement ;
+* joindre une pièce justificative ;
+* rédiger une justification ;
+* demander une validation exceptionnelle.
+
+Toute dérogation devra être historisée avec :
+
+* utilisateur ;
+* date ;
+* motif ;
+* validation.
+
+⸻
+
+6. Module Fiscalité
+
+En utilisant le document des impôts et taxes, créer un véritable moteur fiscal configurable. Liste des impôts et taxes.pdf
+
+Le système devra intégrer notamment :
+
+* TVA ;
+* IS ;
+* IMF ;
+* patente ;
+* IRPP ;
+* retenues à la source ;
+* taxes foncières ;
+* taxe d’habitation ;
+* droits d’enregistrement ;
+* taxes sur véhicules ;
+* autres impôts propres à chaque pays.
+
+Prévoir :
+
+* calcul automatique ;
+* échéancier fiscal ;
+* alertes ;
+* simulations ;
+* déclarations ;
+* historique.
+
+Ce moteur devra être entièrement configurable pour chaque pays afin de supporter plusieurs administrations fiscales.
+
+⸻
+
+7. Sauvegarde automatique des données
+
+Je souhaite intégrer une stratégie complète de sauvegarde des données.
+
+Chaque organisation pourra configurer :
+
+* sauvegarde quotidienne ;
+* sauvegarde hebdomadaire ;
+* sauvegarde mensuelle.
+
+Le système devra conserver automatiquement plusieurs versions des données.
+
+Exemple :
+
+Aujourd’hui : 14 juillet
+
+L’utilisateur pourra restaurer :
+
+* 13 juillet ;
+* 12 juillet ;
+* 11 juillet ;
+* etc.
+
+Prévoir :
+
+* restauration complète ;
+* restauration partielle ;
+* aperçu avant restauration.
+
+⸻
+
+8. Versioning des données
+
+Chaque modification importante devra créer un historique.
+
+Pouvoir consulter :
+
+* qui a modifié ;
+* quoi ;
+* quand ;
+* ancienne valeur ;
+* nouvelle valeur.
+
+⸻
+
+9. Sécurité des sauvegardes
+
+Les sauvegardes devront être :
+
+* chiffrées ;
+* redondées sur plusieurs serveurs ;
+* horodatées ;
+* vérifiées automatiquement ;
+* restaurables en un clic.
+
+Prévoir une politique de rétention configurable.
+
+⸻
+
+10. Assistant IA Comptable
+
+L’Assistant IA devra analyser automatiquement :
+
+* les factures ;
+* les déclarations fiscales ;
+* les paiements ;
+* les rapprochements ;
+* les anomalies comptables ;
+* les écarts de trésorerie ;
+* les risques fiscaux.
+
+L’IA devra également proposer :
+
+* des corrections ;
+* des optimisations ;
+* des recommandations ;
+* une évaluation du niveau de risque.
+
+⸻
+
+11. Expérience utilisateur
+
+Toutes ces nouvelles fonctionnalités devront respecter les principes suivants :
+
+* interface moderne et intuitive ;
+* aide contextuelle sur chaque écran ;
+* descriptions des champs ;
+* assistants pas-à-pas ;
+* tableaux de bord interactifs ;
+* responsive (ordinateur, tablette et mobile) ;
+* workflow simple malgré la richesse fonctionnelle.
+
+⸻
+
+12. Mock Data
+
+Mettre à jour les données de démonstration de Hissado Consulting afin d’illustrer l’ensemble de ces nouvelles fonctionnalités :
+
+* avances sur salaire ;
+* trésorerie ;
+* prévisions de trésorerie ;
+* impôts ;
+* déclarations fiscales ;
+* factures conformes et non conformes ;
+* contrôles IA ;
+* sauvegardes ;
+* restaurations ;
+* workflows de validation.
+
+Les données doivent être réalistes et permettre une démonstration convaincante du potentiel de Gameasu.
+
+⸻
+
+13. Vérification globale
+
+Enfin, réaliser un audit complet des scénarios fonctionnels afin de vérifier que :
+
+* toutes les fonctionnalités sont cohérentes entre elles ;
+* les workflows sont réalistes ;
+* les données circulent correctement entre les modules RH, Comptabilité, Fiscalité, Trésorerie, Facturation, CRM et IA ;
+* les écritures comptables sont générées automatiquement lorsque cela est pertinent ;
+* le système est conforme aux bonnes pratiques comptables, fiscales et de contrôle interne, tout en restant suffisamment flexible pour s’adapter aux différents pays.
+
+Objectif final : faire de Gameasu un ERP SaaS multi-tenant, multi-pays et multi-référentiels, capable d’offrir une gestion RH, comptable, fiscale et financière de niveau entreprise, avec des contrôles intelligents, une forte automatisation, une sécurité avancée des données et une expérience utilisateur premium.
