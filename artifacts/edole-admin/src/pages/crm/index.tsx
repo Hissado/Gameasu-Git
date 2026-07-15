@@ -24,6 +24,7 @@ import { Link } from "wouter";
 import { PageHeader } from "@/components/ui/page-header";
 import { usePermissions } from "@/lib/permissions";
 import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
+import { ModuleIntroCard } from "@/components/ui/module-intro-card";
 
 // Progression logique des stades (prev → next)
 const STAGE_NEXT: Record<string, string> = {
@@ -263,6 +264,7 @@ export default function CrmHome() {
           onStepChange={handleTourStepChange}
         />
       )}
+      <ModuleIntroCard moduleKey="crm" />
       <PageHeader
         title="Pipeline Commercial"
         subtitle={`${opportunities?.total ?? 0} opportunités · ${pipeline ? formatFCFACompact(pipeline.totalValue ?? 0) : "0 FCFA"} en pipeline`}

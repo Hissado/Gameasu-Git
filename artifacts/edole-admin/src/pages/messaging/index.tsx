@@ -20,6 +20,7 @@ import { useAuth } from "@/lib/auth";
 import { getSocket, useRealtime, useConversationRoom, emitTyping } from "@/lib/realtime";
 import { useCallCenter } from "@/components/CallCenter";
 import { cn } from "@/lib/utils";
+import { ModuleIntroCard } from "@/components/ui/module-intro-card";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type Participant = {
@@ -953,6 +954,7 @@ export default function Messaging() {
           <NewConversationDialog onCreated={(c) => { setSelectedConvId(c.id); refresh(); }} />
         </div>
       </div>
+      <ModuleIntroCard moduleKey="messagerie" />
 
       <div className="flex-1 flex gap-4 overflow-hidden">
         {/* Conversations list */}

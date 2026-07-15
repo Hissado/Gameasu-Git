@@ -13,6 +13,7 @@ import {
   ShoppingCart, Receipt, CheckCircle2, Bell,
 } from "lucide-react";
 import { StatusBadgePurchases } from "./_shared";
+import { ModuleIntroCard } from "@/components/ui/module-intro-card";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -139,6 +140,7 @@ export default function AchatsOverview() {
         title="Vue d'ensemble Achats"
         subtitle="Tableau de bord des comptes fournisseurs"
       />
+      <ModuleIntroCard moduleKey="achats" />
 
       {/* ── KPI cards — 7 indicateurs ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

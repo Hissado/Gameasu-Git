@@ -19,6 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
+import { ModuleIntroCard } from "@/components/ui/module-intro-card";
 
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -433,6 +434,7 @@ export default function InvoicesList() {
           onStepChange={handleTourStepChange}
         />
       )}
+      <ModuleIntroCard moduleKey="factures" />
       <PageHeader
         title="Factures"
         icon={FileText}

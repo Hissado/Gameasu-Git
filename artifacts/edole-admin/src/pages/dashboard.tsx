@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { IntelligenceWidget } from "@/components/IntelligenceWidget";
 import { QuickClockWidget } from "@/components/QuickClockWidget";
 import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
+import { ModuleIntroCard } from "@/components/ui/module-intro-card";
 import { LayoutDashboard } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -246,6 +247,7 @@ export default function Dashboard() {
           onStepChange={handleTourStepChange}
         />
       )}
+      <ModuleIntroCard moduleKey="dashboard" />
 
       {/* ── En-tête ─────────────────────────────────────────────────────── */}
       <header data-tour="dash-header" className="rounded-2xl overflow-hidden border border-slate-800 shadow-lg"

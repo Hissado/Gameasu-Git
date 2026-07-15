@@ -30,6 +30,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
+import { ModuleIntroCard } from "@/components/ui/module-intro-card";
 
 // ── RAG ───────────────────────────────────────────────────────────────────────
 
@@ -343,6 +344,7 @@ export default function ProjectsList() {
           onStepChange={handleTourStepChange}
         />
       )}
+      <ModuleIntroCard moduleKey="projets" />
       <PageHeader
         title="Projets"
         icon={FolderKanban}

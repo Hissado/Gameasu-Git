@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Truck, ArrowRight, FileText, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
+import { ModuleIntroCard } from "@/components/ui/module-intro-card";
 
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -248,6 +249,7 @@ export default function RentalsList() {
           onStepChange={handleTourStepChange}
         />
       )}
+      <ModuleIntroCard moduleKey="logistique" />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Locations</h1>
