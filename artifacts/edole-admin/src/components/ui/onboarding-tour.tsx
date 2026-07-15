@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "wouter";
 import {
   X, ChevronRight, ChevronLeft, Sparkles, BookOpen, MapPin,
+  CheckCircle2, Circle, Clock, Play, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -11,9 +13,319 @@ export interface TourStep {
   target: string;
   title: string;
   description: string;
+  /** Bouton d'action optionnel affiché dans la bulle */
+  action?: { label: string; href: string };
 }
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
+export interface TourPath {
+  key: string;
+  name: string;
+  description: string;
+  steps: TourStep[];
+}
+
+// ─── Catalogue de parcours ─────────────────────────────────────────────────────
+
+export const TOUR_PATHS: Record<string, TourPath[]> = {
+  dashboard: [
+    {
+      key: "decouverte",
+      name: "Découverte",
+      description: "Vue d'ensemble des KPIs et de l'activité récente en 3 étapes.",
+      steps: [
+        {
+          target: "dash-header",
+          title: "Votre espace de travail",
+          description: "Le tableau de bord s'ouvre sur votre salutation personnalisée, la date du jour et un résumé des alertes actives (factures en retard, tâches échues).",
+        },
+        {
+          target: "dash-kpis",
+          title: "Indicateurs clés",
+          description: "Encaissements du mois, créances ouvertes, pipeline CRM, taux de recouvrement — une vue synthétique actualisée en temps réel. Cliquez sur un KPI pour accéder au module.",
+        },
+        {
+          target: "dash-alerts",
+          title: "Alertes & tâches prioritaires",
+          description: "Les actions urgentes remontent ici. Chaque alerte est un lien direct vers le document ou la tâche concernée — agissez sans chercher dans les menus.",
+        },
+      ],
+    },
+    {
+      key: "actions-rapides",
+      name: "Actions rapides",
+      description: "Maîtrisez les raccourcis et créations rapides du tableau de bord.",
+      steps: [
+        {
+          target: "dash-header",
+          title: "Créer rapidement",
+          description: "Les boutons en haut à droite du panneau permettent de créer factures, devis, clients et projets en un clic, sans quitter le tableau de bord.",
+          action: { label: "Créer une facture", href: "/factures" },
+        },
+        {
+          target: "dash-kpis",
+          title: "Naviguer par KPI",
+          description: "Chaque carte KPI est cliquable et redirige vers le module correspondant. Cliquez sur «Créances ouvertes» pour aller directement aux factures impayées.",
+        },
+        {
+          target: "dash-alerts",
+          title: "Traiter les alertes",
+          description: "Chaque alerte est un lien direct vers l'élément concerné. Traitez vos priorités sans naviguer dans les menus.",
+          action: { label: "Voir les factures", href: "/factures" },
+        },
+      ],
+    },
+  ],
+  crm: [
+    {
+      key: "decouverte",
+      name: "Découverte du CRM",
+      description: "Apprenez à gérer vos opportunités commerciales en mode kanban.",
+      steps: [
+        {
+          target: "crm-pipeline",
+          title: "Kanban pipeline",
+          description: "Les colonnes représentent les stades de votre cycle de vente. Faites glisser une opportunité d'une colonne à l'autre pour mettre à jour son avancement.",
+        },
+        {
+          target: "crm-opportunity",
+          title: "Fiche opportunité",
+          description: "Chaque carte affiche la valeur estimée, la probabilité de gain, le commercial responsable et la prochaine action planifiée.",
+        },
+      ],
+    },
+    {
+      key: "conversion",
+      name: "Conversion & suivi",
+      description: "Cycle complet : activités, conversion et reporting commercial.",
+      steps: [
+        {
+          target: "crm-pipeline",
+          title: "Filtres et assignation",
+          description: "Utilisez les filtres en haut pour n'afficher que vos opportunités ou celles d'un commercial spécifique. Reassignez en un clic depuis la carte.",
+        },
+        {
+          target: "crm-opportunity",
+          title: "Convertir en client",
+          description: "Une opportunité «Gagnée» se convertit en client directement depuis la fiche détail. Les coordonnées et le contexte commercial sont repris automatiquement.",
+          action: { label: "Voir le CRM", href: "/crm" },
+        },
+      ],
+    },
+  ],
+  projets: [
+    {
+      key: "decouverte",
+      name: "Portefeuille projets",
+      description: "Créez et suivez vos projets, phases et équipes.",
+      steps: [
+        {
+          target: "proj-list",
+          title: "Liste des projets",
+          description: "Vue synthétique de tous vos projets actifs : budget alloué, taux d'avancement calculé automatiquement à partir des tâches, et équipe affectée.",
+        },
+        {
+          target: "proj-detail",
+          title: "Fiche projet",
+          description: "Phases, tâches, documents, budget et collaborateurs — tout est centralisé. Naviguez par onglets pour chaque dimension.",
+        },
+      ],
+    },
+    {
+      key: "suivi",
+      name: "Suivi & charge équipe",
+      description: "Budget réalisé, avancement et gestion de la charge par collaborateur.",
+      steps: [
+        {
+          target: "proj-list",
+          title: "Avancement automatique",
+          description: "Le taux d'avancement est calculé automatiquement à partir du ratio tâches terminées / total des tâches. Il se met à jour en temps réel.",
+        },
+        {
+          target: "proj-detail",
+          title: "Budget réalisé",
+          description: "Le budget consommé se met à jour dès qu'une facture ou dépense est associée au projet. Suivez l'écart budget/réalisé à tout moment.",
+          action: { label: "Voir les projets", href: "/projets" },
+        },
+      ],
+    },
+  ],
+  factures: [
+    {
+      key: "decouverte",
+      name: "Facturation SYSCOHADA",
+      description: "Créez et gérez vos factures conformément à la norme comptable.",
+      steps: [
+        {
+          target: "inv-list",
+          title: "Liste des factures",
+          description: "Toutes vos factures avec leur statut (brouillon, envoyée, payée, annulée), montant TTC et date d'échéance. Le rouge indique les factures en retard.",
+        },
+        {
+          target: "inv-create",
+          title: "Nouvelle facture",
+          description: "Sélectionnez le client, ajoutez les lignes de prestation avec TVA et définissez l'échéance. La numérotation SYSCOHADA est générée automatiquement.",
+          action: { label: "Créer une facture", href: "/factures" },
+        },
+      ],
+    },
+    {
+      key: "encaissement",
+      name: "Encaissement & relances",
+      description: "Suivez les règlements reçus et gérez les relances clients.",
+      steps: [
+        {
+          target: "inv-list",
+          title: "Identifier les retards",
+          description: "Les factures en rouge ont dépassé leur date d'échéance. Filtrez-les pour lancer des relances groupées ou accéder au module Recouvrement.",
+        },
+        {
+          target: "inv-list",
+          title: "Export PDF et email",
+          description: "Chaque facture est exportable en PDF et peut être envoyée par email depuis la fiche. Le modèle reprend votre logo et vos coordonnées bancaires.",
+          action: { label: "Voir les factures", href: "/factures" },
+        },
+      ],
+    },
+  ],
+  fpa: [
+    {
+      key: "decouverte",
+      name: "Introduction au FP&A",
+      description: "Budget, forecast et analyse des écarts financiers.",
+      steps: [
+        {
+          target: "fpa-budgets",
+          title: "Budgets versionnés",
+          description: "Chaque budget est versionné et peut être dupliqué pour créer des scénarios alternatifs (best case, worst case). Un seul budget peut être «actif» par périmètre.",
+        },
+        {
+          target: "fpa-variance",
+          title: "Analyse des écarts",
+          description: "Comparez budget vs réalisé compte par compte et mois par mois. Les écarts négatifs sont surlignés automatiquement pour attirer votre attention.",
+        },
+      ],
+    },
+    {
+      key: "projection",
+      name: "Forecast & projection fin d'année",
+      description: "Anticipez la clôture avec les outils de projection FP&A.",
+      steps: [
+        {
+          target: "fpa-budgets",
+          title: "Activer un budget",
+          description: "L'activation d'un budget l'élève en référence du périmètre et archive automatiquement le précédent. Un seul budget actif par périmètre à la fois.",
+        },
+        {
+          target: "fpa-variance",
+          title: "Projection fin d'année",
+          description: "L'atterrissage (YTD + budget restant) et la projection linéaire vous donnent deux visions de la fin d'exercice pour affiner vos décisions budgétaires.",
+          action: { label: "Voir les budgets", href: "/fpa" },
+        },
+      ],
+    },
+  ],
+  collaborateurs: [
+    {
+      key: "decouverte",
+      name: "Fiches collaborateurs",
+      description: "Profils RH, charge de travail et gestion des équipes.",
+      steps: [
+        {
+          target: "collab-list",
+          title: "Annuaire des collaborateurs",
+          description: "Tous vos collaborateurs avec leur poste, statut et taux de charge actuel. La couleur de la barre indique la charge : vert = disponible, rouge = surchargé.",
+        },
+        {
+          target: "collab-workload",
+          title: "Matrice de charge",
+          description: "Visualisez la charge semaine par semaine pour chaque collaborateur et anticipez les ressources disponibles pour vos prochains projets.",
+          action: { label: "Voir les collaborateurs", href: "/collaborateurs" },
+        },
+      ],
+    },
+  ],
+  paiements: [
+    {
+      key: "decouverte",
+      name: "Encaissements clients",
+      description: "Enregistrez et suivez tous les règlements reçus.",
+      steps: [
+        {
+          target: "pay-list",
+          title: "Journal des encaissements",
+          description: "Tous les paiements reçus triés par date, avec le mode de règlement (virement, espèces, mobile money) et la facture associée. La comptabilisation est automatique.",
+        },
+        {
+          target: "pay-list",
+          title: "Saisir un encaissement",
+          description: "Associez un paiement à une ou plusieurs factures, y compris des règlements partiels. La balance de chaque facture se met à jour immédiatement.",
+          action: { label: "Saisir un paiement", href: "/paiements" },
+        },
+      ],
+    },
+  ],
+  locations: [
+    {
+      key: "decouverte",
+      name: "Locations d'équipements",
+      description: "Gérez les contrats de location et les états des lieux.",
+      steps: [
+        {
+          target: "rent-list",
+          title: "Planning des locations",
+          description: "Vue calendaire des équipements loués : disponibilités, contrats en cours et retours prévus. Repérez les conflits de réservation en un coup d'œil.",
+        },
+        {
+          target: "rent-detail",
+          title: "États des lieux",
+          description: "Chaque contrat inclut un état des lieux départ et retour pour documenter l'état des équipements et protéger vos intérêts.",
+        },
+      ],
+    },
+  ],
+  taches: [
+    {
+      key: "decouverte",
+      name: "Gestion des tâches",
+      description: "Organisez et suivez votre travail quotidien.",
+      steps: [
+        {
+          target: "task-list",
+          title: "Liste des tâches",
+          description: "Toutes vos tâches avec priorité (haute/normale/basse), assignation, date d'échéance et statut. Les tâches échues s'affichent en rouge.",
+        },
+        {
+          target: "task-list",
+          title: "Filtres et sous-tâches",
+          description: "Filtrez par statut, priorité ou projet. Chaque tâche peut avoir des sous-tâches, des commentaires d'équipe et des pièces jointes.",
+          action: { label: "Voir les tâches", href: "/tasks" },
+        },
+      ],
+    },
+  ],
+  plan_comptable: [
+    {
+      key: "decouverte",
+      name: "Plan de comptes SYSCOHADA",
+      description: "Naviguez dans la structure comptable normalisée.",
+      steps: [
+        {
+          target: "coa-list",
+          title: "Classes de comptes",
+          description: "Les comptes sont organisés en 8 classes SYSCOHADA (immobilisations, stocks, tiers, financiers, charges, produits…). Développez chaque classe pour voir le détail.",
+        },
+        {
+          target: "coa-list",
+          title: "Comptes personnalisés",
+          description: "Créez des sous-comptes spécifiques à votre organisation en respectant la nomenclature SYSCOHADA. Les journaux et saisies s'actualisent en temps réel.",
+          action: { label: "Voir le plan", href: "/comptabilite/plan-comptable" },
+        },
+      ],
+    },
+  ],
+};
+
+// ─── Constants & LS helpers ─────────────────────────────────────────────────────
 
 export const TOUR_MODULE_MAP: Record<string, string> = {
   "/": "dashboard",
@@ -29,7 +341,35 @@ export const TOUR_MODULE_MAP: Record<string, string> = {
 };
 
 const LS_KEY = (k: string) => `tour_seen_${k}`;
+const LS_PATH_DONE = (m: string, p: string) => `tour_path_done_${m}_${p}`;
+const LS_PATH_STEP = (m: string, p: string) => `tour_path_step_${m}_${p}`;
+
 export const RELAUNCH_EVENT = "gameasu:relaunch-tour";
+
+// ─── Path progress helpers ─────────────────────────────────────────────────────
+
+export type PathStatus = "done" | "in_progress" | "not_started";
+
+export function getPathStatus(moduleKey: string, pathKey: string): PathStatus {
+  if (localStorage.getItem(LS_PATH_DONE(moduleKey, pathKey))) return "done";
+  const step = localStorage.getItem(LS_PATH_STEP(moduleKey, pathKey));
+  if (step !== null && parseInt(step) > 0) return "in_progress";
+  return "not_started";
+}
+
+export function savePathProgress(moduleKey: string, pathKey: string, step: number, totalSteps: number) {
+  if (step >= totalSteps - 1) {
+    localStorage.setItem(LS_PATH_DONE(moduleKey, pathKey), "1");
+    localStorage.removeItem(LS_PATH_STEP(moduleKey, pathKey));
+  } else {
+    localStorage.setItem(LS_PATH_STEP(moduleKey, pathKey), String(step));
+  }
+}
+
+export function resetPathProgress(moduleKey: string, pathKey: string) {
+  localStorage.removeItem(LS_PATH_DONE(moduleKey, pathKey));
+  localStorage.removeItem(LS_PATH_STEP(moduleKey, pathKey));
+}
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
@@ -169,6 +509,12 @@ export function WelcomeModal({ title, subtitle, icon: Icon, steps, onStart, onDi
 interface OnboardingTourProps {
   steps: TourStep[];
   onClose: () => void;
+  /** Nom du parcours affiché dans la bulle (optionnel) */
+  pathLabel?: string;
+  /** Étape de départ pour la reprise (optionnel, défaut = 0) */
+  initialStep?: number;
+  /** Callback appelé à chaque changement d'étape */
+  onStepChange?: (step: number) => void;
 }
 
 const LENS_PADDING = 8;
@@ -202,9 +548,16 @@ function getBubblePosition(rect: DOMRect, bubbleHeight: number) {
   return { top, left, placement };
 }
 
-export function OnboardingTour({ steps, onClose }: OnboardingTourProps) {
-  const [currentStep, setCurrentStep] = useState(0);
+export function OnboardingTour({ steps, onClose, pathLabel, initialStep = 0, onStepChange }: OnboardingTourProps) {
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const currentStepRef = useRef(currentStep);
+  currentStepRef.current = currentStep;
+
+  const goTo = useCallback((idx: number) => {
+    setCurrentStep(idx);
+    onStepChange?.(idx);
+  }, [onStepChange]);
 
   const updateRect = useCallback((stepIdx: number) => {
     const step = steps[stepIdx];
@@ -215,11 +568,9 @@ export function OnboardingTour({ steps, onClose }: OnboardingTourProps) {
       return;
     }
     el.scrollIntoView({ behavior: "smooth", block: "center" });
-    const measure = () => {
-      const r = el.getBoundingClientRect();
-      setRect(r);
-    };
-    const tid = setTimeout(measure, 350);
+    const tid = setTimeout(() => {
+      setRect(el.getBoundingClientRect());
+    }, 350);
     return () => clearTimeout(tid);
   }, [steps]);
 
@@ -229,28 +580,30 @@ export function OnboardingTour({ steps, onClose }: OnboardingTourProps) {
   }, [currentStep, updateRect]);
 
   useEffect(() => {
-    const handleResize = () => updateRect(currentStep);
+    const handleResize = () => updateRect(currentStepRef.current);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [currentStep, updateRect]);
+  }, [updateRect]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") { onClose(); return; }
-      if ((e.key === "ArrowRight" || e.key === "ArrowDown") && currentStep < steps.length - 1) {
-        setCurrentStep(s => s + 1);
+      if ((e.key === "ArrowRight" || e.key === "ArrowDown") && currentStepRef.current < steps.length - 1) {
+        goTo(currentStepRef.current + 1);
       }
-      if ((e.key === "ArrowLeft" || e.key === "ArrowUp") && currentStep > 0) {
-        setCurrentStep(s => s - 1);
+      if ((e.key === "ArrowLeft" || e.key === "ArrowUp") && currentStepRef.current > 0) {
+        goTo(currentStepRef.current - 1);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [currentStep, steps.length, onClose]);
+  }, [steps.length, onClose, goTo]);
 
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
   const isFirst = currentStep === 0;
+
+  const BUBBLE_HEIGHT_ESTIMATE = 210;
 
   const lensStyle: React.CSSProperties = rect ? {
     position: "fixed",
@@ -273,10 +626,13 @@ export function OnboardingTour({ steps, onClose }: OnboardingTourProps) {
     pointerEvents: "none",
   };
 
-  const BUBBLE_HEIGHT_ESTIMATE = 180;
   const bubblePos = rect
     ? getBubblePosition(rect, BUBBLE_HEIGHT_ESTIMATE)
-    : { top: window.innerHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2, left: window.innerWidth / 2 - BUBBLE_WIDTH / 2, placement: "bottom" as const };
+    : {
+        top: window.innerHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2,
+        left: window.innerWidth / 2 - BUBBLE_WIDTH / 2,
+        placement: "bottom" as const,
+      };
 
   const bubbleStyle: React.CSSProperties = {
     position: "fixed",
@@ -303,7 +659,15 @@ export function OnboardingTour({ steps, onClose }: OnboardingTourProps) {
             />
           </div>
 
-          <div className="px-4 pt-4 pb-3">
+          <div className="px-4 pt-3.5 pb-3">
+            {/* Parcours label */}
+            {pathLabel && (
+              <div className="flex items-center gap-1 mb-2">
+                <BookOpen className="w-3 h-3 text-primary/60" />
+                <span className="text-[10px] font-semibold text-primary/70 uppercase tracking-wide truncate">{pathLabel}</span>
+              </div>
+            )}
+
             {/* Header */}
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
@@ -322,10 +686,24 @@ export function OnboardingTour({ steps, onClose }: OnboardingTourProps) {
 
             <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
 
+            {/* Action optionnelle */}
+            {step.action && (
+              <Link href={step.action.href} onClick={onClose}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2.5 h-7 text-xs gap-1 w-full border-primary/30 text-primary hover:bg-primary/5"
+                >
+                  {step.action.label}
+                  <ChevronRight className="w-3 h-3" />
+                </Button>
+              </Link>
+            )}
+
             {/* Navigation */}
-            <div className="flex items-center justify-between mt-4 gap-2">
-              <span className="text-[11px] text-muted-foreground font-medium">
-                {currentStep + 1} / {steps.length}
+            <div className="flex items-center justify-between mt-3 gap-2">
+              <span className="text-[11px] text-muted-foreground font-medium tabular-nums">
+                Étape {currentStep + 1} / {steps.length}
               </span>
               <div className="flex gap-2">
                 {!isFirst && (
@@ -333,7 +711,7 @@ export function OnboardingTour({ steps, onClose }: OnboardingTourProps) {
                     variant="outline"
                     size="sm"
                     className="h-7 px-2.5 text-xs gap-1"
-                    onClick={() => setCurrentStep(s => s - 1)}
+                    onClick={() => goTo(currentStep - 1)}
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     Préc.
@@ -352,7 +730,7 @@ export function OnboardingTour({ steps, onClose }: OnboardingTourProps) {
                   <Button
                     size="sm"
                     className="h-7 px-2.5 text-xs gap-1 bg-primary hover:bg-primary/90"
-                    onClick={() => setCurrentStep(s => s + 1)}
+                    onClick={() => goTo(currentStep + 1)}
                   >
                     Suivant
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -367,15 +745,267 @@ export function OnboardingTour({ steps, onClose }: OnboardingTourProps) {
             {steps.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setCurrentStep(i)}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${
-                  i === currentStep ? "bg-primary w-4" : "bg-slate-200 hover:bg-slate-300"
+                onClick={() => goTo(i)}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === currentStep ? "bg-primary w-4" : "bg-slate-200 hover:bg-slate-300 w-1.5"
                 }`}
               />
             ))}
           </div>
         </div>
       </div>
+    </>,
+    document.body,
+  );
+}
+
+// ─── GuidesPanel ──────────────────────────────────────────────────────────────
+
+interface GuidesPanelProps {
+  moduleKey: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}
+
+export function GuidesPanel({ moduleKey, open, onOpenChange }: GuidesPanelProps) {
+  const [activePath, setActivePath] = useState<string | null>(null);
+  const [tourActive, setTourActive] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  const paths = TOUR_PATHS[moduleKey] ?? [];
+
+  // Refresh status badges when panel opens
+  useEffect(() => {
+    if (open) setTick(n => n + 1);
+  }, [open]);
+
+  const startPath = useCallback((pathKey: string) => {
+    const path = paths.find(p => p.key === pathKey);
+    if (!path) return;
+    setActivePath(pathKey);
+    setTourActive(true);
+    onOpenChange(false);
+  }, [paths, onOpenChange]);
+
+  const redoPath = useCallback((pathKey: string) => {
+    resetPathProgress(moduleKey, pathKey);
+    setActivePath(pathKey);
+    setTourActive(true);
+    onOpenChange(false);
+  }, [moduleKey, onOpenChange]);
+
+  const handleTourStepChange = useCallback((step: number) => {
+    if (activePath) {
+      const path = paths.find(p => p.key === activePath);
+      if (path) savePathProgress(moduleKey, activePath, step, path.steps.length);
+    }
+  }, [activePath, paths, moduleKey]);
+
+  const handleTourClose = useCallback(() => {
+    if (activePath) {
+      const path = paths.find(p => p.key === activePath);
+      if (path) {
+        // If already marked done by onStepChange on last step, leave it; otherwise keep step
+        // Nothing extra needed — onStepChange already saved
+      }
+    }
+    setTourActive(false);
+    setActivePath(null);
+    setTick(n => n + 1);
+  }, [activePath, paths]);
+
+  const activePathObj = activePath ? (paths.find(p => p.key === activePath) ?? null) : null;
+  const activeInitialStep = (activePath && activePathObj)
+    ? (() => {
+        const saved = localStorage.getItem(LS_PATH_STEP(moduleKey, activePath));
+        return saved ? Math.min(parseInt(saved), activePathObj.steps.length - 1) : 0;
+      })()
+    : 0;
+
+  // Use tick to force re-read of localStorage status in render
+  void tick;
+
+  return createPortal(
+    <>
+      {/* Tour runner (independent of panel visibility) */}
+      {tourActive && activePathObj && (
+        <OnboardingTour
+          steps={activePathObj.steps}
+          onClose={handleTourClose}
+          pathLabel={activePathObj.name}
+          initialStep={activeInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
+
+      {/* Panel */}
+      {open && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[9800]"
+            style={{ background: "rgba(0,0,0,0.15)", backdropFilter: "blur(1px)" }}
+            onClick={() => onOpenChange(false)}
+          />
+
+          {/* Drawer */}
+          <div className="fixed top-0 right-0 bottom-0 z-[9810] w-[360px] bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-200">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Guides disponibles</h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    {paths.length > 0
+                      ? `${paths.length} parcours pour ce module`
+                      : "Naviguez vers un module guidé"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => onOpenChange(false)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-muted-foreground hover:text-slate-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {paths.length === 0 ? (
+                <div className="text-center py-14 text-muted-foreground">
+                  <BookOpen className="w-8 h-8 mx-auto mb-3 opacity-25" />
+                  <p className="text-sm font-medium">Aucun guide pour ce module</p>
+                  <p className="text-xs mt-1 opacity-70">
+                    Des guides sont disponibles pour : Dashboard, CRM, Projets, Factures, FP&amp;A, et plus.
+                  </p>
+                </div>
+              ) : paths.map((path) => {
+                const status = getPathStatus(moduleKey, path.key);
+                const savedStepRaw = localStorage.getItem(LS_PATH_STEP(moduleKey, path.key));
+                const savedStep = savedStepRaw !== null ? parseInt(savedStepRaw) : 0;
+
+                return (
+                  <div
+                    key={path.key}
+                    className={`rounded-xl border p-4 space-y-3 transition-colors ${
+                      status === "done"
+                        ? "border-emerald-200 bg-emerald-50/40"
+                        : status === "in_progress"
+                        ? "border-amber-200 bg-amber-50/40"
+                        : "border-slate-200 bg-white"
+                    }`}
+                  >
+                    {/* Path header */}
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 shrink-0">
+                        {status === "done" ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        ) : status === "in_progress" ? (
+                          <Clock className="w-4 h-4 text-amber-500" />
+                        ) : (
+                          <Circle className="w-4 h-4 text-slate-300" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-sm font-semibold text-slate-900">{path.name}</h3>
+                          <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
+                            status === "done"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : status === "in_progress"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-slate-100 text-slate-500"
+                          }`}>
+                            {status === "done" ? "Terminé" : status === "in_progress" ? "En cours" : "Non commencé"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{path.description}</p>
+                        <p className="text-[11px] text-muted-foreground/60 mt-1.5 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          {path.steps.length} étape{path.steps.length > 1 ? "s" : ""}
+                          {status === "in_progress" && ` · En cours : étape ${savedStep + 1}/${path.steps.length}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Progress track */}
+                    {(status === "in_progress" || status === "done") && (
+                      <div className="flex gap-1">
+                        {path.steps.map((_, i) => (
+                          <div
+                            key={i}
+                            className={`h-1 flex-1 rounded-full transition-colors ${
+                              status === "done" || i <= savedStep
+                                ? status === "done" ? "bg-emerald-400" : "bg-amber-400"
+                                : "bg-slate-200"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      {status === "done" ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-xs gap-1.5"
+                          onClick={() => redoPath(path.key)}
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Revoir
+                        </Button>
+                      ) : status === "in_progress" ? (
+                        <>
+                          <Button
+                            size="sm"
+                            className="flex-1 h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90"
+                            onClick={() => startPath(path.key)}
+                          >
+                            <Play className="w-3 h-3" />
+                            Reprendre
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs px-2.5 gap-1 shrink-0"
+                            onClick={() => redoPath(path.key)}
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            Recommencer
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="flex-1 h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90"
+                          onClick={() => startPath(path.key)}
+                        >
+                          <Play className="w-3 h-3" />
+                          Démarrer le parcours
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-3 border-t border-slate-200 shrink-0 bg-slate-50/60">
+              <p className="text-[11px] text-muted-foreground text-center">
+                Utilisez ← → pour naviguer · Échap pour fermer
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </>,
     document.body,
   );

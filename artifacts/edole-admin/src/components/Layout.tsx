@@ -27,7 +27,7 @@ import { KoffiChat } from "@/components/KoffiChat";
 import { GlobalSearch, useGlobalSearch } from "@/components/GlobalSearch";
 import { AppBreadcrumb } from "@/components/AppBreadcrumb";
 import { SuggestionDialog } from "@/components/SuggestionDialog";
-import { TOUR_MODULE_MAP, RELAUNCH_EVENT } from "@/components/ui/onboarding-tour";
+import { TOUR_MODULE_MAP, RELAUNCH_EVENT, GuidesPanel } from "@/components/ui/onboarding-tour";
 
 type NavItem = {
   name: string; path: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -249,6 +249,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [suggestionOpen, setSuggestionOpen] = useState(false);
+  const [guidesOpen, setGuidesOpen] = useState(false);
   const { open: searchOpen, setOpen: setSearchOpen } = useGlobalSearch();
 
   // Expert Portal — use useActiveFirm as single source of truth (stays in sync across pages)
@@ -773,6 +774,19 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               )}
             </Link>
 
+            {/* Guides disponibles */}
+            <button
+              onClick={() => setGuidesOpen(true)}
+              className="hidden sm:flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors relative"
+              aria-label="Guides disponibles"
+              title="Guides disponibles"
+            >
+              <BookOpen className="w-[18px] h-[18px]" strokeWidth={1.75} />
+              {currentTourKey && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+              )}
+            </button>
+
             {/* Aide & support */}
             <Link
               href="/tickets"
@@ -993,6 +1007,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
       {/* ── Suggestion produit — accessible depuis la topbar ──────────────────── */}
       <SuggestionDialog open={suggestionOpen} onOpenChange={setSuggestionOpen} />
+
+      {/* ── Guides disponibles ─────────────────────────────────────────────────── */}
+      <GuidesPanel
+        moduleKey={currentTourKey ?? ""}
+        open={guidesOpen}
+        onOpenChange={setGuidesOpen}
+      />
     </div>
   );
 };
