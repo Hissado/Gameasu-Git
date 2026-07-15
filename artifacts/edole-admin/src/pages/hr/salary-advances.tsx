@@ -229,7 +229,7 @@ export default function SalaryAdvancesPage() {
           <p className="text-sm text-white/50 mt-0.5">Gérez les demandes, approbations et remboursements</p>
         </div>
         <div className="flex gap-2">
-          {isManager && (
+          {["super_admin", "admin"].includes(user?.role ?? "") && (
             <Button variant="outline" size="sm" onClick={() => setShowPolicy(true)}>
               <FileText className="w-4 h-4 mr-1.5" /> Politique
             </Button>

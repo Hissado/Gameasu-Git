@@ -1173,6 +1173,230 @@ function ReclamationsTab() {
   );
 }
 
+// ── Types Avances ─────────────────────────────────────────────────────────────
+type MyAdvance = {
+  id: string; requestedAmount: number; approvedAmount?: number;
+  remainingAmount?: number; targetPeriod: string; repaymentMode: string;
+  repaymentMonths?: number; reason?: string; status: string; createdAt: string;
+};
+type AdvancePolicy = {
+  maxPercentOfSalary: number; maxAbsoluteAmount: number;
+  maxRepaymentMonths: number; minTenureMonths: number;
+};
+
+const ADVANCE_STATUS: Record<string, { label: string; cls: string }> = {
+  draft:            { label: "Brouillon",  cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  pending_approval: { label: "En attente", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  approved:         { label: "Approuvée",  cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  rejected:         { label: "Rejetée",    cls: "bg-red-50 text-red-700 border-red-200" },
+  disbursed:        { label: "Décaissée",  cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  closed:           { label: "Soldée",     cls: "bg-slate-50 text-slate-500 border-slate-200" },
+  cancelled:        { label: "Annulée",    cls: "bg-slate-100 text-slate-400 border-slate-200" },
+};
+
+function AvancesTab() {
+  const qc = useQueryClient();
+  const { toast: showToast } = useToast();
+  const [showNew, setShowNew] = useState(false);
+  const [form, setForm] = useState({
+    requestedAmount: "", targetPeriod: "", repaymentMode: "single", repaymentMonths: "1", reason: "",
+  });
+  const currentYM = () => {
+    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  const { data: advances = [], isLoading } = useQuery<MyAdvance[]>({
+    queryKey: ["my-advances"],
+    queryFn: () => apiFetch("/api/hr/salary-advances/my"),
+    retry: false,
+  });
+
+  const { data: policy } = useQuery<AdvancePolicy>({
+    queryKey: ["my-advance-policy"],
+    queryFn: () => apiFetch("/api/hr/salary-advance-policy"),
+    retry: false,
+  });
+
+  const createMut = useMutation({
+    mutationFn: (data: unknown) => apiFetch("/api/hr/salary-advances", { method: "POST", body: data }),
+    onSuccess: () => {
+      showToast({ title: "Demande envoyée", description: "Votre demande est en cours de traitement." });
+      setShowNew(false);
+      setForm({ requestedAmount: "", targetPeriod: "", repaymentMode: "single", repaymentMonths: "1", reason: "" });
+      qc.invalidateQueries({ queryKey: ["my-advances"] });
+    },
+    onError: (e: Error) => showToast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  const submitMut = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/hr/salary-advances/${id}/submit`, { method: "POST" }),
+    onSuccess: () => { showToast({ title: "Demande soumise" }); qc.invalidateQueries({ queryKey: ["my-advances"] }); },
+    onError: (e: Error) => showToast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  const active = advances.filter(a => !["closed", "cancelled"].includes(a.status));
+  const history = advances.filter(a => ["closed", "cancelled"].includes(a.status));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Mes avances sur salaire</h2>
+          <p className="text-sm text-muted-foreground">Soumettez et suivez vos demandes d'avance</p>
+        </div>
+        <Button size="sm" onClick={() => { setForm(f => ({ ...f, targetPeriod: currentYM() })); setShowNew(true); }}>
+          <Plus className="w-4 h-4 mr-1.5" /> Nouvelle demande
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground py-8 text-center">Chargement…</div>
+      ) : advances.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Banknote className="w-8 h-8 mx-auto mb-3 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">Aucune avance pour le moment</p>
+            <Button size="sm" className="mt-4" onClick={() => { setForm(f => ({ ...f, targetPeriod: currentYM() })); setShowNew(true); }}>
+              Faire une demande
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {active.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">En cours</p>
+              {active.map(a => {
+                const s = ADVANCE_STATUS[a.status] ?? { label: a.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                return (
+                  <Card key={a.id} className="border">
+                    <CardContent className="p-4 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-foreground">{fmt(a.requestedAmount)}</span>
+                          {a.approvedAmount && a.approvedAmount !== a.requestedAmount && (
+                            <span className="text-xs text-muted-foreground">(approuvé : {fmt(a.approvedAmount)})</span>
+                          )}
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${s.cls}`}>{s.label}</span>
+                        </div>
+                        <div className="flex gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                          <span>Période : {a.targetPeriod}</span>
+                          <span>{a.repaymentMode === "single" ? "Prélèvement unique" : `${a.repaymentMonths} mensualité(s)`}</span>
+                          {a.remainingAmount != null && a.remainingAmount > 0 && (
+                            <span className="text-orange-600 font-medium">Restant : {fmt(a.remainingAmount)}</span>
+                          )}
+                        </div>
+                        {a.reason && <p className="text-xs text-muted-foreground mt-1 truncate">{a.reason}</p>}
+                      </div>
+                      {a.status === "draft" && (
+                        <Button size="sm" variant="outline" onClick={() => submitMut.mutate(a.id)}>
+                          <Send className="w-3.5 h-3.5 mr-1.5" /> Soumettre
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+          {history.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-4">Historique</p>
+              {history.map(a => {
+                const s = ADVANCE_STATUS[a.status] ?? { label: a.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                return (
+                  <Card key={a.id} className="border opacity-70">
+                    <CardContent className="p-3 flex items-center justify-between gap-4">
+                      <div>
+                        <span className="font-medium text-sm">{fmt(a.requestedAmount)}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">{a.targetPeriod}</span>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${s.cls}`}>{s.label}</span>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      <Dialog open={showNew} onOpenChange={setShowNew}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nouvelle demande d'avance sur salaire</DialogTitle>
+            <DialogDescription>Renseignez les informations de votre demande</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Montant demandé (FCFA)</Label>
+                <Input type="number" min={0} placeholder="ex : 150 000"
+                  value={form.requestedAmount}
+                  onChange={e => setForm(f => ({ ...f, requestedAmount: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Période cible (AAAA-MM)</Label>
+                <Input placeholder="2026-07"
+                  value={form.targetPeriod}
+                  onChange={e => setForm(f => ({ ...f, targetPeriod: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Mode de remboursement</Label>
+                <Select value={form.repaymentMode} onValueChange={v => setForm(f => ({ ...f, repaymentMode: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">Prélèvement unique</SelectItem>
+                    <SelectItem value="multi">Mensualités multiples</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.repaymentMode === "multi" && (
+                <div className="space-y-1.5">
+                  <Label>Nombre de mensualités</Label>
+                  <Input type="number" min={2} max={policy?.maxRepaymentMonths ?? 6}
+                    value={form.repaymentMonths}
+                    onChange={e => setForm(f => ({ ...f, repaymentMonths: e.target.value }))} />
+                </div>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Motif</Label>
+              <Textarea placeholder="Décrivez brièvement la raison de votre demande…" rows={3}
+                value={form.reason}
+                onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} />
+            </div>
+            {policy && (
+              <div className="rounded-lg bg-orange-50 border border-orange-200 p-3 text-xs text-orange-800 space-y-1">
+                <p className="font-semibold">Politique en vigueur</p>
+                <p>Plafond : {policy.maxPercentOfSalary}% du salaire{policy.maxAbsoluteAmount > 0 ? ` ou ${fmt(policy.maxAbsoluteAmount)} max` : ""}</p>
+                <p>Remboursement max : {policy.maxRepaymentMonths} mois · Ancienneté min : {policy.minTenureMonths} mois</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNew(false)}>Annuler</Button>
+            <Button
+              disabled={createMut.isPending || !form.requestedAmount || !form.targetPeriod}
+              onClick={() => createMut.mutate({
+                requestedAmount: Number(form.requestedAmount),
+                targetPeriod: form.targetPeriod,
+                repaymentMode: form.repaymentMode,
+                repaymentMonths: form.repaymentMode === "multi" ? Number(form.repaymentMonths) : 1,
+                reason: form.reason || undefined,
+              })}
+            >
+              {createMut.isPending ? "Envoi…" : "Enregistrer la demande"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function MonEspace() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -1233,7 +1457,7 @@ export default function MonEspace() {
       </div>
 
       <Tabs defaultValue="travaux">
-        <TabsList className="grid grid-cols-5 sm:grid-cols-9 h-auto p-1 bg-slate-100 rounded-xl mb-2">
+        <TabsList className="grid grid-cols-5 sm:grid-cols-10 h-auto p-1 bg-slate-100 rounded-xl mb-2">
           <TabsTrigger value="travaux" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
             <ListTodo className="w-4 h-4" /> Mes Travaux <SectionHelp id="monespace.travaux" side="bottom" />
           </TabsTrigger>
@@ -1260,6 +1484,9 @@ export default function MonEspace() {
           </TabsTrigger>
           <TabsTrigger value="profil" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
             <Landmark className="w-4 h-4" /> Profil <SectionHelp id="monespace.profil" side="bottom" />
+          </TabsTrigger>
+          <TabsTrigger value="avances" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+            <Banknote className="w-4 h-4" /> Avances
           </TabsTrigger>
         </TabsList>
 
@@ -1289,6 +1516,9 @@ export default function MonEspace() {
         </TabsContent>
         <TabsContent value="profil">
           <ProfilTab profile={profile ?? null} onRefreshProfile={() => qc.invalidateQueries({ queryKey: ["me-profile"] })} />
+        </TabsContent>
+        <TabsContent value="avances">
+          <AvancesTab />
         </TabsContent>
       </Tabs>
     </div>
