@@ -42,12 +42,14 @@ type NavGroup = {
   items: NavItem[];
   isNew?: boolean;
   moduleKey?: string;
+  description?: string;
 };
 
 const NAV_GROUPS: NavGroup[] = [
   {
     title: "Accueil",
     icon: Gauge,
+    description: "Vue d'ensemble, indicateurs clés et actions prioritaires du jour.",
     items: [
       { name: "Tableau de bord",  path: "/",             icon: LayoutDashboard, moduleKey: "dashboard",       description: "Vue synthétique de l'activité : KPIs, revenus du mois, état des projets et tâches prioritaires." },
       { name: "Briefing du jour", path: "/briefing",     icon: Sun,             moduleKey: "dashboard",       description: "Récapitulatif quotidien personnalisé : approbations en attente, événements du jour et actions prioritaires." },
@@ -62,6 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Ventes",
     icon: TrendingUp,
+    description: "Prospects, clients, devis, commandes, factures et encaissements.",
     items: [
       { name: "Marketing",     path: "/marketing",   icon: Megaphone,     moduleKey: "marketing",  permissionKey: "marketing.read",  description: "Gestion des campagnes marketing, leads entrants et suivi des performances commerciales." },
       { name: "Pipeline CRM",  path: "/crm",         icon: Target,        moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Suivi des opportunités en kanban : stade de vente, valeur, probabilité et prochaine action." },
@@ -77,6 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Projets",
     icon: FolderKanban,
+    description: "Planification, tâches, budgets et suivi de l'avancement.",
     items: [
       { name: "Projets",       path: "/projets",      icon: FolderKanban, moduleKey: "projects",  permissionKey: "projects.read",  description: "Portefeuille projets : phases, livrables, budget alloué, équipe et suivi de l'avancement." },
       { name: "Tâches",        path: "/tasks",        icon: CheckSquare,  moduleKey: "tasks",     permissionKey: "tasks.read",     description: "Tâches transversales ou par projet : priorités, assignations, commentaires et sous-tâches." },
@@ -88,6 +92,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Logistique",
     icon: Truck,
+    description: "Services, stocks, équipements, livraisons et opérations terrain.",
     items: [
       { name: "Services",    path: "/services",    icon: Briefcase,      moduleKey: "services",           permissionKey: "services.read",  description: "Catalogue des prestations et services de l'organisation : description, tarification et disponibilité." },
       { name: "Opérations",  path: "/operations",  icon: Truck,          moduleKey: "operations",         permissionKey: "operations.view",description: "Opérations terrain : livraisons, collectes et affectation des équipes logistiques." },
@@ -100,6 +105,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Achats",
     icon: ShoppingCart,
     moduleKey: "purchases",
+    description: "Fournisseurs, commandes, factures, paiements et dépenses.",
     items: [
       { name: "Vue d'ensemble",        path: "/achats",                  icon: LayoutDashboard, moduleKey: "purchases", permissionKey: "purchases.read",    description: "Tableau de bord achats : dépenses du mois, fournisseurs actifs et commandes en cours." },
       { name: "Fournisseurs",          path: "/achats/fournisseurs",     icon: Building2,       moduleKey: "purchases", permissionKey: "purchases.read",    description: "Répertoire fournisseurs : conditions, délais de paiement, historique et évaluation." },
@@ -114,6 +120,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Finance",
     icon: Landmark,
+    description: "Trésorerie, comptabilité, budgets, rapports et obligations fiscales.",
     items: [
       { name: "Intelligence",          path: "/finance/intelligence",        icon: Brain,         moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Analyse financière intelligente : anomalies détectées, tendances et recommandations automatiques." },
       { name: "Comptabilité",          path: "/comptabilite",                icon: Calculator,    moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Plan de comptes SYSCOHADA, saisie des écritures, journaux et grand livre comptable." },
@@ -128,6 +135,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Équipe",
     icon: Users2,
+    description: "Collaborateurs, contrats, paie, congés, présences et réclamations.",
     items: [
       { name: "Ressources humaines",  path: "/rh",       icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read",                description: "Gestion RH complète : fiches collaborateurs, contrats, paie, congés et performance." },
       { name: "Présences",            path: "/presences",icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view",         description: "Suivi des pointages et temps de présence : planning, absences, retards et exports RH." },
@@ -137,6 +145,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Portail Expert",
     icon: Network,
+    description: "Gestion de vos clients, missions et livrables de cabinet expert.",
     items: [
       { name: "Vue d'ensemble",    path: "/expert",                    icon: LayoutDashboard, description: "Tableau de bord du cabinet : vue consolidée sur tous vos clients et missions en cours." },
       { name: "Mes clients",       path: "/expert/clients",            icon: Building2,       description: "Liste de vos clients connectés : accès rapide à leur espace, statut et dernière activité." },
@@ -149,6 +158,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Admin",
     icon: Shield,
+    description: "Paramètres, utilisateurs, abonnement et configuration avancée.",
     items: [
       { name: "Migration & Import", path: "/migration",          icon: Database,   moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Import de données historiques et migration depuis d'autres outils vers Gaméasù." },
       { name: "Paramètres",         path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings",   permissionKey: "settings.read",   description: "Configuration de l'espace de travail : organisation, modules actifs, rôles et autorisations." },
@@ -392,9 +402,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             // Gate Expert group: hide until user has at least one firm (unless already on /expert route)
             if (group.title === "Portail Expert" && !location.startsWith("/expert") && (!expertFirms || expertFirms.length === 0)) return null;
 
-            return (
-              <div key={group.title}>
-                {/* Group header — clickable toggle */}
+            const groupHeaderBtn = (
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.title)}
@@ -415,8 +423,15 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                     }`}
                     strokeWidth={hasActive ? 2 : 1.75}
                   />
-                  <span className={`flex-1 text-[11.5px] font-bold uppercase tracking-[0.08em] transition-colors duration-150`}>
-                    {group.title}
+                  <span className="flex-1 min-w-0 flex flex-col">
+                    <span className={`text-[11.5px] font-bold uppercase tracking-[0.08em] transition-colors duration-150`}>
+                      {group.title}
+                    </span>
+                    {group.description && isOpen && (
+                      <span className="text-[9.5px] font-normal normal-case tracking-normal leading-tight text-white/25 mt-0.5 truncate">
+                        {group.description}
+                      </span>
+                    )}
                   </span>
                   {/* Badge "Nouveau" pour les modules récemment ajoutés */}
                   {group.isNew && !hasActive && (
@@ -435,6 +450,22 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                     strokeWidth={2}
                   />
                 </button>
+              );
+
+            return (
+              <div key={group.title}>
+                {/* Group header — clickable toggle, with tooltip when collapsed */}
+                {group.description && !isOpen ? (
+                  <TooltipProvider delayDuration={500}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>{groupHeaderBtn}</TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[200px] text-[11px] leading-relaxed bg-popover text-popover-foreground border shadow-md">
+                        <p className="font-semibold text-[11px] mb-0.5">{group.title}</p>
+                        <p className="text-muted-foreground">{group.description}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : groupHeaderBtn}
 
                 {/* Collapsible items — smooth CSS grid animation */}
                 <div
