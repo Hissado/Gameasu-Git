@@ -129,6 +129,51 @@ export default function MySpacePage() {
     enabled: !!profile,
   });
 
+  const { data: myAdvances = [] } = useQuery<any[]>({
+    queryKey: ["hr-my-advances"],
+    queryFn: () => apiFetch("/api/hr/salary-advances/my"),
+    enabled: !!profile,
+    retry: false,
+  });
+
+  const { data: advancePolicy } = useQuery<any>({
+    queryKey: ["hr-advance-policy"],
+    queryFn: () => apiFetch("/api/hr/salary-advance-policy"),
+    enabled: !!profile,
+    retry: false,
+  });
+
+  const [openAdvance, setOpenAdvance] = useState(false);
+  const [advanceForm, setAdvanceForm] = useState({
+    requestedAmount: "", targetPeriod: "", repaymentMode: "single", repaymentMonths: "1", reason: "",
+  });
+
+  const createAdvanceMut = useMutation({
+    mutationFn: () => apiFetch("/api/hr/salary-advances", {
+      method: "POST",
+      body: JSON.stringify({
+        requestedAmount: Number(advanceForm.requestedAmount),
+        targetPeriod: advanceForm.targetPeriod,
+        repaymentMode: advanceForm.repaymentMode,
+        repaymentMonths: advanceForm.repaymentMode === "multi" ? Number(advanceForm.repaymentMonths) : 1,
+        reason: advanceForm.reason || undefined,
+      }),
+    }),
+    onSuccess: () => {
+      toast({ title: "Demande enregistrée", description: "Soumettez-la pour qu'elle soit traitée par les RH." });
+      setOpenAdvance(false);
+      setAdvanceForm({ requestedAmount: "", targetPeriod: "", repaymentMode: "single", repaymentMonths: "1", reason: "" });
+      qc.invalidateQueries({ queryKey: ["hr-my-advances"] });
+    },
+    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
+
+  const submitAdvanceMut = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/hr/salary-advances/${id}/submit`, { method: "POST" }),
+    onSuccess: () => { toast({ title: "Demande soumise" }); qc.invalidateQueries({ queryKey: ["hr-my-advances"] }); },
+    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
+
   const updateProfileMut = useMutation({
     mutationFn: () => apiFetch("/api/hr/me/profile", { method: "PATCH", body: JSON.stringify(profileForm) }),
     onSuccess: () => { toast({ title: "Profil mis à jour" }); setEditProfile(false); qc.invalidateQueries({ queryKey: ["hr-me-profile"] }); },
@@ -372,6 +417,7 @@ export default function MySpacePage() {
               <TabsTrigger value="attestations" className="gap-1.5"><FileText className="w-4 h-4" />Attestations <SectionHelp id="myspace.attestations" /></TabsTrigger>
               <TabsTrigger value="virements" className="gap-1.5"><ArrowDownToLine className="w-4 h-4" />Virements <SectionHelp id="myspace.virements" /></TabsTrigger>
               <TabsTrigger value="reclamations" className="gap-1.5"><MessageSquareWarning className="w-4 h-4" />Réclamations <SectionHelp id="myspace.reclamations" /></TabsTrigger>
+              <TabsTrigger value="avances" className="gap-1.5"><Banknote className="w-4 h-4" />Avances</TabsTrigger>
             </TabsList>
 
             {/* Mes congés */}
@@ -854,9 +900,156 @@ export default function MySpacePage() {
                 </CardContent>
               </Card>
             </TabsContent>
+            {/* Avances sur salaire */}
+            <TabsContent value="avances" className="mt-4 space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-sm">Mes avances sur salaire</p>
+                  <p className="text-xs text-muted-foreground">Soumettez et suivez vos demandes d'avance sur salaire</p>
+                </div>
+                <Button size="sm" onClick={() => {
+                  const d = new Date();
+                  setAdvanceForm(f => ({ ...f, targetPeriod: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` }));
+                  setOpenAdvance(true);
+                }}>
+                  <Plus className="w-4 h-4 mr-1.5" />Nouvelle demande
+                </Button>
+              </div>
+
+              {(() => {
+                const ADVANCE_STATUS: Record<string, { label: string; cls: string }> = {
+                  draft:            { label: "Brouillon",  cls: "bg-slate-100 text-slate-600 border-slate-200" },
+                  pending_approval: { label: "En attente", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+                  approved:         { label: "Approuvée",  cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                  rejected:         { label: "Rejetée",    cls: "bg-red-50 text-red-700 border-red-200" },
+                  disbursed:        { label: "Décaissée",  cls: "bg-blue-50 text-blue-700 border-blue-200" },
+                  closed:           { label: "Soldée",     cls: "bg-slate-50 text-slate-500 border-slate-200" },
+                  cancelled:        { label: "Annulée",    cls: "bg-slate-100 text-slate-400 border-slate-200" },
+                };
+                if (myAdvances.length === 0) {
+                  return (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <Banknote className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                        <p className="text-sm text-muted-foreground">Aucune demande d'avance pour le moment</p>
+                        <Button size="sm" className="mt-3" onClick={() => {
+                          const d = new Date();
+                          setAdvanceForm(f => ({ ...f, targetPeriod: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` }));
+                          setOpenAdvance(true);
+                        }}>Faire une demande</Button>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+                return (
+                  <div className="space-y-2">
+                    {myAdvances.map((a: any) => {
+                      const s = ADVANCE_STATUS[a.status] ?? { label: a.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                      return (
+                        <Card key={a.id} className={["closed","cancelled"].includes(a.status) ? "opacity-60" : ""}>
+                          <CardContent className="p-4 flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-sm">{formatFCFA(a.requestedAmount)}</span>
+                                {a.approvedAmount && a.approvedAmount !== a.requestedAmount && (
+                                  <span className="text-xs text-muted-foreground">(approuvé : {formatFCFA(a.approvedAmount)})</span>
+                                )}
+                                <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${s.cls}`}>{s.label}</span>
+                              </div>
+                              <div className="flex gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                                <span>Période : {a.targetPeriod}</span>
+                                <span>{a.repaymentMode === "single" ? "Prélèvement unique" : `${a.repaymentMonths} mensualité(s)`}</span>
+                                {a.remainingAmount != null && Number(a.remainingAmount) > 0 && (
+                                  <span className="text-orange-600 font-medium">Restant : {formatFCFA(Number(a.remainingAmount))}</span>
+                                )}
+                              </div>
+                              {a.reason && <p className="text-xs text-muted-foreground mt-1 truncate">{a.reason}</p>}
+                            </div>
+                            {a.status === "draft" && (
+                              <Button size="sm" variant="outline" onClick={() => submitAdvanceMut.mutate(a.id)}>
+                                Soumettre
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </TabsContent>
           </Tabs>
         </div>
       </div>
+
+      {/* Dialog : nouvelle demande d'avance */}
+      <Dialog open={openAdvance} onOpenChange={setOpenAdvance}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nouvelle demande d'avance sur salaire</DialogTitle>
+            <DialogDescription>Votre demande sera soumise aux RH pour approbation.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs font-semibold">Montant (FCFA)</Label>
+                <Input type="number" min={0} placeholder="ex : 150 000"
+                  value={advanceForm.requestedAmount}
+                  onChange={e => setAdvanceForm(f => ({ ...f, requestedAmount: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Période (AAAA-MM)</Label>
+                <Input placeholder="2026-07"
+                  value={advanceForm.targetPeriod}
+                  onChange={e => setAdvanceForm(f => ({ ...f, targetPeriod: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs font-semibold">Mode de remboursement</Label>
+                <Select value={advanceForm.repaymentMode} onValueChange={v => setAdvanceForm(f => ({ ...f, repaymentMode: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">Prélèvement unique</SelectItem>
+                    <SelectItem value="multi">Mensualités multiples</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {advanceForm.repaymentMode === "multi" && (
+                <div>
+                  <Label className="text-xs font-semibold">Nombre de mensualités</Label>
+                  <Input type="number" min={2} max={advancePolicy?.maxRepaymentMonths ?? 6}
+                    value={advanceForm.repaymentMonths}
+                    onChange={e => setAdvanceForm(f => ({ ...f, repaymentMonths: e.target.value }))} />
+                </div>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs font-semibold">Motif</Label>
+              <Textarea rows={3} placeholder="Décrivez brièvement la raison de votre demande…"
+                value={advanceForm.reason}
+                onChange={e => setAdvanceForm(f => ({ ...f, reason: e.target.value }))} />
+            </div>
+            {advancePolicy && (
+              <div className="rounded-lg bg-orange-50 border border-orange-200 p-3 text-xs text-orange-800 space-y-0.5">
+                <p className="font-semibold mb-1">Politique en vigueur</p>
+                <p>Plafond : {advancePolicy.maxPercentOfSalary}% du salaire{advancePolicy.maxAbsoluteAmount > 0 ? ` ou ${formatFCFA(advancePolicy.maxAbsoluteAmount)} max` : ""}</p>
+                <p>Remboursement max : {advancePolicy.maxRepaymentMonths} mois · Ancienneté min : {advancePolicy.minTenureMonths} mois</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenAdvance(false)}>Annuler</Button>
+            <Button
+              disabled={createAdvanceMut.isPending || !advanceForm.requestedAmount || !advanceForm.targetPeriod}
+              onClick={() => createAdvanceMut.mutate()}
+            >
+              {createAdvanceMut.isPending && <Loader2 className="w-3 h-3 mr-2 animate-spin" />}
+              Enregistrer la demande
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog : nouvelle réclamation */}
       <Dialog open={openClaim} onOpenChange={setOpenClaim}>
