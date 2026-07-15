@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, uuid, jsonb, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { organizationsTable } from "./saas";
+import { usersTable } from "./users";
 
 // ─────────────────────────────────────────────────────────────────
 // NEXORA — Administration avancée (Phase 21)
@@ -54,3 +55,13 @@ export const planUsageInsightsTable = pgTable("plan_usage_insights", {
 }, (t) => ({
   orgIdx: index("plan_usage_insights_org_idx").on(t.organizationId),
 }));
+
+// ─────────────────────────────────────────────────────────────────
+// Dashboard user preferences — configuration personnalisée par utilisateur
+// ─────────────────────────────────────────────────────────────────
+export const userDashboardPreferencesTable = pgTable("user_dashboard_preferences", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  widgetConfig: jsonb("widget_config").notNull().$type<{ id: string; enabled: boolean }[]>(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
