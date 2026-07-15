@@ -138,7 +138,11 @@ export default function ContractsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><label className="text-sm font-medium">Statut</label>
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <label className="text-sm font-medium">Statut</label>
+                  <FieldTooltip content="Brouillon = en cours de rédaction. Actif = en vigueur et pris en compte dans la paie. Suspendu = arrêt temporaire (maladie longue, détachement). Terminé / Expiré = clôturé." />
+                </div>
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>

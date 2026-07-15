@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldTooltip } from "@/components/ui/field-tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -516,7 +517,10 @@ export default function LeavesPage() {
               </Select>
             </div>
             <div className="col-span-2">
-              <Label className="text-xs font-semibold mb-1 block">Type de congé *</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label className="text-xs font-semibold">Type de congé *</Label>
+                <FieldTooltip content="Congé annuel = droits acquis à déduire du solde. Maladie = arrêt médical (nécessite un justificatif médical). Exceptionnel = événements familiaux (mariage, décès). Sans solde = absence non rémunérée." />
+              </div>
               <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(TYPE_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
@@ -531,10 +535,13 @@ export default function LeavesPage() {
               <Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value, days: "" })} onBlur={autoCalcDays} />
             </div>
             <div>
-              <Label className="text-xs font-semibold mb-1 block">
-                Jours ouvrables
-                {form.startDate && form.endDate && !form.days && <span className="text-xs text-muted-foreground ml-1">(estimé : {calcDays(form.startDate, form.endDate)} j)</span>}
-              </Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label className="text-xs font-semibold">
+                  Jours ouvrables
+                  {form.startDate && form.endDate && !form.days && <span className="text-xs text-muted-foreground ml-1">(estimé : {calcDays(form.startDate, form.endDate)} j)</span>}
+                </Label>
+                <FieldTooltip content="Nombre de jours ouvrables d'absence (hors week-ends et jours fériés). Calculé automatiquement à partir des dates. Ajustez manuellement pour les demi-journées (0,5)." />
+              </div>
               <Input type="number" min="0.5" step="0.5" value={form.days}
                 placeholder={form.startDate && form.endDate ? String(calcDays(form.startDate, form.endDate)) : ""}
                 onChange={(e) => setForm({ ...form, days: e.target.value })} />

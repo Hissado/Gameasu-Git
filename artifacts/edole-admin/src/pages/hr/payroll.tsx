@@ -368,7 +368,10 @@ export default function PayrollDashboard() {
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">Identifiez l'erreur, saisissez le montant correctif (positif si sous-payé, négatif si trop payé) et documentez le motif.</p>
             <div>
-              <Label>Collaborateur</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Collaborateur</Label>
+                <FieldTooltip content="Collaborateur concerné par l'erreur de paie. La correction sera rattachée à son bulletin et tracée dans l'historique des cycles." />
+              </div>
               <select
                 className="w-full mt-1 h-9 px-3 rounded-md border border-input bg-background text-sm"
                 value={corrForm.collaboratorId}
@@ -379,7 +382,10 @@ export default function PayrollDashboard() {
               </select>
             </div>
             <div>
-              <Label>Cycle source (optionnel)</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Cycle source (optionnel)</Label>
+                <FieldTooltip content="Cycle de paie (mois) à l'origine de l'erreur. Permet de lier la correction à un bulletin précis pour l'audit. Laissez vide si la correction est indépendante d'un cycle antérieur." />
+              </div>
               <select
                 className="w-full mt-1 h-9 px-3 rounded-md border border-input bg-background text-sm"
                 value={corrForm.sourceRunId}
