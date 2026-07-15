@@ -1031,7 +1031,7 @@ export default function MySpacePage() {
                 onChange={e => setAdvanceForm(f => ({ ...f, reason: e.target.value }))} />
             </div>
             {advancePolicy && (
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600 space-y-0.5">
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900 space-y-0.5">
                 <p className="font-semibold mb-1">Politique en vigueur</p>
                 <p>Plafond : {advancePolicy.maxPercentOfSalary}% du salaire{advancePolicy.maxAbsoluteAmount > 0 ? ` ou ${formatFCFA(advancePolicy.maxAbsoluteAmount)} max` : ""}</p>
                 <p>Remboursement max : {advancePolicy.maxRepaymentMonths} mois · Ancienneté min : {advancePolicy.minTenureMonths} mois</p>

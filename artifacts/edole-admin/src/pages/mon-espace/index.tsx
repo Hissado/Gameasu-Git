@@ -1369,7 +1369,7 @@ function AvancesTab() {
                 onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} />
             </div>
             {policy && (
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600 space-y-1">
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900 space-y-1">
                 <p className="font-semibold">Politique en vigueur</p>
                 <p>Plafond : {policy.maxPercentOfSalary}% du salaire{policy.maxAbsoluteAmount > 0 ? ` ou ${fmt(policy.maxAbsoluteAmount)} max` : ""}</p>
                 <p>Remboursement max : {policy.maxRepaymentMonths} mois · Ancienneté min : {policy.minTenureMonths} mois</p>
