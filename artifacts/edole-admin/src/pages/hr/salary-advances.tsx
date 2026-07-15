@@ -111,6 +111,12 @@ export default function SalaryAdvancesPage() {
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [showPolicy, setShowPolicy] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState(false);
+  const [policyForm, setPolicyForm] = useState({
+    maxPercentOfSalary: "50", maxAbsoluteAmount: "0", maxActiveAdvances: "1",
+    maxRepaymentMonths: "6", minTenureMonths: "3",
+    approvalWorkflow: "manager_then_hr", notifyHr: true,
+  });
 
   // Form state
   const [form, setForm] = useState({
@@ -204,6 +210,30 @@ export default function SalaryAdvancesPage() {
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
+  const updatePolicyMut = useMutation({
+    mutationFn: (data: unknown) => apiFetch("/api/hr/salary-advance-policy", { method: "PUT", body: data }),
+    onSuccess: () => {
+      toast({ title: "Politique mise à jour" });
+      setEditingPolicy(false);
+      qc.invalidateQueries({ queryKey: ["/api/hr/salary-advance-policy"] });
+    },
+    onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  const openPolicy = () => {
+    if (policy) setPolicyForm({
+      maxPercentOfSalary: String(policy.maxPercentOfSalary),
+      maxAbsoluteAmount: String(policy.maxAbsoluteAmount ?? 0),
+      maxActiveAdvances: String(policy.maxActiveAdvances ?? 1),
+      maxRepaymentMonths: String(policy.maxRepaymentMonths),
+      minTenureMonths: String(policy.minTenureMonths),
+      approvalWorkflow: policy.approvalWorkflow ?? "manager_then_hr",
+      notifyHr: policy.notifyHr ?? true,
+    });
+    setEditingPolicy(false);
+    setShowPolicy(true);
+  };
+
   // ── Filtres ────────────────────────────────────────────────────────────────
   const filtered = advances.filter((a) => {
     const q = search.toLowerCase();
@@ -230,7 +260,7 @@ export default function SalaryAdvancesPage() {
         </div>
         <div className="flex gap-2">
           {["super_admin", "admin"].includes(user?.role ?? "") && (
-            <Button variant="outline" size="sm" onClick={() => setShowPolicy(true)}>
+            <Button variant="outline" size="sm" onClick={openPolicy}>
               <FileText className="w-4 h-4 mr-1.5" /> Politique
             </Button>
           )}
@@ -608,23 +638,116 @@ export default function SalaryAdvancesPage() {
       </Dialog>
 
       {/* ── Dialogue : Politique ─────────────────────────────────────────── */}
-      <Dialog open={showPolicy} onOpenChange={setShowPolicy}>
-        <DialogContent className="max-w-sm">
+      <Dialog open={showPolicy} onOpenChange={v => { setShowPolicy(v); if (!v) setEditingPolicy(false); }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Politique des avances</DialogTitle>
+            <DialogTitle>Politique des avances sur salaire</DialogTitle>
+            <DialogDescription>
+              {editingPolicy ? "Modifiez les paramètres de la politique d'avance." : "Paramètres appliqués à toutes les demandes d'avance de votre organisation."}
+            </DialogDescription>
           </DialogHeader>
-          {policy && (
-            <div className="space-y-2 py-2 text-sm">
-              <div className="flex justify-between"><span className="text-white/50">Plafond (% salaire)</span><span className="font-medium text-white">{policy.maxPercentOfSalary}%</span></div>
-              <div className="flex justify-between"><span className="text-white/50">Plafond absolu</span><span className="font-medium text-white">{policy.maxAbsoluteAmount > 0 ? formatFCFA(policy.maxAbsoluteAmount) : "Aucun"}</span></div>
-              <div className="flex justify-between"><span className="text-white/50">Avances actives max</span><span className="font-medium text-white">{policy.maxActiveAdvances}</span></div>
-              <div className="flex justify-between"><span className="text-white/50">Mensualités max</span><span className="font-medium text-white">{policy.maxRepaymentMonths}</span></div>
-              <div className="flex justify-between"><span className="text-white/50">Ancienneté min</span><span className="font-medium text-white">{policy.minTenureMonths} mois</span></div>
-              <div className="flex justify-between"><span className="text-white/50">Workflow d'approbation</span><span className="font-medium text-white">{policy.approvalWorkflow}</span></div>
+
+          {!editingPolicy ? (
+            /* ── Mode lecture ── */
+            <div className="space-y-1 py-1">
+              {[
+                { label: "Plafond (% du salaire)",   value: `${policy?.maxPercentOfSalary ?? 50}%` },
+                { label: "Plafond absolu",            value: policy?.maxAbsoluteAmount > 0 ? formatFCFA(policy.maxAbsoluteAmount) : "Aucun" },
+                { label: "Avances actives max",       value: String(policy?.maxActiveAdvances ?? 1) },
+                { label: "Mensualités max",            value: `${policy?.maxRepaymentMonths ?? 6} mois` },
+                { label: "Ancienneté minimale",        value: `${policy?.minTenureMonths ?? 3} mois` },
+                { label: "Workflow d'approbation",    value: { manager_then_hr: "Manager puis RH", manager_only: "Manager seul", hr_only: "RH seul", auto: "Automatique" }[policy?.approvalWorkflow ?? "manager_then_hr"] ?? policy?.approvalWorkflow },
+                { label: "Notifier les RH",           value: policy?.notifyHr ? "Oui" : "Non" },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <span className="text-sm text-muted-foreground">{label}</span>
+                  <span className="text-sm font-semibold text-foreground">{value}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* ── Mode édition ── */
+            <div className="space-y-3 py-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Plafond (% du salaire)</Label>
+                  <Input type="number" min={1} max={100}
+                    value={policyForm.maxPercentOfSalary}
+                    onChange={e => setPolicyForm(f => ({ ...f, maxPercentOfSalary: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Plafond absolu (FCFA, 0 = aucun)</Label>
+                  <Input type="number" min={0}
+                    value={policyForm.maxAbsoluteAmount}
+                    onChange={e => setPolicyForm(f => ({ ...f, maxAbsoluteAmount: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Avances actives max</Label>
+                  <Input type="number" min={1} max={10}
+                    value={policyForm.maxActiveAdvances}
+                    onChange={e => setPolicyForm(f => ({ ...f, maxActiveAdvances: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Mensualités max</Label>
+                  <Input type="number" min={1} max={24}
+                    value={policyForm.maxRepaymentMonths}
+                    onChange={e => setPolicyForm(f => ({ ...f, maxRepaymentMonths: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Ancienneté min (mois)</Label>
+                  <Input type="number" min={0}
+                    value={policyForm.minTenureMonths}
+                    onChange={e => setPolicyForm(f => ({ ...f, minTenureMonths: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Workflow d'approbation</Label>
+                  <Select value={policyForm.approvalWorkflow} onValueChange={v => setPolicyForm(f => ({ ...f, approvalWorkflow: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manager_then_hr">Manager puis RH</SelectItem>
+                      <SelectItem value="manager_only">Manager seul</SelectItem>
+                      <SelectItem value="hr_only">RH seul</SelectItem>
+                      <SelectItem value="auto">Automatique</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <input type="checkbox" id="notifyHr" className="w-4 h-4 rounded border-input"
+                  checked={policyForm.notifyHr}
+                  onChange={e => setPolicyForm(f => ({ ...f, notifyHr: e.target.checked }))} />
+                <Label htmlFor="notifyHr" className="cursor-pointer font-normal text-sm">Notifier les RH à chaque approbation</Label>
+              </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPolicy(false)}>Fermer</Button>
+
+          <DialogFooter className="gap-2">
+            {!editingPolicy ? (
+              <>
+                <Button variant="outline" onClick={() => setShowPolicy(false)}>Fermer</Button>
+                {["super_admin", "admin"].includes(user?.role ?? "") && (
+                  <Button onClick={() => setEditingPolicy(true)}>Modifier</Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setEditingPolicy(false)}>Annuler</Button>
+                <Button
+                  disabled={updatePolicyMut.isPending}
+                  onClick={() => updatePolicyMut.mutate({
+                    maxPercentOfSalary: Number(policyForm.maxPercentOfSalary),
+                    maxAbsoluteAmount: Number(policyForm.maxAbsoluteAmount),
+                    maxActiveAdvances: Number(policyForm.maxActiveAdvances),
+                    maxRepaymentMonths: Number(policyForm.maxRepaymentMonths),
+                    minTenureMonths: Number(policyForm.minTenureMonths),
+                    approvalWorkflow: policyForm.approvalWorkflow,
+                    notifyHr: policyForm.notifyHr,
+                  })}
+                >
+                  {updatePolicyMut.isPending ? "Enregistrement…" : "Enregistrer"}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
