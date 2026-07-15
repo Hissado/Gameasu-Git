@@ -45,7 +45,7 @@ function itemIsActive(item: NavItem, location: string) {
 function NavSidebar({ navGroups }: { navGroups: NavGroup[] }) {
   const [location] = useLocation();
   return (
-    <aside className="w-48 shrink-0 sticky top-4 max-h-[calc(100vh-8rem)] overflow-y-auto pr-0.5 space-y-4">
+    <aside className="w-48 shrink-0 self-start sticky top-4 max-h-[calc(100dvh-8rem)] overflow-y-auto pr-0.5 space-y-4">
       {navGroups.map(group => (
         <div key={group.label}>
           <p className="text-[9.5px] font-bold uppercase tracking-widest text-muted-foreground/50 px-2 mb-1.5 select-none">
@@ -181,7 +181,7 @@ function TabNavSidebar({ tabGroups, value, onChange }: {
   onChange: (v: string) => void;
 }) {
   return (
-    <aside className="w-48 shrink-0 sticky top-4 max-h-[calc(100vh-8rem)] overflow-y-auto pr-0.5 space-y-4">
+    <aside className="w-48 shrink-0 self-start sticky top-4 max-h-[calc(100dvh-8rem)] overflow-y-auto pr-0.5 space-y-4">
       {tabGroups.map((group, gi) => (
         <div key={gi}>
           {group.label && (

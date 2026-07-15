@@ -1,0 +1,121 @@
+Pouvez-vous revoir et corriger le comportement de la barre de défilement du menu latéral dans le module Ressources Humaines ?
+
+Problème constaté
+
+Dans la partie RH, lorsque j’ouvre certaines sous-sections comme Vue d’ensemble, la barre de défilement verticale du menu latéral apparaît correctement.
+
+Cependant, lorsque je clique sur Collaborateurs, cette barre de défilement disparaît, alors que le menu contient toujours plusieurs sous-sections.
+
+Cette différence de comportement crée une incohérence visuelle et peut empêcher l’utilisateur d’accéder facilement aux éléments situés plus bas dans le menu.
+
+⸻
+
+Comportement attendu
+
+La barre de défilement du menu latéral RH doit être disponible de manière constante et prévisible sur toutes les pages du module, notamment :
+
+* Vue d’ensemble ;
+* Indicateurs RH ;
+* Rapports RH ;
+* Simulateur de coût ;
+* Collaborateurs ;
+* Organigramme ;
+* Départements ;
+* Postes ;
+* Calendrier ;
+* Feuilles de temps ;
+* Grille de pointage ;
+* Absences & Congés ;
+* Paie ;
+* Réclamations ;
+* Recrutement ;
+* toute autre sous-section RH.
+
+Le comportement ne doit pas changer selon la page active.
+
+⸻
+
+Logique recommandée
+
+Le conteneur du menu latéral doit :
+
+* conserver une hauteur fixe ou calculée par rapport à la fenêtre ;
+* utiliser un défilement vertical interne ;
+* rester indépendant du contenu principal de la page ;
+* préserver la position de défilement lors de la navigation si possible ;
+* afficher la barre uniquement lorsque le contenu dépasse la hauteur disponible, mais avec le même comportement sur toutes les pages.
+
+Éviter qu’une page comme Collaborateurs remplace ou casse le conteneur scrollable du menu.
+
+⸻
+
+Vérifications techniques
+
+Merci de vérifier notamment :
+
+* le conteneur parent du menu RH ;
+* les propriétés height, max-height, overflow-y et position;
+* les différences de layout entre la page Collaborateurs et les autres pages RH ;
+* les éventuels composants de page qui écrasent le style du sidebar ;
+* les règles CSS ou Tailwind appliquées conditionnellement selon la route ;
+* les conflits entre le scroll de la page principale et celui du menu latéral ;
+* le comportement desktop, tablette et mobile.
+
+Exemple de logique attendue
+
+Le menu latéral doit utiliser une structure stable du type :
+
+* hauteur disponible : fenêtre moins header ;
+* overflow-y: auto;
+* contenu principal défilable séparément ;
+* aucun changement de largeur lorsque la barre apparaît ou disparaît.
+
+⸻
+
+Éviter les décalages visuels
+
+La présence ou l’absence de la barre ne doit pas :
+
+* déplacer le contenu ;
+* modifier la largeur du menu ;
+* faire clignoter la navigation ;
+* changer l’alignement des icônes et libellés ;
+* créer un saut visuel lors du changement de page.
+
+Prévoir si nécessaire un espace réservé au scrollbar avec une logique comme scrollbar-gutter: stable.
+
+⸻
+
+Audit global
+
+Merci de vérifier cette logique dans toute l’application, et pas seulement dans RH :
+
+* ERP principal ;
+* Finance ;
+* Comptabilité ;
+* Ventes ;
+* Achats ;
+* Projets ;
+* Logistique ;
+* Administration ;
+* Cockpit ;
+* Portail Expert.
+
+Tous les menus contenant de nombreuses sous-sections doivent conserver un comportement de défilement cohérent.
+
+⸻
+
+Résultat attendu
+
+Je veux une navigation latérale stable et uniforme :
+
+* barre de défilement disponible quand nécessaire ;
+* même comportement sur toutes les sous-sections ;
+* aucun masquage sur Collaborateurs ;
+* aucun décalage de mise en page ;
+* position de navigation claire ;
+* expérience fluide et premium.
+
+Objectif final
+
+Faire en sorte que l’utilisateur puisse toujours parcourir l’intégralité du menu RH, quelle que soit la sous-section ouverte, sans différence de comportement ni risque de perdre l’accès aux éléments situés plus bas.

@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
+import { HrShell } from "../hr/_layout";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -329,7 +330,22 @@ export default function CollaboratorsList() {
 
   // ── Render ──
   return (
-    <div className="space-y-5">
+    <HrShell
+      title="Collaborateurs"
+      subtitle={isLoading ? undefined : `${allCollabs.length} collaborateur${allCollabs.length !== 1 ? "s" : ""} au total`}
+      actions={isManagerOrAbove ? (
+        <Button
+          size="sm"
+          data-tour="collab-header"
+          className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
+          onClick={() => setAddOpen(true)}
+        >
+          <UserPlus className="w-4 h-4" />
+          Ajouter
+        </Button>
+      ) : undefined}
+    >
+      <div className="space-y-5">
       <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
@@ -352,26 +368,6 @@ export default function CollaboratorsList() {
           onStepChange={handleTourStepChange}
         />
       )}
-
-      {/* ── Page header ── */}
-      <div data-tour="collab-header" className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Collaborateurs</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {isLoading ? "Chargement…" : `${allCollabs.length} collaborateur${allCollabs.length !== 1 ? "s" : ""} au total`}
-          </p>
-        </div>
-        {isManagerOrAbove && (
-          <Button
-            size="sm"
-            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
-            onClick={() => setAddOpen(true)}
-          >
-            <UserPlus className="w-4 h-4" />
-            Ajouter
-          </Button>
-        )}
-      </div>
 
       {/* ── Search + filters ── */}
       <div data-tour="collab-search" className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
@@ -711,6 +707,7 @@ export default function CollaboratorsList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </HrShell>
   );
 }
