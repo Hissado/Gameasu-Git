@@ -786,7 +786,7 @@ router.get("/hr/leaves/:id", async (req, res) => {
   res.json({ ...row.l, days: Number(row.l.days), collaboratorName: `${row.collabFirst ?? ""} ${row.collabLast ?? ""}`.trim() });
 });
 
-router.post("/hr/leaves", async (req, res) => {
+router.post("/hr/leaves", requirePermission("hr.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { collaboratorId, type, startDate, endDate, days, reason, notes } = req.body;
   if (!collaboratorId || !type || !startDate || !endDate) {

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { opportunitiesTable, activitiesTable, clientsTable, usersTable } from "@workspace/db";
 import { eq, ilike, sql, isNull, and } from "drizzle-orm";
+import { requirePermission } from "../middlewares/permissions";
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.get("/crm/opportunities", async (req, res) => {
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/crm/opportunities", async (req, res) => {
+router.post("/crm/opportunities", requirePermission("commercial.manage"), async (req, res) => {
   const { title, clientId, stage, value, currency, probability, assignedToId, expectedCloseDate, notes } = req.body;
   const [opp] = await db.insert(opportunitiesTable).values({
     organizationId: req.authUser!.organizationId,
@@ -49,7 +50,7 @@ router.get("/crm/opportunities/:id", async (req, res) => {
   return res.json({ ...opps[0], value: opps[0].value ? Number(opps[0].value) : null });
 });
 
-router.put("/crm/opportunities/:id", async (req, res) => {
+router.put("/crm/opportunities/:id", requirePermission("commercial.manage"), async (req, res) => {
   const { title, clientId, stage, value, currency, probability, assignedToId, expectedCloseDate, notes } = req.body;
   const [opp] = await db.update(opportunitiesTable).set({ title, clientId, stage, value: value?.toString(), currency, probability, assignedToId, expectedCloseDate, notes })
     .where(and(eq(opportunitiesTable.organizationId, req.authUser!.organizationId), eq(opportunitiesTable.id, (req.params.id as string)))).returning();
@@ -57,7 +58,7 @@ router.put("/crm/opportunities/:id", async (req, res) => {
   return res.json({ ...opp, value: opp.value ? Number(opp.value) : null });
 });
 
-router.delete("/crm/opportunities/:id", async (req, res) => {
+router.delete("/crm/opportunities/:id", requirePermission("commercial.manage"), async (req, res) => {
   await db.update(opportunitiesTable).set({ deletedAt: new Date() }).where(and(eq(opportunitiesTable.organizationId, req.authUser!.organizationId), eq(opportunitiesTable.id, (req.params.id as string))));
   return res.status(204).send();
 });
@@ -98,7 +99,7 @@ router.get("/crm/activities", async (req, res) => {
   return res.json({ data, total: Number(countResult[0].count), page: pageNum, limit: limitNum });
 });
 
-router.post("/crm/activities", async (req, res) => {
+router.post("/crm/activities", requirePermission("commercial.manage"), async (req, res) => {
   const { type, subject, description, clientId, opportunityId, scheduledAt } = req.body;
   const [act] = await db.insert(activitiesTable).values({
     organizationId: req.authUser!.organizationId,
@@ -109,7 +110,7 @@ router.post("/crm/activities", async (req, res) => {
 });
 
 // ─── POST /crm/opportunities/:id/convert-to-client ───────────────────────────
-router.post("/crm/opportunities/:id/convert-to-client", async (req, res, next) => {
+router.post("/crm/opportunities/:id/convert-to-client", requirePermission("commercial.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [opp] = await db.select().from(opportunitiesTable)

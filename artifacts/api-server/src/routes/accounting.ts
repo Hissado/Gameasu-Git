@@ -24,6 +24,7 @@ import {
 } from "@workspace/db";
 import { and, asc, desc, eq, gte, lte, sql, isNull, like, or, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
+import { requirePermission } from "../middlewares/permissions";
 import {
   postEntry,
   reverseEntry,
@@ -101,7 +102,7 @@ router.get("/accounting/fiscal-periods", async (req, res) => {
   return res.json({ data: enriched });
 });
 
-router.post("/accounting/fiscal-periods", requireAdmin, async (req, res, next) => {
+router.post("/accounting/fiscal-periods", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { name, startDate, endDate } = req.body;
@@ -135,7 +136,7 @@ router.post("/accounting/fiscal-periods", requireAdmin, async (req, res, next) =
 });
 
 // DELETE /accounting/fiscal-periods/:id — suppression d'un exercice sans données
-router.delete("/accounting/fiscal-periods/:id", requireAdmin, async (req, res, next) => {
+router.delete("/accounting/fiscal-periods/:id", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [p] = await db.select().from(fiscalPeriodsTable)
@@ -157,7 +158,7 @@ router.delete("/accounting/fiscal-periods/:id", requireAdmin, async (req, res, n
 });
 
 // POST /accounting/fiscal-periods/:id/create-next — crée l'exercice suivant après clôture
-router.post("/accounting/fiscal-periods/:id/create-next", requireAdmin, async (req, res, next) => {
+router.post("/accounting/fiscal-periods/:id/create-next", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [current] = await db.select().from(fiscalPeriodsTable)
@@ -189,7 +190,7 @@ router.post("/accounting/fiscal-periods/:id/create-next", requireAdmin, async (r
   } catch (e) { next(e); return; }
 });
 
-router.post("/accounting/fiscal-periods/:id/close", requireAdmin, async (req, res) => {
+router.post("/accounting/fiscal-periods/:id/close", requirePermission("accounting.manage"), async (req, res) => {
   const [p] = await db.update(fiscalPeriodsTable)
     .set({ status: "closed", closedAt: new Date(), closedById: req.authUser?.id })
     .where(and(eq(fiscalPeriodsTable.organizationId, req.authUser!.organizationId), eq(fiscalPeriodsTable.id, req.params.id as string))).returning();
@@ -269,7 +270,7 @@ router.get("/accounting/entries/:id", async (req, res) => {
   });
 });
 
-router.post("/accounting/entries", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/entries", requirePermission("accounting.manage"), async (req, res) => {
   try {
     const { journalCode, entryDate, reference, description, lines } = req.body;
     const entry = await postEntry({
@@ -288,7 +289,7 @@ router.post("/accounting/entries", requireManagerOrAbove, async (req, res) => {
   }
 });
 
-router.post("/accounting/entries/:id/reverse", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/entries/:id/reverse", requirePermission("accounting.manage"), async (req, res) => {
   try {
     const reversal = await reverseEntry(req.authUser!.organizationId, req.params.id as string, req.authUser?.id);
     return res.status(201).json(reversal);
@@ -518,7 +519,7 @@ router.get("/accounting/suppliers", async (req, res) => {
   return res.json({ data: rows });
 });
 
-router.post("/accounting/suppliers", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/suppliers", requirePermission("accounting.manage"), async (req, res) => {
   const { name, email, phone, address, taxId, paymentTerms, code } = req.body;
   const cnt = await db.select({ n: sql<string>`COUNT(*)` }).from(suppliersTable).where(eq(suppliersTable.organizationId, req.authUser!.organizationId));
   const generatedCode = code || `F${String(Number(cnt[0].n) + 1).padStart(4, "0")}`;
@@ -529,7 +530,7 @@ router.post("/accounting/suppliers", requireManagerOrAbove, async (req, res) => 
   return res.status(201).json(s);
 });
 
-router.put("/accounting/suppliers/:id", requireManagerOrAbove, async (req, res) => {
+router.put("/accounting/suppliers/:id", requirePermission("accounting.manage"), async (req, res) => {
   const { name, email, phone, address, taxId, paymentTerms, isActive } = req.body;
   const [s] = await db.update(suppliersTable).set({ name, email, phone, address, taxId, paymentTerms, isActive })
     .where(and(eq(suppliersTable.organizationId, req.authUser!.organizationId), eq(suppliersTable.id, req.params.id as string))).returning();
@@ -537,7 +538,7 @@ router.put("/accounting/suppliers/:id", requireManagerOrAbove, async (req, res) 
   return res.json(s);
 });
 
-router.delete("/accounting/suppliers/:id", requireManagerOrAbove, async (req, res) => {
+router.delete("/accounting/suppliers/:id", requirePermission("accounting.manage"), async (req, res) => {
   await db.update(suppliersTable).set({ deletedAt: new Date() }).where(and(eq(suppliersTable.organizationId, req.authUser!.organizationId), eq(suppliersTable.id, req.params.id as string)));
   return res.status(204).send();
 });
@@ -564,7 +565,7 @@ router.get("/accounting/supplier-invoices", async (req, res) => {
   });
 });
 
-router.post("/accounting/supplier-invoices", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/supplier-invoices", requirePermission("accounting.manage"), async (req, res) => {
   try {
     const { supplierId, projectId, invoiceDate, dueDate, totalAmount, taxAmount, currency, expenseAccountId, notes, attachmentUrl, status } = req.body;
     const cnt = await db.select({ n: sql<string>`COUNT(*)` }).from(supplierInvoicesTable).where(eq(supplierInvoicesTable.organizationId, req.authUser!.organizationId));
@@ -587,7 +588,7 @@ router.post("/accounting/supplier-invoices", requireManagerOrAbove, async (req, 
   }
 });
 
-router.post("/accounting/supplier-payments", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/supplier-payments", requirePermission("accounting.manage"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { supplierInvoiceId, bankAccountId, amount, method, reference, notes, paidAt } = req.body;
@@ -722,7 +723,7 @@ router.get("/accounting/bank-accounts", async (req, res) => {
   return res.json({ data });
 });
 
-router.post("/accounting/bank-accounts", requireAdmin, async (req, res) => {
+router.post("/accounting/bank-accounts", requirePermission("accounting.manage_banks"), async (req, res) => {
   const { name, type, bankName, accountNumber, iban, accountId, currency, openingBalance } = req.body;
   const [b] = await db.insert(bankAccountsTable).values({
     organizationId: req.authUser!.organizationId,
@@ -746,7 +747,7 @@ router.get("/accounting/bank-accounts/:id/transactions", async (req, res) => {
   return res.json({ data: txs.map((t) => ({ ...t, amount: toNum(t.amount) })) });
 });
 
-router.post("/accounting/bank-accounts/:id/transactions", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/bank-accounts/:id/transactions", requirePermission("accounting.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const bank = (await db.select({ id: bankAccountsTable.id }).from(bankAccountsTable).where(and(
     eq(bankAccountsTable.organizationId, orgId),
@@ -793,7 +794,7 @@ router.get("/accounting/bank-accounts/:id/reconciliation", async (req, res) => {
   });
 });
 
-router.post("/accounting/reconciliation/match", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/reconciliation/match", requirePermission("accounting.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { transactionId, lineId } = req.body;
   // Vérifier que la transaction et la ligne appartiennent à l'org via leurs entités parents
@@ -842,7 +843,7 @@ router.get("/accounting/fixed-assets", async (req, res) => {
   return res.json({ data });
 });
 
-router.post("/accounting/fixed-assets", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/fixed-assets", requirePermission("accounting.manage"), async (req, res) => {
   const { code, label, category, accountId, depreciationAccountId, expenseAccountId, acquisitionDate, acquisitionCost, residualValue, depreciationMethod, usefulLifeYears, notes } = req.body;
   const [a] = await db.insert(fixedAssetsTable).values({
       organizationId: req.authUser!.organizationId,
@@ -856,7 +857,7 @@ router.post("/accounting/fixed-assets", requireManagerOrAbove, async (req, res) 
   return res.status(201).json(a);
 });
 
-router.post("/accounting/fixed-assets/:id/depreciate", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/fixed-assets/:id/depreciate", requirePermission("accounting.manage"), async (req, res) => {
   try {
     const asset = (await db.select().from(fixedAssetsTable).where(and(eq(fixedAssetsTable.organizationId, req.authUser!.organizationId), eq(fixedAssetsTable.id, req.params.id as string))).limit(1))[0];
     if (!asset) return res.status(404).json({ error: "Immobilisation introuvable" });
@@ -949,7 +950,7 @@ router.get("/accounting/fixed-assets/:id", async (req, res) => {
   });
 });
 
-router.put("/accounting/fixed-assets/:id", requireManagerOrAbove, async (req, res) => {
+router.put("/accounting/fixed-assets/:id", requirePermission("accounting.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const asset = (await db.select().from(fixedAssetsTable)
     .where(and(eq(fixedAssetsTable.organizationId, orgId), eq(fixedAssetsTable.id, req.params.id as string))).limit(1))[0];
@@ -1152,7 +1153,7 @@ router.get("/accounting/matching", async (req, res, next) => {
 
 // POST /accounting/matching/match  { lineIds: string[] }
 // Lettrage manuel d'un groupe de lignes (total débit = total crédit requis)
-router.post("/accounting/matching/match", requireManagerOrAbove, async (req, res, next) => {
+router.post("/accounting/matching/match", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { lineIds } = req.body as { lineIds: string[] };
@@ -1184,7 +1185,7 @@ router.post("/accounting/matching/match", requireManagerOrAbove, async (req, res
 
 // POST /accounting/matching/unmatch  { lineIds: string[] }
 // Délettrage
-router.post("/accounting/matching/unmatch", requireManagerOrAbove, async (req, res, next) => {
+router.post("/accounting/matching/unmatch", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { lineIds } = req.body as { lineIds: string[] };
@@ -1225,7 +1226,7 @@ router.get("/accounting/fiscal-periods/:id", async (req, res, next) => {
 });
 
 // POST /accounting/fiscal-periods/:id/reopen — réouverture (admin seulement)
-router.post("/accounting/fiscal-periods/:id/reopen", requireAdmin, async (req, res, next) => {
+router.post("/accounting/fiscal-periods/:id/reopen", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const [p] = await db.update(fiscalPeriodsTable)
       .set({ status: "open", closedAt: null, closedById: null })
@@ -1357,7 +1358,7 @@ router.get("/accounting/cost-centers", async (req, res, next) => {
   } catch (e) { next(e); return; }
 });
 
-router.post("/accounting/cost-centers", requireManagerOrAbove, async (req, res, next) => {
+router.post("/accounting/cost-centers", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { code, name, description, type, parentId, budgetAmount, color, notes } = req.body as {
@@ -1421,7 +1422,7 @@ router.get("/accounting/cost-centers/:id", async (req, res, next) => {
   } catch (e) { next(e); return; }
 });
 
-router.patch("/accounting/cost-centers/:id", requireManagerOrAbove, async (req, res, next) => {
+router.patch("/accounting/cost-centers/:id", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [cc] = await db.select().from(costCentersTable)
@@ -1440,7 +1441,7 @@ router.patch("/accounting/cost-centers/:id", requireManagerOrAbove, async (req, 
   } catch (e) { next(e); return; }
 });
 
-router.delete("/accounting/cost-centers/:id", requireManagerOrAbove, async (req, res, next) => {
+router.delete("/accounting/cost-centers/:id", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [cc] = await db.select().from(costCentersTable)
@@ -1498,7 +1499,7 @@ router.get("/accounting/analytical/summary", async (req, res, next) => {
 // ════════════════════════════════════════════════════════════════
 // IMMOBILISATIONS — SORTIE / CESSION
 // ════════════════════════════════════════════════════════════════
-router.post("/accounting/fixed-assets/:id/dispose", requireManagerOrAbove, async (req, res, next) => {
+router.post("/accounting/fixed-assets/:id/dispose", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [asset] = await db.select().from(fixedAssetsTable)
@@ -1523,7 +1524,7 @@ router.post("/accounting/fixed-assets/:id/dispose", requireManagerOrAbove, async
 // ════════════════════════════════════════════════════════════════
 
 // Import en lot de lignes (depuis CSV/XLSX parsé côté frontend)
-router.post("/accounting/bank-accounts/:id/transactions/bulk", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/bank-accounts/:id/transactions/bulk", requirePermission("accounting.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const bank = (await db.select({ id: bankAccountsTable.id })
     .from(bankAccountsTable)
@@ -1643,7 +1644,7 @@ router.get("/accounting/bank-accounts/:id/auto-match", async (req, res) => {
 });
 
 // Appliquer toutes les correspondances à haute confiance (≥ 60)
-router.post("/accounting/bank-accounts/:id/auto-match/apply", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/bank-accounts/:id/auto-match/apply", requirePermission("accounting.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const bank = (await db.select().from(bankAccountsTable)
     .where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.id, req.params.id as string)))
@@ -1702,7 +1703,7 @@ router.post("/accounting/bank-accounts/:id/auto-match/apply", requireManagerOrAb
 });
 
 // Dé-rapprocher une transaction
-router.post("/accounting/reconciliation/unmatch", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/reconciliation/unmatch", requirePermission("accounting.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { transactionId } = req.body as { transactionId: string };
   const tx = (await db.select().from(bankTransactionsTable)
@@ -1722,7 +1723,7 @@ router.post("/accounting/reconciliation/unmatch", requireManagerOrAbove, async (
 });
 
 // Ignorer une transaction (rapprochement sans écriture)
-router.post("/accounting/reconciliation/ignore", requireManagerOrAbove, async (req, res) => {
+router.post("/accounting/reconciliation/ignore", requirePermission("accounting.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { transactionId } = req.body as { transactionId: string };
   await db.update(bankTransactionsTable)
@@ -1763,7 +1764,7 @@ router.get("/accounting/taxes", requireAuth, async (req, res, next) => {
 });
 
 // POST /accounting/taxes
-router.post("/accounting/taxes", requireManagerOrAbove, async (req, res, next) => {
+router.post("/accounting/taxes", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const body = req.body as Record<string, unknown>;
@@ -1787,7 +1788,7 @@ router.post("/accounting/taxes", requireManagerOrAbove, async (req, res, next) =
 });
 
 // PUT /accounting/taxes/:id
-router.put("/accounting/taxes/:id", requireManagerOrAbove, async (req, res, next) => {
+router.put("/accounting/taxes/:id", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { id } = req.params as Record<string, string>;
@@ -1815,7 +1816,7 @@ router.put("/accounting/taxes/:id", requireManagerOrAbove, async (req, res, next
 });
 
 // DELETE /accounting/taxes/:id
-router.delete("/accounting/taxes/:id", requireAdmin, async (req, res, next) => {
+router.delete("/accounting/taxes/:id", requirePermission("accounting.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const { id } = req.params as Record<string, string>;
@@ -2003,7 +2004,7 @@ router.get("/accounting/fiscal-settings", async (req, res) => {
 });
 
 /** Sauvegarde les paramètres IS (admin). Upsert sur organizationId. */
-router.put("/accounting/fiscal-settings", requireAdmin, async (req, res) => {
+router.put("/accounting/fiscal-settings", requirePermission("accounting.manage"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const { corporateTaxEnabled, corporateTaxBrackets } = req.body || {};
 
