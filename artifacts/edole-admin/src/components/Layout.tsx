@@ -19,8 +19,9 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BRANDING } from "@/config/branding";
-import { PlanBadge } from "@/components/PlanBadge";
-import { useCurrentOrganization, useCurrentSubscription, useOrganizationModules } from "@/lib/saas";
+import { SubscriptionWidget } from "@/components/SubscriptionWidget";
+import { AboutDialog } from "@/components/AboutDialog";
+import { useCurrentOrganization, useOrganizationModules } from "@/lib/saas";
 import { usePermissions } from "@/lib/permissions";
 import { KoffiChat } from "@/components/KoffiChat";
 import { GlobalSearch, useGlobalSearch } from "@/components/GlobalSearch";
@@ -216,7 +217,6 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     if (currentTourKey) window.dispatchEvent(new CustomEvent(RELAUNCH_EVENT, { detail: currentTourKey }));
   };
   const { data: org } = useCurrentOrganization();
-  const { data: subData } = useCurrentSubscription();
   const { data: modules } = useOrganizationModules();
 
   const enabledKeys = useMemo(() => {
@@ -224,6 +224,17 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     (modules ?? []).forEach((m) => { if (m.enabled || m.isCore) set.add(m.moduleKey); });
     return set;
   }, [modules]);
+
+  const currentNavItem = useMemo(() => {
+    for (const group of NAV_GROUPS) {
+      for (const item of group.items) {
+        if (location === item.path || (item.path !== "/" && location.startsWith(item.path))) {
+          return item;
+        }
+      }
+    }
+    return null;
+  }, [location]);
 
   const perms = usePermissions();
 
@@ -544,10 +555,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       </div>
 
       {/* ── Footer ────────────────────────────────────────────────── */}
-      <div className="px-4 py-3 border-t border-white/[0.06] shrink-0">
-        <p className="text-[9.5px] text-white/20 text-center tracking-wide">
-          {BRANDING.appName} · v2026
-        </p>
+      <div className="px-4 py-2.5 border-t border-white/[0.06] shrink-0">
+        <AboutDialog />
       </div>
     </>
   );
@@ -719,10 +728,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Badge plan abonnement */}
-            <div className="hidden sm:inline-flex items-center mr-1.5">
-              <PlanBadge code={subData?.plan.code} name={subData?.plan.name} compact light />
-            </div>
+            {/* Widget abonnement */}
+            <SubscriptionWidget />
 
             {/* Mobile — icône recherche */}
             <button
@@ -959,6 +966,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         {/* Main content */}
         <main className="flex-1 flex flex-col overflow-hidden bg-background min-w-0">
           <AppBreadcrumb />
+          {currentNavItem?.description && (
+            <div className="hidden sm:block px-4 sm:px-6 lg:px-8 py-1.5 bg-muted/20 border-b border-border/40">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{currentNavItem.description}</p>
+            </div>
+          )}
           {perms.isReadOnly && (
             <div className="mx-4 mt-2.5 flex items-center gap-2 rounded-md border border-amber-200/80 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
               <EyeOff className="w-3.5 h-3.5 shrink-0" />

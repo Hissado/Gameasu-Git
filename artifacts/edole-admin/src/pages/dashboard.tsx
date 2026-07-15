@@ -248,15 +248,28 @@ export default function Dashboard() {
               <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white leading-none">
                 {getGreeting()}{firstName ? `, ${firstName}` : ""}
               </h1>
+              {/* ── Résumé contextuel (Item 9) ─────────────────────── */}
+              {!loadingKpis && (
+                <p className={`text-sm mt-2 leading-relaxed ${totalAlerts > 0 ? "text-amber-300/90" : "text-white/45"}`}>
+                  {totalAlerts > 0
+                    ? `${totalAlerts} action${totalAlerts > 1 ? "s" : ""} en attente — ${
+                        [
+                          overdueInvoices.length > 0 && `${overdueInvoices.length} facture${overdueInvoices.length > 1 ? "s" : ""} en retard`,
+                          overdueTasks.length > 0 && `${overdueTasks.length} tâche${overdueTasks.length > 1 ? "s" : ""} échue${overdueTasks.length > 1 ? "s" : ""}`,
+                        ].filter(Boolean).join(", ")
+                      }.`
+                    : "Aucune alerte — tout est à jour."}
+                </p>
+              )}
             </div>
-            {/* Raccourcis rapides */}
-            <div className="flex flex-wrap gap-2">
+            {/* Créer rapidement */}
+            <div className="flex flex-wrap gap-2 self-start">
               {([
-                { label: "Facture",       href: "/factures",        icon: FileText },
-                { label: "Devis",         href: "/devis",       icon: FileSignature },
-                { label: "Client",        href: "/clients",         icon: Building2 },
-                { label: "Paiement",      href: "/paiements",        icon: Wallet },
-                { label: "Collaborateur", href: "/collaborateurs",   icon: Users },
+                { label: "Facture",       href: "/factures",      icon: FileText },
+                { label: "Devis",         href: "/devis",         icon: FileSignature },
+                { label: "Client",        href: "/clients",       icon: Building2 },
+                { label: "Paiement",      href: "/paiements",     icon: Wallet },
+                { label: "Projet",        href: "/projets",       icon: FolderKanban },
               ] as { label: string; href: string; icon: React.ComponentType<{className?: string}> }[]).map((a) => (
                 <Button key={a.label} size="sm" variant="secondary" asChild
                   className="bg-white/10 hover:bg-white/20 text-white border-0 text-xs h-8 gap-1.5">
@@ -273,6 +286,34 @@ export default function Dashboard() {
 
       {/* ── Pointage du jour ────────────────────────────────────────────── */}
       <QuickClockWidget />
+
+      {/* ── Accès rapides (Item 2) ───────────────────────────────────────── */}
+      <section>
+        <SectionHeader title="Accès rapides" sub="Naviguez directement vers vos modules" />
+        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2.5 mt-3">
+          {([
+            { label: "Factures",        href: "/factures",        icon: FileText,      accent: "text-blue-600 bg-blue-50" },
+            { label: "Devis",           href: "/devis",           icon: FileSignature, accent: "text-indigo-600 bg-indigo-50" },
+            { label: "Clients",         href: "/clients",         icon: Building2,     accent: "text-emerald-600 bg-emerald-50" },
+            { label: "Paiements",       href: "/paiements",       icon: Wallet,        accent: "text-green-600 bg-green-50" },
+            { label: "Projets",         href: "/projets",         icon: FolderKanban,  accent: "text-violet-600 bg-violet-50" },
+            { label: "Collaborateurs",  href: "/collaborateurs",  icon: Users,         accent: "text-orange-600 bg-orange-50" },
+            { label: "Recouvrement",    href: "/recouvrement",    icon: Receipt,       accent: "text-red-600 bg-red-50" },
+            { label: "Finance",         href: "/comptabilite",    icon: TrendingUp,    accent: "text-cyan-600 bg-cyan-50" },
+          ] as { label: string; href: string; icon: React.ComponentType<{className?: string}>; accent: string }[]).map((ql) => (
+            <Link
+              key={ql.href}
+              href={ql.href}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-white hover:border-primary/40 hover:shadow-md transition-all group text-center"
+            >
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${ql.accent} group-hover:scale-110 transition-transform`}>
+                <ql.icon className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-medium text-slate-700 leading-tight">{ql.label}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* ── Section 1 : KPI ─────────────────────────────────────────────── */}
       <section data-tour="dash-kpis">
