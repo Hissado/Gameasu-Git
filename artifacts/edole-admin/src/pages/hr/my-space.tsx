@@ -19,8 +19,25 @@ import { formatFCFA } from "@/lib/format";
 import {
   User, CalendarDays, FolderArchive, Banknote, Phone, MapPin, Shield,
   Plus, Loader2, CheckCircle2, Clock, XCircle, ExternalLink, Pencil, Save, X, FileText, Download,
-  Receipt, ChevronDown, ChevronRight, Building2, AlertCircle, ArrowDownToLine, TrendingUp, CalendarCheck
+  Receipt, ChevronDown, ChevronRight, Building2, AlertCircle, ArrowDownToLine, TrendingUp, CalendarCheck,
+  MessageSquareWarning
 } from "lucide-react";
+
+const CLAIM_CATEGORY_LABELS: Record<string, string> = {
+  rémunération: "Rémunération", congés: "Congés / Absences", conditions_travail: "Conditions de travail",
+  discrimination: "Discrimination", harcèlement: "Harcèlement", formation: "Formation",
+  équipement: "Équipement / Matériel", autre: "Autre",
+};
+const CLAIM_STATUS_COLORS: Record<string, string> = {
+  submitted: "bg-blue-100 text-blue-800 border-blue-200",
+  in_review: "bg-amber-100 text-amber-800 border-amber-200",
+  resolved: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  rejected: "bg-red-100 text-red-800 border-red-200",
+  closed: "bg-slate-100 text-slate-600 border-slate-200",
+};
+const CLAIM_STATUS_LABELS: Record<string, string> = {
+  submitted: "Soumise", in_review: "En cours", resolved: "Résolue", rejected: "Rejetée", closed: "Clôturée",
+};
 
 const TYPE_LABELS: Record<string, string> = {
   congé_payé: "Congé payé", RTT: "RTT", maladie: "Maladie",
@@ -55,6 +72,8 @@ export default function MySpacePage() {
   const [profileForm, setProfileForm] = useState({ phone: "", address: "", emergencyContact: "" });
   const [leaveForm, setLeaveForm] = useState({ type: "congé_payé", startDate: "", endDate: "", days: "", reason: "" });
   const [expandedContrib, setExpandedContrib] = useState<string | null>(null);
+  const [openClaim, setOpenClaim] = useState(false);
+  const [claimForm, setClaimForm] = useState({ category: "rémunération", subject: "", description: "", priority: "normal", anonymous: false });
 
   const { data: profile, isLoading: loadingProfile } = useQuery<any>({
     queryKey: ["hr-me-profile"],
@@ -103,6 +122,12 @@ export default function MySpacePage() {
     enabled: !!profile,
   });
 
+  const { data: claimsData } = useQuery<{ data: any[] }>({
+    queryKey: ["hr-my-claims"],
+    queryFn: () => apiFetch("/api/hr/claims"),
+    enabled: !!profile,
+  });
+
   const updateProfileMut = useMutation({
     mutationFn: () => apiFetch("/api/hr/me/profile", { method: "PATCH", body: JSON.stringify(profileForm) }),
     onSuccess: () => { toast({ title: "Profil mis à jour" }); setEditProfile(false); qc.invalidateQueries({ queryKey: ["hr-me-profile"] }); },
@@ -127,6 +152,17 @@ export default function MySpacePage() {
   const cancelLeaveMut = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/hr/me/leave-requests/${id}/cancel`, { method: "PATCH" }),
     onSuccess: () => { toast({ title: "Demande annulée" }); qc.invalidateQueries({ queryKey: ["hr-me-leaves"] }); },
+    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+  });
+
+  const createClaimMut = useMutation({
+    mutationFn: () => apiFetch("/api/hr/claims", { method: "POST", body: JSON.stringify(claimForm) }),
+    onSuccess: () => {
+      toast({ title: "Réclamation soumise avec succès" });
+      setOpenClaim(false);
+      setClaimForm({ category: "rémunération", subject: "", description: "", priority: "normal", anonymous: false });
+      qc.invalidateQueries({ queryKey: ["hr-my-claims"] });
+    },
     onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
   });
 
@@ -162,6 +198,7 @@ export default function MySpacePage() {
   const docs = docsData?.data ?? [];
   const contributions = contributionsData?.data ?? [];
   const transfers = transfersData?.data ?? [];
+  const claims = claimsData?.data ?? [];
 
   const currentYear = new Date().getFullYear();
   const executedThisYear = transfers.filter((t: any) => {
@@ -333,6 +370,7 @@ export default function MySpacePage() {
               <TabsTrigger value="documents" className="gap-1.5"><FolderArchive className="w-4 h-4" />Documents</TabsTrigger>
               <TabsTrigger value="attestations" className="gap-1.5"><FileText className="w-4 h-4" />Attestations</TabsTrigger>
               <TabsTrigger value="virements" className="gap-1.5"><ArrowDownToLine className="w-4 h-4" />Virements</TabsTrigger>
+              <TabsTrigger value="reclamations" className="gap-1.5"><MessageSquareWarning className="w-4 h-4" />Réclamations</TabsTrigger>
             </TabsList>
 
             {/* Mes congés */}
@@ -738,6 +776,47 @@ export default function MySpacePage() {
               </div>
             </TabsContent>
 
+            {/* Réclamations */}
+            <TabsContent value="reclamations" className="mt-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-sm font-semibold">Mes réclamations RH</p>
+                      <p className="text-xs text-muted-foreground">Soumettez et suivez vos réclamations auprès des RH</p>
+                    </div>
+                    <Button size="sm" onClick={() => setOpenClaim(true)}>
+                      <Plus className="w-3.5 h-3.5 mr-1.5" />Nouvelle réclamation
+                    </Button>
+                  </div>
+                  {claims.length === 0 ? (
+                    <div className="py-12 text-center text-muted-foreground">
+                      <MessageSquareWarning className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm font-medium">Aucune réclamation soumise</p>
+                      <p className="text-xs mt-1">Cliquez sur « Nouvelle réclamation » pour en créer une.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border rounded-lg border overflow-hidden">
+                      {claims.map((c: any) => (
+                        <div key={c.id} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                          <MessageSquareWarning className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{c.subject}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {CLAIM_CATEGORY_LABELS[c.category] ?? c.category} · {c.reference ?? ""}
+                            </p>
+                          </div>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border shrink-0 ${CLAIM_STATUS_COLORS[c.status] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                            {CLAIM_STATUS_LABELS[c.status] ?? c.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* Attestations */}
             <TabsContent value="attestations" className="mt-4">
               <Card>
@@ -777,6 +856,65 @@ export default function MySpacePage() {
           </Tabs>
         </div>
       </div>
+
+      {/* Dialog : nouvelle réclamation */}
+      <Dialog open={openClaim} onOpenChange={setOpenClaim}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nouvelle réclamation</DialogTitle>
+            <DialogDescription>Votre réclamation sera transmise au service RH pour traitement.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs font-semibold">Catégorie</Label>
+              <Select value={claimForm.category} onValueChange={v => setClaimForm(f => ({ ...f, category: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(CLAIM_CATEGORY_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold">Objet</Label>
+              <Input value={claimForm.subject} onChange={e => setClaimForm(f => ({ ...f, subject: e.target.value }))} placeholder="Résumez votre réclamation en une phrase…" />
+            </div>
+            <div>
+              <Label className="text-xs font-semibold">Description détaillée</Label>
+              <Textarea rows={4} value={claimForm.description} onChange={e => setClaimForm(f => ({ ...f, description: e.target.value }))} placeholder="Décrivez les faits, dates, personnes impliquées…" />
+            </div>
+            <div>
+              <Label className="text-xs font-semibold">Priorité</Label>
+              <Select value={claimForm.priority} onValueChange={v => setClaimForm(f => ({ ...f, priority: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Faible</SelectItem>
+                  <SelectItem value="normal">Normale</SelectItem>
+                  <SelectItem value="high">Élevée</SelectItem>
+                  <SelectItem value="urgent">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="claimAnon"
+                checked={claimForm.anonymous}
+                onChange={e => setClaimForm(f => ({ ...f, anonymous: e.target.checked }))}
+                className="w-4 h-4 rounded border-input"
+              />
+              <Label htmlFor="claimAnon" className="text-xs cursor-pointer">Soumettre de façon anonyme</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenClaim(false)}>Annuler</Button>
+            <Button
+              disabled={!claimForm.subject.trim() || !claimForm.description.trim() || createClaimMut.isPending}
+              onClick={() => createClaimMut.mutate()}
+            >
+              {createClaimMut.isPending && <Loader2 className="w-3 h-3 mr-2 animate-spin" />}
+              Soumettre
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog : demande de congé */}
       <Dialog open={openLeave} onOpenChange={setOpenLeave}>
