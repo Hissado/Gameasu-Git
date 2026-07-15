@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import {
   useActiveFirm, useExpertClients, useAddClientOrg, useUnlinkClient,
@@ -16,11 +16,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useSwitchClientContext } from "@/lib/expert-api";
 import {
-  Building2, Plus, Search, Settings, FileText, Trash2, AlertCircle, Users2, ExternalLink, CreditCard,
+  Building2, Plus, Search, Settings, FileText, Trash2, AlertCircle, Users2, ExternalLink, CreditCard, Check,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Loader2 } from "lucide-react";
+import { useSubscriptionPlans } from "@/lib/saas";
+import { formatFCFA } from "@/lib/format";
 
 const SECTEURS = [
   "BTP / Construction", "Mines & Ressources", "Commerce & Distribution",
@@ -122,13 +124,6 @@ function AddClientModal({ firmId, open, onClose }: { firmId: string; open: boole
   );
 }
 
-const AVAILABLE_PLANS = [
-  { code: "STARTER", label: "Starter" },
-  { code: "GROWTH", label: "Growth" },
-  { code: "PROFESSIONAL", label: "Professional" },
-  { code: "ENTERPRISE", label: "Enterprise" },
-];
-
 function ChangePlanModal({
   firmId, target, onClose,
 }: {
@@ -138,7 +133,15 @@ function ChangePlanModal({
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [planCode, setPlanCode] = useState(target?.currentPlanCode?.toUpperCase() ?? "STARTER");
+  const { data: plans, isLoading: plansLoading, isError: plansError } = useSubscriptionPlans();
+  const [planCode, setPlanCode] = useState(target?.currentPlanCode?.toUpperCase() ?? "");
+
+  useEffect(() => {
+    setPlanCode(target?.currentPlanCode?.toUpperCase() ?? "");
+  }, [target?.orgId]);
+
+  const effectivePlanCode = planCode || target?.currentPlanCode?.toUpperCase() || "";
+  const selectedPlan = plans?.find((p) => p.code === effectivePlanCode);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -147,7 +150,8 @@ function ChangePlanModal({
         body: JSON.stringify({ planCode }),
       }),
     onSuccess: () => {
-      toast({ title: "Formule mise à jour", description: `${target!.orgName} est maintenant sur le plan ${AVAILABLE_PLANS.find((p) => p.code === planCode)?.label ?? planCode}.` });
+      const planLabel = plans?.find((p) => p.code === planCode)?.name ?? planCode;
+      toast({ title: "Formule mise à jour", description: `${target!.orgName} est maintenant sur le plan ${planLabel}.` });
       qc.invalidateQueries({ queryKey: ["expert/clients", firmId] });
       onClose();
     },
@@ -160,7 +164,7 @@ function ChangePlanModal({
 
   return (
     <Dialog open={!!target} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-primary" />
@@ -173,18 +177,64 @@ function ChangePlanModal({
           </p>
           <div className="space-y-1.5">
             <Label>Nouvelle formule</Label>
-            <Select value={planCode} onValueChange={setPlanCode}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {AVAILABLE_PLANS.map((p) => (
-                  <SelectItem key={p.code} value={p.code}>{p.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {plansLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground h-9">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Chargement des formules…
+              </div>
+            ) : plansError ? (
+              <p className="text-sm text-destructive">Impossible de charger les formules disponibles. Veuillez réessayer.</p>
+            ) : (
+              <Select value={effectivePlanCode} onValueChange={setPlanCode}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une formule" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(plans ?? []).map((p) => (
+                    <SelectItem key={p.code} value={p.code}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-          {planCode === target.currentPlanCode?.toUpperCase() && (
+
+          {selectedPlan && !plansLoading && !plansError && (
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tarif</span>
+                <span className="text-sm font-semibold">
+                  {formatFCFA(selectedPlan.monthlyPricePerSeat)}
+                  <span className="text-xs font-normal text-muted-foreground"> / siège / mois</span>
+                </span>
+              </div>
+              {selectedPlan.includedModules && selectedPlan.includedModules.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Modules inclus</p>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedPlan.includedModules.map((m) => (
+                      <span key={m} className="inline-block text-[10px] bg-primary/10 text-primary rounded px-1.5 py-0.5 font-medium">{m}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {selectedPlan.features && selectedPlan.features.filter((f) => f.included).length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Fonctionnalités</p>
+                  <ul className="space-y-1">
+                    {selectedPlan.features.filter((f) => f.included).slice(0, 5).map((f) => (
+                      <li key={f.id} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-emerald-500 shrink-0" />{f.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {effectivePlanCode === target.currentPlanCode?.toUpperCase() && planCode !== "" && (
             <p className="text-xs text-amber-600">Cette formule est déjà active.</p>
           )}
         </div>
@@ -192,7 +242,13 @@ function ChangePlanModal({
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button
             onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || planCode === target.currentPlanCode?.toUpperCase()}
+            disabled={
+              mutation.isPending ||
+              plansLoading ||
+              plansError ||
+              !planCode ||
+              planCode === target.currentPlanCode?.toUpperCase()
+            }
           >
             {mutation.isPending ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Enregistrement…</> : "Confirmer"}
           </Button>
