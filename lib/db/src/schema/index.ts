@@ -41,3 +41,4 @@ export * from "./ai-assistant";
 export * from "./tax-control";
 export * from "./salary-advances";
 export * from "./fiscal-engine";
+export * from "./compliance";

@@ -55,6 +55,11 @@ export const invoicesTable = pgTable("invoices", {
   lastDunnedAt: text("last_dunned_at"),
   promisedPaymentDate: text("promised_payment_date"),
   promisedPaymentAmount: numeric("promised_payment_amount", { precision: 15, scale: 2 }),
+  // ── Conformité fiscale OTR/Togo ──────────────────────────────────────────
+  fiscalQrCode: text("fiscal_qr_code"),
+  fiscalStampHash: text("fiscal_stamp_hash"),
+  fiscalStampedAt: timestamp("fiscal_stamped_at", { withTimezone: true }),
+  fiscalSequenceNumber: text("fiscal_sequence_number"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

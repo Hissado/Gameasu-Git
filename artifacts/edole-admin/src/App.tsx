@@ -202,6 +202,8 @@ const BtpPaie = lazy(() => import("@/pages/hr/btp-paie"));
 const BtpSettings = lazy(() => import("@/pages/hr/btp-settings"));
 const HrSalaryAdvances = lazy(() => import("@/pages/hr/salary-advances"));
 const FiscalEngine = lazy(() => import("@/pages/fiscal/engine"));
+const CompliancePage = lazy(() => import("@/pages/compliance/index"));
+const InvoiceScannerPage = lazy(() => import("@/pages/compliance/scanner"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -391,6 +393,8 @@ function AppRouter() {
                 <Route path="/rh/reclamations" component={HrReclamations} />
                 <Route path="/rh/avances-salaire" component={HrSalaryAdvances} />
                 <Route path="/fiscal/moteur" component={FiscalEngine} />
+                <Route path="/conformite/scanner" component={InvoiceScannerPage} />
+                <Route path="/conformite" component={CompliancePage} />
                 <Route path="/suggestions" component={SuggestionsPage} />
                 <Route path="/notifications/synthese" component={NotificationsDigest} />
                 <Route path="/recherche" component={UniversalSearch} />

@@ -15,6 +15,7 @@ import {
   FolderOpen, LifeBuoy, Shield, Lock, Brain, Workflow, Clock, Sparkles, Sun, Package, Tag, MinusCircle,
   Gauge, FolderKanban, Users2, LayoutGrid, Activity, MonitorSmartphone, HelpCircle, Plus,
   Banknote, Flame, ArrowLeftRight, CheckCircle2, Bot, Lightbulb, BookOpen,
+  ShieldCheck, ScanLine,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -130,6 +131,8 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Clôture des périodes", path: "/comptabilite/cloture",         icon: CalendarCheck, moduleKey: "accounting",         permissionKey: "accounting.manage", description: "Clôturez vos périodes comptables, verrouillez les écritures et générez les états de synthèse." },
       { name: "Budgets & prévisions", path: "/fpa",                          icon: TrendingUp,    moduleKey: "financial_planning", permissionKey: "fpa.read",          description: "Préparez vos budgets et comparez les prévisions aux réalisations." },
       { name: "Moteur fiscal",        path: "/fiscal/moteur",                icon: Calculator,    moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Calculez TVA, IS, IMF, Patente et IRPP selon le barème OHADA/Togo, gérez vos obligations et simulez votre charge fiscale." },
+      { name: "Conformité & Signatures", path: "/conformite",               icon: ShieldCheck,   moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Cachet fiscal OTR sur factures, cachets numériques SHA-256 et workflow de signature interne." },
+      { name: "Scanner de factures",  path: "/conformite/scanner",          icon: ScanLine,      moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Extrayez automatiquement les données de vos factures fournisseurs (PDF/image) par intelligence artificielle." },
       { name: "Rapports",             path: "/rapports",                     icon: BarChart3,     moduleKey: "reports",            permissionKey: "accounting.read",   description: "Générez les états financiers correspondant au référentiel comptable actif." },
     ],
   },

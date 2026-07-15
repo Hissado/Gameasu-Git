@@ -32,3 +32,4 @@
 - [Tax-control table naming](tax-control-naming.md) — benefits.ts already exports taxDeclarationsTable; new fiscal control module uses fiscal_* prefix (fiscalDeclarationsTable etc.) to avoid ambiguous import esbuild errors.
 - [Static route-link guard](route-link-guard.md) — `pnpm run check-routes` catches broken internal nav links (wrong route literals, links to non-existent detail pages) app-wide.
 - [Salary advances + fiscal engine schema](salary-advances-fiscal-engine.md) — 8 tables (3 avances, 5 fiscal); seed-hissado extends idempotently via existingRates/existing length guard; patente needs separate brackets table (no inline rate).
+- [Compliance module table naming](compliance-table-naming.md) — benefits.ts owns signatureRequestsTable; compliance tables use docSigRequestsTable/docSigSignersTable to avoid esbuild ambiguous-import; drizzle push blocks on rename prompts → use tsx migration script.
