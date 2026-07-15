@@ -22,7 +22,6 @@ export function AboutDialog() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5 text-base">
               <img src={BRANDING.logoMark} alt={BRANDING.appName} className="h-6 w-auto" />
-              {BRANDING.appName}
             </DialogTitle>
           </DialogHeader>
 
@@ -53,7 +52,7 @@ export function AboutDialog() {
           </div>
 
           <p className="text-[11px] text-muted-foreground text-center pt-1">
-            © 2025 Gaméasù · Tous droits réservés
+            © 2025 Gameasu · Tous droits réservés
           </p>
         </DialogContent>
       </Dialog>
