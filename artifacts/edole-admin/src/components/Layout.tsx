@@ -37,6 +37,7 @@ type NavItem = {
   secondary?: boolean;
   description?: string;
   roles?: string[];
+  excludeRoles?: string[];
 };
 type NavGroup = {
   title: string;
@@ -145,13 +146,13 @@ const NAV_GROUPS: NavGroup[] = [
     description: "Gérez vos collaborateurs, contrats, congés, présences, paie, recrutements et réclamations.",
     items: [
       { name: "Mon espace",           path: "/rh/mon-espace",         icon: UserCircle,        moduleKey: "team_hr",                                                description: "Votre espace RH personnel : bulletins de paie, soldes de congés, avances et documents administratifs." },
-      { name: "Collaborateurs",       path: "/rh",                    icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read",                    description: "Gérez les fiches, contrats, documents et informations professionnelles de vos collaborateurs." },
-      { name: "Paie",                 path: "/rh/paie",               icon: Banknote,          moduleKey: "team_hr", permissionKey: "hr.read",                    description: "Préparez et validez les bulletins de paie, gérez le calendrier, les déclarations et les corrections." },
-      { name: "Avances sur salaire",  path: "/rh/avances-salaire",    icon: ArrowLeftRight,    moduleKey: "team_hr", permissionKey: "hr.read", roles: ["super_admin", "admin", "manager", "rh", "financier"], secondary: true, description: "Approuvez les demandes d'avance, gérez les échéanciers et intégrez les retenues dans la paie." },
-      { name: "Congés & absences",    path: "/rh/conges",             icon: CalendarCheck,     moduleKey: "team_hr", permissionKey: "hr.read",                    description: "Gérez les demandes de congés, politiques d'absence, soldes et plannings de l'équipe." },
-      { name: "Recrutement",          path: "/rh/recrutement",        icon: GraduationCap,     moduleKey: "team_hr", permissionKey: "hr.read",                    description: "Publiez vos offres, suivez les candidatures et gérez le processus de recrutement." },
-      { name: "Présences",            path: "/presences",             icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view",             description: "Suivez les horaires, pointages, pauses, retards, absences et heures travaillées." },
-      { name: "Kiosques de pointage", path: "/kiosques",              icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings", secondary: true, description: "Configurez et gérez vos kiosques de pointage physiques connectés à Gaméasù." },
+      { name: "Collaborateurs",       path: "/rh",                    icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read",      excludeRoles: ["collaborator"],                                                          description: "Gérez les fiches, contrats, documents et informations professionnelles de vos collaborateurs." },
+      { name: "Paie",                 path: "/rh/paie",               icon: Banknote,          moduleKey: "team_hr", permissionKey: "hr.read",      excludeRoles: ["collaborator"],                                                          description: "Préparez et validez les bulletins de paie, gérez le calendrier, les déclarations et les corrections." },
+      { name: "Avances sur salaire",  path: "/rh/avances-salaire",    icon: ArrowLeftRight,    moduleKey: "team_hr", permissionKey: "hr.read", roles: ["super_admin", "admin", "manager", "rh", "financier"], secondary: true,            description: "Approuvez les demandes d'avance, gérez les échéanciers et intégrez les retenues dans la paie." },
+      { name: "Congés & absences",    path: "/rh/conges",             icon: CalendarCheck,     moduleKey: "team_hr", permissionKey: "hr.read",      excludeRoles: ["collaborator"],                                                          description: "Gérez les demandes de congés, politiques d'absence, soldes et plannings de l'équipe." },
+      { name: "Recrutement",          path: "/rh/recrutement",        icon: GraduationCap,     moduleKey: "team_hr", permissionKey: "hr.read",      excludeRoles: ["collaborator"],                                                          description: "Publiez vos offres, suivez les candidatures et gérez le processus de recrutement." },
+      { name: "Présences",            path: "/presences",             icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view",             excludeRoles: ["collaborator"],                                                          description: "Suivez les horaires, pointages, pauses, retards, absences et heures travaillées." },
+      { name: "Kiosques de pointage", path: "/kiosques",              icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings",  excludeRoles: ["collaborator"], secondary: true,                                            description: "Configurez et gérez vos kiosques de pointage physiques connectés à Gaméasù." },
     ],
   },
   {
@@ -269,6 +270,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   const isItemVisible = (item: NavItem) => {
     if (item.roles && !item.roles.includes(user?.role ?? "")) return false;
+    if (item.excludeRoles && item.excludeRoles.includes(user?.role ?? "")) return false;
     if (item.permissionKey && !perms.isAdmin && !perms.has(item.permissionKey)) return false;
     return true;
   };
