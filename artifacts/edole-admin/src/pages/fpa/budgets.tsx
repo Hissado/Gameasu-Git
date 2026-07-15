@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit, Copy, CheckCircle2, Trash2, Archive, FileSpreadsheet } from "lucide-react";
+import { FieldTooltip } from "@/components/ui/field-tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast as baseToast } from "@/hooks/use-toast";
@@ -325,7 +326,10 @@ function CreateBudgetDialog({ periods, projects, departments, services, onCreate
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Type</Label>
+            <div className="flex items-center gap-1 mb-1">
+              <Label>Type</Label>
+              <FieldTooltip content="Budget : chiffres cibles annuels figés, validés en début d'année. Prévision (Forecast) : projection révisable en cours d'année, ajustée sur les réalisés." />
+            </div>
             <Select value={kind} onValueChange={setKind}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -343,7 +347,10 @@ function CreateBudgetDialog({ periods, projects, departments, services, onCreate
           </div>
         </div>
         <div>
-          <Label>Périmètre</Label>
+          <div className="flex items-center gap-1 mb-1">
+            <Label>Périmètre</Label>
+            <FieldTooltip content="Entité organisationnelle couverte par ce budget. 'Entreprise' = périmètre global consolidé ; 'Projet' = suivi des coûts d'un chantier spécifique ; 'Département' = centre de coûts." />
+          </div>
           <Select value={scope} onValueChange={setScope}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -374,7 +381,10 @@ function CreateBudgetDialog({ periods, projects, departments, services, onCreate
               </Select>
             </div>
             <div>
-              <Label>Projets contributeurs (pour les actuels)</Label>
+              <div className="flex items-center gap-1 mb-1">
+                <Label>Projets contributeurs (pour les actuels)</Label>
+                <FieldTooltip content="Projets dont les écritures comptables (journaux postés) seront agrégées pour calculer les réalisés de ce département. Laissez vide pour inclure tous les projets." />
+              </div>
               <div className="border rounded p-2 max-h-40 overflow-y-auto space-y-1">
                 {projects.map((p) => (
                   <label key={p.id} className="flex items-center gap-2 text-sm">

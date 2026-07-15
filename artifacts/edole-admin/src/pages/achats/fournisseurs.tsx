@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatFCFA } from "@/lib/format";
+import { FieldTooltip } from "@/components/ui/field-tooltip";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -368,27 +369,45 @@ function SupplierForm({
           <TabsContent value="admin" className="space-y-3 pt-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">IFU / NIF (numéro fiscal)</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">IFU / NIF (numéro fiscal)</Label>
+                  <FieldTooltip content="Identifiant Fiscal Unique (Togo) ou Numéro d'Identification Fiscale. Obligatoire pour la déduction TVA sur achats et les déclarations fiscales." />
+                </div>
                 <Input value={form.taxId} onChange={e => set("taxId", e.target.value)} placeholder="000XXXXXXX" className="h-8 text-sm font-mono" />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">RCCM</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">RCCM</Label>
+                  <FieldTooltip content="Numéro d'immatriculation au Registre du Commerce et du Crédit Mobilier. Permet de vérifier la régularité légale du fournisseur." />
+                </div>
                 <Input value={form.rccm} onChange={e => set("rccm", e.target.value)} placeholder="TG-LOM-XXXX-XX-XXXXX" className="h-8 text-sm font-mono" />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">Numéro TVA</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">Numéro TVA</Label>
+                  <FieldTooltip content="Numéro d'identification TVA du fournisseur. Obligatoire si vous souhaitez déduire la TVA sur les factures reçues." />
+                </div>
                 <Input value={form.vatNumber} onChange={e => set("vatNumber", e.target.value)} className="h-8 text-sm font-mono" />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">Numéro statistique</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">Numéro statistique</Label>
+                  <FieldTooltip content="Numéro attribué par l'Institut National de la Statistique pour les déclarations administratives officielles." />
+                </div>
                 <Input value={form.statisticNumber} onChange={e => set("statisticNumber", e.target.value)} className="h-8 text-sm font-mono" />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">Délai de paiement (jours)</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">Délai de paiement (jours)</Label>
+                  <FieldTooltip content="Nombre de jours entre la réception de la facture fournisseur et votre règlement. Sert à calculer les dates d'échéance et la trésorerie prévisionnelle." />
+                </div>
                 <Input type="number" value={form.paymentDelay} onChange={e => set("paymentDelay", e.target.value)} placeholder="30" className="h-8 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">Devise de facturation</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">Devise de facturation</Label>
+                  <FieldTooltip content="Devise dans laquelle ce fournisseur émet ses factures. Un taux de change sera appliqué si différent du FCFA (XOF)." />
+                </div>
                 <Select value={form.invoicingCurrency} onValueChange={v => set("invoicingCurrency", v)}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -397,7 +416,10 @@ function SupplierForm({
                 </Select>
               </div>
               <div className="col-span-2">
-                <Label className="text-xs text-muted-foreground mb-1 block">Conditions de paiement</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">Conditions de paiement</Label>
+                  <FieldTooltip content="Modalité contractuelle convenue avec ce fournisseur (immédiat, fin de mois, à 30 jours…). Sert de référence pour la validation des factures." />
+                </div>
                 <Select value={form.paymentTerms} onValueChange={v => set("paymentTerms", v)}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -420,11 +442,17 @@ function SupplierForm({
                 <Input value={form.bankAccountNumber} onChange={e => set("bankAccountNumber", e.target.value)} className="h-8 text-sm font-mono" />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">IBAN</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">IBAN</Label>
+                  <FieldTooltip content="International Bank Account Number — identifiant bancaire standardisé pour les virements internationaux et SEPA. Format : XX + 2 chiffres + code banque + numéro de compte." />
+                </div>
                 <Input value={form.iban} onChange={e => set("iban", e.target.value)} className="h-8 text-sm font-mono" />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">SWIFT / BIC</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">SWIFT / BIC</Label>
+                  <FieldTooltip content="Code international d'identification de la banque du fournisseur (8 ou 11 caractères). Obligatoire pour les virements SEPA et internationaux." />
+                </div>
                 <Input value={form.swift} onChange={e => set("swift", e.target.value)} className="h-8 text-sm font-mono" />
               </div>
               <div className="col-span-2">
@@ -432,7 +460,10 @@ function SupplierForm({
                 <Input value={form.beneficiaryName} onChange={e => set("beneficiaryName", e.target.value)} className="h-8 text-sm" />
               </div>
               <div className="col-span-2">
-                <Label className="text-xs text-muted-foreground mb-1 block">Mobile Money (Flooz / Mixx)</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">Mobile Money (Flooz / Mixx)</Label>
+                  <FieldTooltip content="Numéro de portefeuille mobile pour les paiements via Flooz (Togocel) ou Mixx by Yas (Moov). Format international : +228 XX XX XX XX." />
+                </div>
                 <Input value={form.mobileMoney} onChange={e => set("mobileMoney", e.target.value)} placeholder="+228 XX XX XX XX" className="h-8 text-sm" />
               </div>
             </div>
@@ -442,7 +473,10 @@ function SupplierForm({
           <TabsContent value="perf" className="space-y-3 pt-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">Note (1–5 ⭐)</Label>
+                <div className="flex items-center gap-1 mb-1">
+                  <Label className="text-xs text-muted-foreground">Note (1–5 ⭐)</Label>
+                  <FieldTooltip content="Évaluation interne de la fiabilité et de la qualité du fournisseur : 1 = insuffisant, 5 = excellent. Utilisée pour comparer et sélectionner les fournisseurs lors d'un appel d'offres." />
+                </div>
                 <Select value={form.rating} onValueChange={v => set("rating", v)}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>

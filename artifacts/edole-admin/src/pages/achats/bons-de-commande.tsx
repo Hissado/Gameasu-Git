@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldTooltip } from "@/components/ui/field-tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -191,7 +192,13 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 <Label>Fournisseur *</Label>
                 <VendorSelect value={supplierId} onValueChange={setSupplierId} />
               </div>
-              <div className="space-y-1"><Label>Date livraison prévue</Label><Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} /></div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Label>Date livraison prévue</Label>
+                  <FieldTooltip content="Date contractuelle à laquelle vous attendez la livraison. Tout écart entre cette date et la réception effective génère une alerte de retard." />
+                </div>
+                <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+              </div>
             </div>
             <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
 
@@ -208,7 +215,9 @@ function NewPoDialog({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                       <th className="text-left p-2 font-medium text-muted-foreground">Description</th>
                       <th className="text-right p-2 font-medium text-muted-foreground w-16">Qté</th>
                       <th className="text-right p-2 font-medium text-muted-foreground w-24">P.U. HT</th>
-                      <th className="text-right p-2 font-medium text-muted-foreground w-14">TVA%</th>
+                      <th className="text-right p-2 font-medium text-muted-foreground w-14">
+                        <span className="inline-flex items-center gap-0.5">TVA%<FieldTooltip content="Taux de TVA applicable à cette ligne (%). Le taux standard au Togo est de 18%. Certaines opérations sont exonérées ou à taux réduit." /></span>
+                      </th>
                       <th className="text-right p-2 font-medium text-muted-foreground w-24">Total TTC</th>
                       <th className="w-8"></th>
                     </tr>

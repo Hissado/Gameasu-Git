@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Info } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -31,12 +31,12 @@ export function FieldTooltip({ content, className }: FieldTooltipProps) {
             onBlur={() => setOpen(false)}
             aria-label="Plus d'informations"
           >
-            <Info className="w-3.5 h-3.5" />
+            <HelpCircle className="w-3 h-3" />
           </button>
         </TooltipTrigger>
         <TooltipContent
           side="top"
-          className="max-w-xs text-[11.5px] leading-relaxed bg-popover text-popover-foreground border shadow-md"
+          className="max-w-[260px] text-[11.5px] leading-relaxed bg-popover text-popover-foreground border shadow-md"
         >
           {content}
         </TooltipContent>

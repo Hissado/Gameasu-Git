@@ -16,6 +16,7 @@ import {
   Building2, Loader2, Plus, Trash2, UserPlus, Star,
 } from "lucide-react";
 import { toast } from "sonner";
+import { FieldTooltip } from "@/components/ui/field-tooltip";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -484,19 +485,31 @@ export function ClientFormDialog({ open, onClose, client, onSuccess }: Props) {
                 <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Identifiants fiscaux & légaux</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">IFU / NIF (numéro fiscal)</Label>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Label className="text-xs text-muted-foreground">IFU / NIF (numéro fiscal)</Label>
+                      <FieldTooltip content="Identifiant Fiscal Unique (Togo) ou Numéro d'Identification Fiscale. Obligatoire pour toute facturation officielle et déclaration TVA." />
+                    </div>
                     <Input value={form.ifu} onChange={e => set("ifu", e.target.value)} placeholder="000XXXXXXX" className="h-8 text-sm font-mono" />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">RCCM (registre commerce)</Label>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Label className="text-xs text-muted-foreground">RCCM (registre commerce)</Label>
+                      <FieldTooltip content="Numéro d'immatriculation au Registre du Commerce et du Crédit Mobilier. Identifiant légal de l'entreprise pour tout acte commercial." />
+                    </div>
                     <Input value={form.rccm} onChange={e => set("rccm", e.target.value)} placeholder="TG-LOM-XXXX-XX-XXXXX" className="h-8 text-sm font-mono" />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Numéro TVA</Label>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Label className="text-xs text-muted-foreground">Numéro TVA</Label>
+                      <FieldTooltip content="Numéro d'identification TVA du client. À renseigner s'il est assujetti ; apparaît sur les factures et permet la déduction de TVA." />
+                    </div>
                     <Input value={form.vatNumber} onChange={e => set("vatNumber", e.target.value)} placeholder="TG XXXXXXXXXXXXXXX" className="h-8 text-sm font-mono" />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Numéro statistique</Label>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Label className="text-xs text-muted-foreground">Numéro statistique</Label>
+                      <FieldTooltip content="Numéro attribué par l'Institut National de la Statistique pour les déclarations administratives et statistiques officielles." />
+                    </div>
                     <Input value={form.statisticNumber} onChange={e => set("statisticNumber", e.target.value)} placeholder="XXXXXXXXXXXXX" className="h-8 text-sm font-mono" />
                   </div>
                 </div>
@@ -563,7 +576,10 @@ export function ClientFormDialog({ open, onClose, client, onSuccess }: Props) {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">Segment</Label>
+                  <div className="flex items-center gap-1 mb-1">
+                    <Label className="text-xs text-muted-foreground">Segment</Label>
+                    <FieldTooltip content="Classification stratégique : Strategic = grands comptes à traiter en priorité absolue, Premium = fort potentiel, Standard = volume courant, Opportuniste = one-shot." />
+                  </div>
                   <Select value={form.segment} onValueChange={v => set("segment", v)}>
                     <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Choisir…" /></SelectTrigger>
                     <SelectContent>{SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
@@ -574,7 +590,10 @@ export function ClientFormDialog({ open, onClose, client, onSuccess }: Props) {
                   <Input value={form.category} onChange={e => set("category", e.target.value)} placeholder="Grand compte, PME, Start-up…" className="h-8 text-sm" />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">Potentiel</Label>
+                  <div className="flex items-center gap-1 mb-1">
+                    <Label className="text-xs text-muted-foreground">Potentiel</Label>
+                    <FieldTooltip content="Estimation du chiffre d'affaires que ce client pourrait générer à terme. Guide la priorisation des actions commerciales et l'allocation des ressources." />
+                  </div>
                   <Select value={form.potential} onValueChange={v => set("potential", v)}>
                     <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{POTENTIALS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
@@ -599,11 +618,17 @@ export function ClientFormDialog({ open, onClose, client, onSuccess }: Props) {
             <TabsContent value="finance" className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">Plafond de crédit (FCFA)</Label>
+                  <div className="flex items-center gap-1 mb-1">
+                    <Label className="text-xs text-muted-foreground">Plafond de crédit (FCFA)</Label>
+                    <FieldTooltip content="Montant maximum de créances autorisé pour ce client. Au-delà, toute nouvelle commande nécessite une validation manuelle avant facturation." />
+                  </div>
                   <Input type="number" value={form.creditLimit} onChange={e => set("creditLimit", e.target.value)} placeholder="0" className="h-8 text-sm" />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">Délai de paiement (jours)</Label>
+                  <div className="flex items-center gap-1 mb-1">
+                    <Label className="text-xs text-muted-foreground">Délai de paiement (jours)</Label>
+                    <FieldTooltip content="Nombre de jours accordés au client pour régler ses factures après émission. Ex : 30 = facture payable sous 30 jours. Passé ce délai, la facture bascule en 'En retard'." />
+                  </div>
                   <Input type="number" value={form.paymentTermsDays} onChange={e => set("paymentTermsDays", e.target.value)} placeholder="30" className="h-8 text-sm" />
                 </div>
                 <div>
@@ -618,7 +643,10 @@ export function ClientFormDialog({ open, onClose, client, onSuccess }: Props) {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">Remise globale (%)</Label>
+                  <div className="flex items-center gap-1 mb-1">
+                    <Label className="text-xs text-muted-foreground">Remise globale (%)</Label>
+                    <FieldTooltip content="Taux de remise commercial appliqué automatiquement sur toutes les factures de ce client. S'ajoute aux remises ligne par ligne." />
+                  </div>
                   <Input type="number" min={0} max={100} step={0.5} value={form.discountRate} onChange={e => set("discountRate", e.target.value)} placeholder="0" className="h-8 text-sm" />
                 </div>
                 <div className="flex items-center gap-2 mt-4">
@@ -630,6 +658,7 @@ export function ClientFormDialog({ open, onClose, client, onSuccess }: Props) {
                   <Label htmlFor="vatExempt" className="text-sm cursor-pointer">
                     Client exonéré de TVA
                   </Label>
+                  <FieldTooltip content="Si coché, aucune TVA n'est calculée sur les factures de ce client. À utiliser uniquement si vous disposez d'une attestation d'exonération fiscale valide." />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs text-muted-foreground mb-1 block">Conditions particulières</Label>
