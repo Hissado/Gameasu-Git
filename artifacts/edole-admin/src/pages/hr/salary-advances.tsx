@@ -251,7 +251,7 @@ export default function SalaryAdvancesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-[hsl(224_60%_14%)] min-h-full rounded-xl">
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
