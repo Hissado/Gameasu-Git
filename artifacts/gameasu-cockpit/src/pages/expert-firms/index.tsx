@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -158,6 +158,11 @@ export default function ExpertFirmsPage() {
 
   const [planEditing, setPlanEditing] = useState(false);
   const [planDraft, setPlanDraft] = useState("");
+
+  useEffect(() => {
+    setPlanEditing(false);
+    setPlanDraft("");
+  }, [selectedId]);
 
   const toggleMut = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
