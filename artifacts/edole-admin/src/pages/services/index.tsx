@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Briefcase, Plus, Repeat, Calendar, ChevronRight, Building2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -77,7 +78,7 @@ export default function ServicesIndex() {
       setForm({ clientId: "", name: "", description: "", isRecurring: false, frequency: "monthly", dayOfMonth: 1, startDate: "", endDate: "" });
       toast.success("Engagement créé avec succès");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Erreur lors de la création"),
+    onError: (e: any) => toast.error(apiErrorMessage(e)),
   });
 
   const filtered = useMemo(() => {

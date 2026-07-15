@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Trash2, RotateCcw, FileText } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 
 type Entry = {
   id: string; entryNumber: string; entryDate: string;
@@ -24,7 +25,6 @@ type Line = { accountCode: string; debit: string; credit: string; description: s
 
 export default function EntriesPage() {
   const qc = useQueryClient();
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<any>(null);
   const [filters, setFilters] = useState({ journalId: "", from: "", to: "" });
@@ -73,18 +73,18 @@ export default function EntriesPage() {
       }),
     }),
     onSuccess: () => {
-      toast({ title: "Écriture comptabilisée" });
+      toast.success("Écriture comptabilisée");
       setOpen(false);
       setForm((f) => ({ ...f, reference: "", description: "", lines: [{ accountCode: "", debit: "", credit: "", description: "" }, { accountCode: "", debit: "", credit: "", description: "" }] }));
       qc.invalidateQueries({ queryKey: ["entries"] });
     },
-    onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error(apiErrorMessage(e)),
   });
 
   const reverse = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/accounting/entries/${id}/reverse`, { method: "POST" }),
     onSuccess: () => {
-      toast({ title: "Écriture extournée" });
+      toast.success("Écriture extournée");
       qc.invalidateQueries({ queryKey: ["entries"] });
       setDetail(null);
     },

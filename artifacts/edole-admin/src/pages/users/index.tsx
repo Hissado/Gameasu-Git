@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatDate } from "@/lib/format";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
 import { usePermissions } from "@/lib/permissions";
@@ -101,7 +102,7 @@ export default function UsersList() {
       navigator.clipboard.writeText(r.acceptUrl).catch(() => {});
       toast.success("Invitation envoyée — lien copié dans le presse-papier.");
     },
-    onError: (e: any) => setInvError(e?.body?.error ?? e?.message ?? "Erreur lors de l'invitation"),
+    onError: (e: any) => setInvError(apiErrorMessage(e, "Erreur lors de l'invitation")),
   });
 
   const resendMut = useMutation({
@@ -112,7 +113,7 @@ export default function UsersList() {
       navigator.clipboard.writeText(r.acceptUrl).catch(() => {});
       toast.success("Invitation renvoyée — nouveau lien copié dans le presse-papier.");
     },
-    onError: (e: any) => toast.error(e?.body?.error ?? e?.message ?? "Erreur lors de l'envoi"),
+    onError: (e: any) => toast.error(apiErrorMessage(e, "Erreur lors de l'envoi")),
   });
 
   const revokeMut = useMutation({
@@ -122,7 +123,7 @@ export default function UsersList() {
       void refetchInv();
       toast.success("Invitation révoquée — compte désactivé.");
     },
-    onError: (e: any) => toast.error(e?.body?.error ?? e?.message ?? "Erreur lors de la révocation"),
+    onError: (e: any) => toast.error(apiErrorMessage(e, "Erreur lors de la révocation")),
   });
 
   const { user: currentUser } = useAuth();
@@ -134,7 +135,7 @@ export default function UsersList() {
       void qc.invalidateQueries({ queryKey: ["listUsers"] });
       toast.success("Rôle mis à jour avec succès.");
     },
-    onError: (e: any) => toast.error(e?.body?.error ?? e?.message ?? "Erreur lors de la mise à jour du rôle"),
+    onError: (e: any) => toast.error(apiErrorMessage(e, "Erreur lors de la mise à jour du rôle")),
   });
 
   const handleInviteSubmit = (e: React.FormEvent) => {

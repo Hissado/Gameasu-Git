@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { apiErrorMessage } from "@/lib/api-error";
 import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { Link } from "wouter";
 import { formatFCFA, formatDate } from "@/lib/format";
@@ -127,11 +129,11 @@ function ProjectFormDialog({
 
   const createMut = useCreateProject({ mutation: {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["listProjects"] }); toast.success("Projet créé avec succès"); onClose(); },
-    onError: () => toast.error("Erreur lors de la création"),
+    onError: (e: any) => toast.error(apiErrorMessage(e)),
   }});
   const updateMut = useUpdateProject({ mutation: {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["listProjects"] }); toast.success("Projet mis à jour"); onClose(); },
-    onError: () => toast.error("Erreur lors de la mise à jour"),
+    onError: (e: any) => toast.error(apiErrorMessage(e, "Erreur lors de la mise à jour")),
   }});
 
   function handleSubmit(e: React.FormEvent) {
@@ -245,25 +247,19 @@ function DeleteProjectDialog({ project, onClose }: { project: any; onClose: () =
   const qc = useQueryClient();
   const deleteMut = useDeleteProject({ mutation: {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["listProjects"] }); toast.success("Projet supprimé"); onClose(); },
-    onError: () => toast.error("Erreur lors de la suppression"),
+    onError: (e: any) => toast.error(apiErrorMessage(e)),
   }});
   return (
-    <Dialog open={!!project} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-destructive">Supprimer le projet ?</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground">
-          Cette action est irréversible. Le projet <span className="font-semibold text-foreground">"{project?.name}"</span> et toutes ses phases seront définitivement supprimés.
-        </p>
-        <DialogFooter className="gap-2 mt-2">
-          <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button variant="destructive" disabled={deleteMut.isPending} onClick={() => deleteMut.mutate({ id: project.id })}>
-            {deleteMut.isPending ? "Suppression…" : "Supprimer définitivement"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      open={!!project}
+      onOpenChange={v => !v && onClose()}
+      title="Supprimer le projet ?"
+      description={`Le projet « ${project?.name} » et toutes ses phases seront définitivement supprimés. Cette action est irréversible.`}
+      confirmLabel={deleteMut.isPending ? "Suppression…" : "Supprimer définitivement"}
+      cancelLabel="Annuler"
+      destructive
+      onConfirm={() => deleteMut.mutate({ id: project.id })}
+    />
   );
 }
 

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { MinusCircle, Search, Building, FileText, CheckCircle2, Link2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -143,10 +144,12 @@ export default function CreditNotesList() {
               <TableBody>
                 {notes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                      <MinusCircle className="w-10 h-10 mx-auto text-slate-200 mb-3" />
-                      <p>Aucune note de crédit.</p>
-                      <p className="text-xs mt-1">Les avoirs sont créés depuis la page Factures via le bouton <strong>Avoir</strong>.</p>
+                    <TableCell colSpan={8} className="py-8">
+                      <EmptyState
+                        icon={MinusCircle}
+                        title="Aucune note de crédit"
+                        description="Les avoirs sont créés depuis la page Factures via le bouton « Avoir »."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : notes.map(cn => {

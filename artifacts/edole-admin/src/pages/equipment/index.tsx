@@ -19,9 +19,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Plus, Search, Wrench, Settings, Truck, AlertTriangle, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
 import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatFCFA } from "@/lib/format";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -62,11 +64,11 @@ function EquipmentFormDialog({ open, onClose, item }: { open: boolean; onClose: 
 
   const createMut = useCreateEquipment({ mutation: {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["listEquipment"] }); qc.invalidateQueries({ queryKey: ["getEquipmentAvailability"] }); toast.success("Équipement ajouté"); onClose(); },
-    onError: () => toast.error("Erreur lors de la création"),
+    onError: (e: any) => toast.error(apiErrorMessage(e)),
   }});
   const updateMut = useUpdateEquipment({ mutation: {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["listEquipment"] }); toast.success("Équipement mis à jour"); onClose(); },
-    onError: () => toast.error("Erreur lors de la mise à jour"),
+    onError: (e: any) => toast.error(apiErrorMessage(e)),
   }});
 
   function handleSubmit(e: React.FormEvent) {
@@ -172,26 +174,25 @@ function EquipmentFormDialog({ open, onClose, item }: { open: boolean; onClose: 
 function DeleteEquipmentDialog({ item, onClose }: { item: any; onClose: () => void }) {
   const qc = useQueryClient();
   const deleteMut = useDeleteEquipment({ mutation: {
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["listEquipment"] }); qc.invalidateQueries({ queryKey: ["getEquipmentAvailability"] }); toast.success("Équipement supprimé"); onClose(); },
-    onError: () => toast.error("Erreur lors de la suppression"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["listEquipment"] });
+      qc.invalidateQueries({ queryKey: ["getEquipmentAvailability"] });
+      toast.success("Équipement supprimé");
+      onClose();
+    },
+    onError: (e: any) => toast.error(apiErrorMessage(e)),
   }});
   return (
-    <Dialog open={!!item} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-destructive">Supprimer l'équipement ?</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground">
-          L'équipement <span className="font-semibold text-foreground">"{item?.name}"</span> sera définitivement retiré de l'inventaire.
-        </p>
-        <DialogFooter className="gap-2 mt-2">
-          <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button variant="destructive" disabled={deleteMut.isPending} onClick={() => deleteMut.mutate({ id: item.id })}>
-            {deleteMut.isPending ? "Suppression…" : "Supprimer"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      open={!!item}
+      onOpenChange={v => !v && onClose()}
+      title="Supprimer l'équipement ?"
+      description={`L'équipement « ${item?.name} » sera définitivement retiré de l'inventaire. Cette action est irréversible.`}
+      confirmLabel={deleteMut.isPending ? "Suppression…" : "Supprimer"}
+      cancelLabel="Annuler"
+      destructive
+      onConfirm={() => deleteMut.mutate({ id: item.id })}
+    />
   );
 }
 

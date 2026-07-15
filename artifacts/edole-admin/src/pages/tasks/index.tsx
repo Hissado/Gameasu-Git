@@ -17,6 +17,7 @@ import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api-error";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
@@ -80,7 +81,7 @@ function CreateTaskDialog({ open, onClose }: { open: boolean; onClose: () => voi
       toast.success("Tâche créée avec succès");
       onClose();
     },
-    onError: () => toast.error("Erreur lors de la création"),
+    onError: (e: any) => toast.error(apiErrorMessage(e)),
   }});
 
   function handleSubmit(e: React.FormEvent) {
