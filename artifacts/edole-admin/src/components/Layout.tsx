@@ -143,6 +143,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Users2,
     description: "Gérez vos collaborateurs, contrats, congés, présences, paie, recrutements et réclamations.",
     items: [
+      { name: "Mon espace",           path: "/rh/mon-espace",         icon: UserCircle,        moduleKey: "team_hr",                                                description: "Votre espace RH personnel : bulletins de paie, soldes de congés, avances et documents administratifs." },
       { name: "Collaborateurs",       path: "/rh",                    icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read",                    description: "Gérez les fiches, contrats, documents et informations professionnelles de vos collaborateurs." },
       { name: "Paie",                 path: "/rh/paie",               icon: Banknote,          moduleKey: "team_hr", permissionKey: "hr.read",                    description: "Préparez et validez les bulletins de paie, gérez le calendrier, les déclarations et les corrections." },
       { name: "Avances sur salaire",  path: "/rh/avances-salaire",    icon: ArrowLeftRight,    moduleKey: "team_hr", permissionKey: "hr.read",                    secondary: true, description: "Approuvez les demandes d'avance, gérez les échéanciers et intégrez les retenues dans la paie." },
