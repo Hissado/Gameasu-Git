@@ -10,7 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Briefcase, Plus, Repeat, Calendar, ChevronRight, Building2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/ui/page-header";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Engagement = {
   id: string; clientId: string; name: string; description?: string;
@@ -27,7 +30,6 @@ const FREQ_LABEL: Record<string, string> = {
 };
 
 export default function ServicesIndex() {
-  const { toast } = useToast();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "recurring" | "oneoff">("all");
@@ -73,9 +75,9 @@ export default function ServicesIndex() {
       qc.invalidateQueries({ queryKey: ["engagements"] });
       setOpen(false);
       setForm({ clientId: "", name: "", description: "", isRecurring: false, frequency: "monthly", dayOfMonth: 1, startDate: "", endDate: "" });
-      toast({ title: "Engagement créé" });
+      toast.success("Engagement créé avec succès");
     },
-    onError: (e: any) => toast({ variant: "destructive", title: "Erreur", description: e.message }),
+    onError: (e: any) => toast.error(e?.message ?? "Erreur lors de la création"),
   });
 
   const filtered = useMemo(() => {
@@ -100,35 +102,56 @@ export default function ServicesIndex() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Briefcase className="w-7 h-7 text-primary" /> Services
-          </h1>
-          <p className="text-muted-foreground mt-1">Engagements et missions par client</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Input placeholder="Rechercher un engagement ou un client…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-72" />
-          <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
-            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous</SelectItem>
-              <SelectItem value="recurring">Récurrents</SelectItem>
-              <SelectItem value="oneoff">Ponctuels</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouvel engagement</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Services"
+        icon={Briefcase}
+        subtitle="Engagements et missions récurrents ou ponctuels par client"
+        actions={
+          <>
+            <Input
+              placeholder="Rechercher un engagement ou un client…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64 h-8 text-sm"
+            />
+            <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
+              <SelectTrigger className="w-40 h-8 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="recurring">Récurrents</SelectItem>
+                <SelectItem value="oneoff">Ponctuels</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setOpen(true)} className="h-8 text-sm">
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nouvel engagement
+            </Button>
+          </>
+        }
+      />
 
-      {isLoading && <div className="text-center text-muted-foreground py-12">Chargement…</div>}
+      {isLoading && (
+        <div className="space-y-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <Skeleton key={j} className="h-28 rounded-xl" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {!isLoading && grouped.length === 0 && (
-        <Card><CardContent className="py-16 text-center text-muted-foreground">
-          <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>Aucun engagement pour l'instant.</p>
-          <p className="text-sm mt-1">Créez un premier engagement pour démarrer une mission récurrente avec un client.</p>
-        </CardContent></Card>
+        <EmptyState
+          icon={Briefcase}
+          title={search ? `Aucun résultat pour « ${search} »` : "Aucun engagement pour l'instant"}
+          description={search ? "Essayez un autre terme de recherche." : "Créez un premier engagement pour démarrer une mission récurrente ou ponctuelle avec un client."}
+          actionLabel={!search ? "Nouvel engagement" : undefined}
+          onAction={!search ? () => setOpen(true) : undefined}
+        />
       )}
 
       <div className="space-y-6">

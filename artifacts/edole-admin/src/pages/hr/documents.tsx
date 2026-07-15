@@ -108,7 +108,7 @@ export default function HrDocumentsPage() {
     <HrShell
       title="Coffre-fort Documents RH"
       subtitle="Pièces administratives, contrats et certifications"
-      actions={<Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Ajouter un document</Button>}
+      actions={<Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouveau document</Button>}
     >
       {expiringCount > 0 && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm mb-4">

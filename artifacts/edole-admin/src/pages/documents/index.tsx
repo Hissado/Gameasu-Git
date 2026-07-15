@@ -86,7 +86,7 @@ export default function DocumentsPage() {
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3"><FolderOpen className="w-7 h-7 text-primary" /> Documents</h1>
           <p className="text-muted-foreground mt-1">Gestion documentaire centralisée</p>
         </div>
-        <Button onClick={() => { setForm(empty); setOpen(true); }}><Upload className="w-4 h-4 mr-2" /> Ajouter un document</Button>
+        <Button onClick={() => { setForm(empty); setOpen(true); }}><Upload className="w-4 h-4 mr-2" /> Nouveau document</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Building2, Plus, Mail, Phone, FileSignature, Search, Users, MoreVertical, Edit, Eye } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ClientFormDialog, type ClientFull } from "./ClientFormDialog";
 import { toast } from "sonner";
 
@@ -102,24 +104,19 @@ export default function ClientsWorkspace() {
       {isLoading && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-32 rounded-xl bg-muted/40 animate-pulse" />
+            <Skeleton key={i} className="h-32 rounded-xl" />
           ))}
         </div>
       )}
 
       {!isLoading && clients.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Users className="w-12 h-12 text-muted-foreground/30 mb-3" />
-          <p className="text-sm font-medium text-muted-foreground mb-1">Aucun client trouvé</p>
-          <p className="text-xs text-muted-foreground mb-4">
-            {search ? `Aucun résultat pour « ${search} »` : "Créez votre premier client pour démarrer."}
-          </p>
-          {!search && (
-            <Button onClick={openCreate} size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
-              <Plus className="w-3.5 h-3.5 mr-1.5" /> Créer un client
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={Users}
+          title={search ? `Aucun résultat pour « ${search} »` : "Aucun client pour l'instant"}
+          description={search ? "Essayez un autre terme de recherche." : "Créez votre premier client pour démarrer votre portefeuille."}
+          actionLabel={!search ? "Nouveau client" : undefined}
+          onAction={!search ? openCreate : undefined}
+        />
       )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">

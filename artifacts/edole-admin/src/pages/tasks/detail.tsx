@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/format";
 import { apiFetch } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   ArrowLeft, History, ListTree, MessageSquare, Send, RotateCcw, Timer,
   Play, Square, Clock, CheckCircle2, AlertCircle, Plus,
@@ -247,11 +247,10 @@ function SubtasksChecklist({ subtasks }: { subtasks: any[] }) {
 
 function CommentsSection({ comments }: { comments: any[] }) {
   const [comment, setComment] = useState("");
-  const { toast } = useToast();
 
   const handleSubmit = () => {
     if (!comment.trim()) return;
-    toast({ title: "Commentaire ajouté", description: "Votre message a été publié." });
+    toast.success("Commentaire ajouté avec succès.");
     setComment("");
   };
 

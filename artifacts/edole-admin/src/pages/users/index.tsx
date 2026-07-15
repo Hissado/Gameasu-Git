@@ -15,7 +15,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatDate } from "@/lib/format";
 import { apiFetch } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
 import { usePermissions } from "@/lib/permissions";
 
@@ -74,7 +75,6 @@ function InvStatusBadge({ status }: { status: InvStatus }) {
 
 export default function UsersList() {
   const qc = useQueryClient();
-  const { toast } = useToast();
   const perms = usePermissions();
   const { data: usersData, isLoading } = useListUsers();
 
@@ -99,7 +99,7 @@ export default function UsersList() {
       void qc.invalidateQueries({ queryKey: ["admin/invitations"] });
       void refetchInv();
       navigator.clipboard.writeText(r.acceptUrl).catch(() => {});
-      toast({ title: "Invitation envoyée", description: "Le lien d'activation a été copié dans le presse-papier." });
+      toast.success("Invitation envoyée — lien copié dans le presse-papier.");
     },
     onError: (e: any) => setInvError(e?.body?.error ?? e?.message ?? "Erreur lors de l'invitation"),
   });
@@ -110,9 +110,9 @@ export default function UsersList() {
     onSuccess: (r) => {
       void refetchInv();
       navigator.clipboard.writeText(r.acceptUrl).catch(() => {});
-      toast({ title: "Invitation renvoyée", description: "Nouveau lien copié dans le presse-papier." });
+      toast.success("Invitation renvoyée — nouveau lien copié dans le presse-papier.");
     },
-    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+    onError: (e: any) => toast.error(e?.body?.error ?? e?.message ?? "Erreur lors de l'envoi"),
   });
 
   const revokeMut = useMutation({
@@ -120,9 +120,9 @@ export default function UsersList() {
       apiFetch<{ success: boolean }>(`/api/admin/users/${userId}/revoke-invitation`, { method: "POST" }),
     onSuccess: () => {
       void refetchInv();
-      toast({ title: "Invitation révoquée", description: "Le compte a été désactivé." });
+      toast.success("Invitation révoquée — compte désactivé.");
     },
-    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+    onError: (e: any) => toast.error(e?.body?.error ?? e?.message ?? "Erreur lors de la révocation"),
   });
 
   const { user: currentUser } = useAuth();
@@ -132,9 +132,9 @@ export default function UsersList() {
       apiFetch(`/api/users/${userId}`, { method: "PUT", body: { role } as any }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["listUsers"] });
-      toast({ title: "Rôle mis à jour", description: "Le rôle de l'utilisateur a été modifié." });
+      toast.success("Rôle mis à jour avec succès.");
     },
-    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+    onError: (e: any) => toast.error(e?.body?.error ?? e?.message ?? "Erreur lors de la mise à jour du rôle"),
   });
 
   const handleInviteSubmit = (e: React.FormEvent) => {
@@ -167,7 +167,19 @@ export default function UsersList() {
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground animate-pulse">Chargement des utilisateurs…</div>
+            <div className="p-4 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <Skeleton className="h-6 w-24 hidden sm:block" />
+                  <Skeleton className="h-6 w-16" />
+                </div>
+              ))}
+            </div>
           ) : (
             <Table>
               <TableHeader>

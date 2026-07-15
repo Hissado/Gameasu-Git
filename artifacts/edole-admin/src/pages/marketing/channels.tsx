@@ -78,7 +78,7 @@ export default function ChannelsPage() {
 
   return (
     <MarketingShell title="Canaux d'envoi" subtitle="Email, SMS, WhatsApp — fournisseurs et statut"
-      actions={<Button onClick={() => { setEdit(null); setForm(empty); setOpen(true); }}><Plus className="w-4 h-4 mr-2" /> Ajouter un canal</Button>}>
+      actions={<Button onClick={() => { setEdit(null); setForm(empty); setOpen(true); }}><Plus className="w-4 h-4 mr-2" /> Nouveau canal</Button>}>
       {isLoading ? <div className="text-center py-12 text-muted-foreground">Chargement…</div>
         : (data?.data ?? []).length === 0 ? (
           <Card><CardContent className="p-12 text-center text-muted-foreground">

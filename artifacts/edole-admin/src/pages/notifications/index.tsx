@@ -9,7 +9,8 @@ import {
   FolderKanban, CheckSquare, MessageSquare, CreditCard, UserCheck,
   Eye, ArrowRight, Filter, Inbox,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ── Types & helpers ───────────────────────────────────────────────────────────
 
@@ -225,14 +226,13 @@ export default function NotificationsList() {
   const { data, isLoading, refetch } = useListNotifications();
   const markAllRead = useMarkAllNotificationsRead();
   const markOneRead = useMarkNotificationRead();
-  const { toast } = useToast();
   const [filter, setFilter] = useState("all");
 
   const handleMarkAllRead = () => {
     markAllRead.mutate(undefined, {
       onSuccess: () => {
         refetch();
-        toast({ title: "Notifications marquées comme lues", description: "Tout est à jour." });
+        toast.success("Notifications marquées comme lues");
       },
     });
   };
@@ -312,8 +312,16 @@ export default function NotificationsList() {
       {/* Notifications list */}
       {isLoading ? (
         <Card>
-          <CardContent className="p-8 text-center text-muted-foreground animate-pulse">
-            Chargement des notifications…
+          <CardContent className="p-4 divide-y divide-border/40">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex gap-3.5 py-3.5">
+                <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       ) : filtered.length === 0 ? (
