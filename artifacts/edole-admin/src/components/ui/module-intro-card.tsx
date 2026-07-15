@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Target, FolderKanban, FileText,
   UsersRound, ShoppingCart, Truck, MessageSquare,
   Plus, CreditCard, Building, FileSignature, Users,
-  ClipboardCheck, Package, Receipt, Search,
+  ClipboardCheck, Package, Receipt, Search, Calculator,
+  BarChart3, Banknote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RELAUNCH_EVENT } from "@/components/ui/onboarding-tour";
@@ -108,14 +109,34 @@ export const MODULE_INTRO_MAP: Record<string, ModuleIntroConfig> = {
       { label: "Rechercher", href: "/messaging", icon: Search },
     ],
   },
+  comptabilite: {
+    icon: Calculator,
+    name: "Comptabilité & Finance",
+    description:
+      "Pilotez vos finances avec le plan de comptes SYSCOHADA, les journaux d'écritures, le grand livre et les états financiers. Le tableau de bord consolide trésorerie, créances clients et dettes fournisseurs en temps réel.",
+    actions: [
+      { label: "Trésorerie", href: "/finance/tresorerie", icon: Banknote },
+      { label: "Rapports financiers", href: "/rapports", icon: BarChart3 },
+      { label: "Budgets & prévisions", href: "/fpa", icon: Target },
+    ],
+  },
 };
 
 export function useModuleIntro(moduleKey: string) {
   const { user } = useAuth();
   const storageKey = `intro_seen:${user?.id ?? "anon"}:${moduleKey}`;
+
   const [shouldShow, setShouldShow] = React.useState(() => {
     try { return !localStorage.getItem(storageKey); } catch { return false; }
   });
+
+  // Recompute when storageKey changes — guards against async user resolution
+  // where the first render uses "anon" before the real userId is available.
+  React.useEffect(() => {
+    try {
+      setShouldShow(!localStorage.getItem(storageKey));
+    } catch {}
+  }, [storageKey]);
 
   const dismiss = React.useCallback(() => {
     try { localStorage.setItem(storageKey, "1"); } catch {}

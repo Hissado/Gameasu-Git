@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, TrendingUp, TrendingDown, Scale, Receipt, Building2 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
 import { Link } from "wouter";
+import { ModuleIntroCard } from "@/components/ui/module-intro-card";
 
 type Dash = {
   cashTotal: number; creances: number; dettes: number;
@@ -42,6 +43,7 @@ export default function AccountingDashboard() {
 
   return (
     <AccountingShell title="Comptabilité — Tableau financier" subtitle="Performance financière consolidée · Référentiel SYSCOHADA">
+      <ModuleIntroCard moduleKey="comptabilite" />
       {isLoading || !data ? (
         <div className="text-muted-foreground">Chargement…</div>
       ) : (
