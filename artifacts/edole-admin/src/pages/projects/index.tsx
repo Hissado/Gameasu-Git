@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListProjects, useCreateProject, useUpdateProject, useDeleteProject,
@@ -319,6 +320,7 @@ export default function ProjectsList() {
 
   return (
     <div data-tour="proj-header" className="space-y-6 animate-in fade-in duration-500">
+      <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
           title="Gestion de Projets"

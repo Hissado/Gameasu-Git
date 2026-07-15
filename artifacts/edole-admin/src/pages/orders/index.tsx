@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -349,6 +350,7 @@ export default function OrdersList() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
+      <ReadOnlyBanner />
       <PageHeader
         title="Bons de commande"
         subtitle={`${allOrders.length} commande${allOrders.length !== 1 ? "s" : ""} au total`}

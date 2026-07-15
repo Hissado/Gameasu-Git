@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { useLocation, useSearch } from "wouter";
 import { useDebounce } from "@/lib/use-debounce";
 import { apiFetch } from "@/lib/api";
@@ -328,6 +329,7 @@ export default function CollaboratorsList() {
   // ── Render ──
   return (
     <div className="space-y-5">
+      <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
           title="Collaborateurs"

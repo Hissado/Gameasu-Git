@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { apiFetch, ApiError } from "@/lib/api";
+import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { formatFCFA } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +45,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export default function BudgetsListPage() {
+  const perms = usePermissions();
   const [periods, setPeriods] = useState<FiscalPeriod[]>([]);
   const [periodId, setPeriodId] = useState<string>("");
   const [scope, setScope] = useState<string>("all");
@@ -120,17 +123,20 @@ export default function BudgetsListPage() {
 
   return (
     <div className="space-y-6">
+      <ReadOnlyBanner />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Budget</h1>
         </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nouveau budget</Button></DialogTrigger>
-          <CreateBudgetDialog
-            periods={periods} projects={projects} departments={departments} services={services}
-            onCreated={() => { setCreateOpen(false); load(); }}
-          />
-        </Dialog>
+        {!perms.isReadOnly && (
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nouveau budget</Button></DialogTrigger>
+            <CreateBudgetDialog
+              periods={periods} projects={projects} departments={departments} services={services}
+              onCreated={() => { setCreateOpen(false); load(); }}
+            />
+          </Dialog>
+        )}
       </div>
 
       <Card className="p-4">
@@ -183,8 +189,8 @@ export default function BudgetsListPage() {
             icon={FileSpreadsheet}
             title="Aucun budget pour ces filtres"
             description="Créez votre premier budget annuel pour activer le pilotage et les analyses financières."
-            actionLabel="Créer un budget"
-            onAction={() => setCreateOpen(true)}
+            actionLabel={!perms.isReadOnly ? "Créer un budget" : undefined}
+            onAction={!perms.isReadOnly ? () => setCreateOpen(true) : undefined}
             className="py-16"
           />
         )}
@@ -230,29 +236,33 @@ export default function BudgetsListPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={`/fpa/budgets/${b.id}`}>
-                          <Button size="sm" variant="ghost" title="Éditer"><Edit className="w-4 h-4" /></Button>
+                          <Button size="sm" variant="ghost" title="Voir"><Edit className="w-4 h-4" /></Button>
                         </Link>
-                        <Button size="sm" variant="ghost" title="Dupliquer" onClick={() => duplicate(b)}>
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                        {b.status !== "active" && (
-                          <Button size="sm" variant="ghost" title="Activer" onClick={() => activate(b.id)}>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          </Button>
-                        )}
-                        {b.status === "active" && (
-                          <Button size="sm" variant="ghost" title="Archiver" onClick={() => archive(b.id)}>
-                            <Archive className="w-4 h-4" />
-                          </Button>
-                        )}
                         <a href={`/api/fpa/export/budget/${b.id}.xlsx?token=${encodeURIComponent(localStorage.getItem("auth_token") || "")}`}
                           download title="Exporter Excel">
                           <Button size="sm" variant="ghost"><FileSpreadsheet className="w-4 h-4" /></Button>
                         </a>
-                        {b.status !== "active" && (
-                          <Button size="sm" variant="ghost" title="Supprimer" onClick={() => remove(b.id)}>
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
+                        {!perms.isReadOnly && (
+                          <>
+                            <Button size="sm" variant="ghost" title="Dupliquer" onClick={() => duplicate(b)}>
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                            {b.status !== "active" && (
+                              <Button size="sm" variant="ghost" title="Activer" onClick={() => activate(b.id)}>
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              </Button>
+                            )}
+                            {b.status === "active" && (
+                              <Button size="sm" variant="ghost" title="Archiver" onClick={() => archive(b.id)}>
+                                <Archive className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {b.status !== "active" && (
+                              <Button size="sm" variant="ghost" title="Supprimer" onClick={() => remove(b.id)}>
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>

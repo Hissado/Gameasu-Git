@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useGetCrmPipeline, useListOpportunities } from "@workspace/api-client-react";
 import { apiFetch } from "@/lib/api";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -239,6 +240,7 @@ export default function CrmHome() {
 
   return (
     <div data-tour="crm-header" className="space-y-5 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
+      <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
           title="Pipeline Commercial"

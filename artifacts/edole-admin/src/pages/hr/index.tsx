@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { HrShell } from "./_layout";
@@ -242,6 +243,7 @@ export default function HrOverview() {
 
   return (
     <HrShell title="Vue d'ensemble" subtitle="Tableau de bord RH">
+      <ReadOnlyBanner />
       <div className="space-y-5">
 
         {/* Header */}

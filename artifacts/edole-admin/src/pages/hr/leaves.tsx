@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { HrShell } from "./_layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -221,6 +223,8 @@ export default function LeavesPage() {
     return acc;
   }, {} as Record<string, { name: string; avatar?: string | null; types: LeaveBalance[] }>);
 
+  const perms = usePermissions();
+
   return (
     <HrShell
       title="Absences & Congés"
@@ -230,12 +234,15 @@ export default function LeavesPage() {
           <Button size="sm" variant="outline" onClick={() => window.open(`/api/hr/leaves/export.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}>
             <Upload className="w-4 h-4 mr-1" />Export Excel
           </Button>
-          <Button onClick={() => setOpenCreate(true)} className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" />Nouvelle demande
-          </Button>
+          {!perms.isReadOnly && (
+            <Button onClick={() => setOpenCreate(true)} className="bg-primary hover:bg-primary/90">
+              <Plus className="w-4 h-4 mr-2" />Nouvelle demande
+            </Button>
+          )}
         </div>
       }
     >
+      <ReadOnlyBanner />
       <Tabs defaultValue="demandes">
         <TabsList>
           <TabsTrigger value="demandes" className="gap-2"><CalendarDays className="w-4 h-4" />Demandes <SectionHelp id="hr.leaves.demandes" /></TabsTrigger>
@@ -363,7 +370,7 @@ export default function LeavesPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          {l.status === "pending" && (
+                          {l.status === "pending" && !perms.isReadOnly && (
                             <div className="flex gap-1">
                               <Button size="sm" variant="outline" className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50"
                                 onClick={() => setOpenDecide({ leave: l, action: "approve" })}>

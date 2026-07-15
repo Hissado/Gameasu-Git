@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
+import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
 import { Link } from "wouter";
 import { apiFetch } from "@/lib/api";
@@ -69,6 +71,7 @@ const FPA_TOUR = [
 ];
 
 export default function FpaDashboardPage() {
+  const perms = usePermissions();
   const [periods, setPeriods] = useState<FiscalPeriod[]>([]);
   const [periodId, setPeriodId] = useState<string>("");
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
@@ -139,6 +142,7 @@ export default function FpaDashboardPage() {
 
   return (
     <div className="space-y-6">
+      <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
           title="Pilotage Financier (FP&A)"
@@ -263,9 +267,11 @@ export default function FpaDashboardPage() {
               <p className="text-sm text-amber-800 mt-1">
                 Créez un budget annuel d'entreprise pour activer le pilotage et les analyses.
               </p>
-              <Link href="/fpa/budgets">
-                <Button size="sm" className="mt-3"><Plus className="w-4 h-4 mr-2" />Créer un budget</Button>
-              </Link>
+              {!perms.isReadOnly && (
+                <Link href="/fpa/budgets">
+                  <Button size="sm" className="mt-3"><Plus className="w-4 h-4 mr-2" />Créer un budget</Button>
+                </Link>
+              )}
             </div>
           </div>
         </Card>

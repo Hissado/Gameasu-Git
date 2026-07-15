@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -273,6 +275,7 @@ function CancelProformaDialog({ proforma, onClose, onSuccess }: { proforma: Prof
 
 export default function ProformasList() {
   const qc = useQueryClient();
+  const perms = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [newOpen, setNewOpen] = useState(false);
@@ -344,15 +347,16 @@ export default function ProformasList() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
+      <ReadOnlyBanner />
       <PageHeader
         title="Devis"
         subtitle={`${allProformas.length} devis · Propositions commerciales`}
         icon={FileText}
-        actions={
+        actions={!perms.isReadOnly ? (
           <Button onClick={() => setNewOpen(true)} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold gap-1.5">
             <Plus className="w-4 h-4" strokeWidth={3} /> Créer un devis
           </Button>
-        }
+        ) : undefined}
       />
       <StatusTabs
         tabs={[
@@ -430,49 +434,53 @@ export default function ProformasList() {
                       <TableCell>
                         {!isCancelled && (
                           <div className="flex items-center gap-1 flex-wrap">
-                            {p.status === "draft" && (
-                              <Button size="sm" variant="outline" className="h-7 text-xs"
-                                onClick={() => changeStatus.mutate({ id: p.id, status: "sent" })}>
-                                Envoyer
-                              </Button>
-                            )}
-                            {p.status === "sent" && (
-                              <Button size="sm" variant="outline" className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                                onClick={() => changeStatus.mutate({ id: p.id, status: "approved" })}>
-                                <CheckCircle2 className="w-3 h-3 mr-0.5" /> Approuver
-                              </Button>
-                            )}
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
-                              onClick={() => setSendEmailTarget(p)}>
-                              <Mail className="w-3 h-3" /> Email
-                            </Button>
                             <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-slate-600 border-slate-200 hover:bg-slate-50"
                               onClick={() => window.open(`/documents/proforma/${p.id}/print`, "_blank")}>
                               <Printer className="w-3 h-3" /> PDF
                             </Button>
-                            {(p.status === "draft" || p.status === "sent") && (
-                              <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-primary border-indigo-200 hover:bg-primary/5"
-                                disabled={generatingOrderId === p.id} onClick={() => generateOrder(p.id)}>
-                                <ShoppingCart className="w-3 h-3" />{generatingOrderId === p.id ? "…" : "Commande"}
-                              </Button>
-                            )}
-                            {p.status !== "rejected" && p.status !== "cancelled" && (
-                              <Button size="sm" className="h-7 text-xs gap-0.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
-                                disabled={generatingId === p.id} onClick={() => generateInvoice(p.id)}>
-                                <Receipt className="w-3 h-3" />{generatingId === p.id ? "…" : "Facture"}
-                              </Button>
-                            )}
-                            {canEditDoc && (
-                              <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-600 hover:bg-slate-100"
-                                onClick={() => setEditTarget(p)}>
-                                <Pencil className="w-3 h-3 mr-0.5" /> Modifier
-                              </Button>
-                            )}
-                            {canCancelDoc && (
-                              <Button size="sm" variant="ghost" className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                                onClick={() => setCancelTarget(p)}>
-                                <XCircle className="w-3 h-3 mr-0.5" /> Annuler
-                              </Button>
+                            {!perms.isReadOnly && (
+                              <>
+                                {p.status === "draft" && (
+                                  <Button size="sm" variant="outline" className="h-7 text-xs"
+                                    onClick={() => changeStatus.mutate({ id: p.id, status: "sent" })}>
+                                    Envoyer
+                                  </Button>
+                                )}
+                                {p.status === "sent" && (
+                                  <Button size="sm" variant="outline" className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                                    onClick={() => changeStatus.mutate({ id: p.id, status: "approved" })}>
+                                    <CheckCircle2 className="w-3 h-3 mr-0.5" /> Approuver
+                                  </Button>
+                                )}
+                                <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                  onClick={() => setSendEmailTarget(p)}>
+                                  <Mail className="w-3 h-3" /> Email
+                                </Button>
+                                {(p.status === "draft" || p.status === "sent") && (
+                                  <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-primary border-indigo-200 hover:bg-primary/5"
+                                    disabled={generatingOrderId === p.id} onClick={() => generateOrder(p.id)}>
+                                    <ShoppingCart className="w-3 h-3" />{generatingOrderId === p.id ? "…" : "Commande"}
+                                  </Button>
+                                )}
+                                {p.status !== "rejected" && p.status !== "cancelled" && (
+                                  <Button size="sm" className="h-7 text-xs gap-0.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
+                                    disabled={generatingId === p.id} onClick={() => generateInvoice(p.id)}>
+                                    <Receipt className="w-3 h-3" />{generatingId === p.id ? "…" : "Facture"}
+                                  </Button>
+                                )}
+                                {canEditDoc && (
+                                  <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-600 hover:bg-slate-100"
+                                    onClick={() => setEditTarget(p)}>
+                                    <Pencil className="w-3 h-3 mr-0.5" /> Modifier
+                                  </Button>
+                                )}
+                                {canCancelDoc && (
+                                  <Button size="sm" variant="ghost" className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                    onClick={() => setCancelTarget(p)}>
+                                    <XCircle className="w-3 h-3 mr-0.5" /> Annuler
+                                  </Button>
+                                )}
+                              </>
                             )}
                           </div>
                         )}

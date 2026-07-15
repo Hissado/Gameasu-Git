@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useListRentals, useCreateRental, useListClients, useListEquipment } from "@workspace/api-client-react";
+import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -204,6 +206,7 @@ function CreateRentalDialog({ open, onClose }: { open: boolean; onClose: () => v
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function RentalsList() {
+  const perms = usePermissions();
   const { data, isLoading } = useListRentals();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -222,6 +225,7 @@ export default function RentalsList() {
 
   return (
     <div data-tour="rental-header" className="space-y-6 animate-in fade-in duration-500">
+      <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
           title="Gestion des Locations"
@@ -238,10 +242,12 @@ export default function RentalsList() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Locations</h1>
           <p className="text-sm text-muted-foreground mt-1">Contrats de location d'équipements</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
-          <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
-          Nouvelle Location
-        </Button>
+        {!perms.isReadOnly && (
+          <Button onClick={() => setShowCreate(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+            <Plus className="w-4 h-4 mr-2" strokeWidth={3} />
+            Nouvelle Location
+          </Button>
+        )}
       </div>
 
       <Card className="shadow-sm border-border">

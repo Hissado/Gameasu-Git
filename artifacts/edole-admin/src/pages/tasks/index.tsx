@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useListTasks, useCreateTask, useListProjects, useListUsers } from "@workspace/api-client-react";
 import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -221,6 +222,7 @@ export default function TasksList() {
 
   return (
     <div data-tour="task-header" className="space-y-6 animate-in fade-in duration-500">
+      <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
           title="Gestion des Tâches"

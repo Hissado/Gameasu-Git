@@ -5,6 +5,7 @@ import {
   useGetEquipmentAvailability, useListEquipmentCategories,
 } from "@workspace/api-client-react";
 import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -221,6 +222,7 @@ export default function EquipmentList() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <ReadOnlyBanner />
       <PageHeader
         title="Inventaire Matériel"
         subtitle={`${allItems.length} équipements · Flotte et machines`}

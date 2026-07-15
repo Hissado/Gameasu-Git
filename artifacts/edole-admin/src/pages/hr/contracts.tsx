@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { formatFCFA } from "@/lib/format";
+import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { HrShell } from "./_layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,8 @@ export default function ContractsPage() {
     return <Badge className={`${map[s] || "bg-muted"} border-0`}>{s}</Badge>;
   };
 
+  const perms = usePermissions();
+
   return (
     <HrShell
       title="Contrats"
@@ -59,10 +63,13 @@ export default function ContractsPage() {
           <Button size="sm" variant="outline" onClick={() => window.open(`/api/hr/contracts/export.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}>
             <Upload className="w-4 h-4 mr-1" />Export Excel
           </Button>
-          <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouveau contrat</Button>
+          {!perms.isReadOnly && (
+            <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> Nouveau contrat</Button>
+          )}
         </div>
       }
     >
+      <ReadOnlyBanner />
       <Card>
         <CardContent className="p-0">
           <table className="w-full text-sm">
@@ -92,9 +99,11 @@ export default function ContractsPage() {
                   <td className="px-4 py-3 text-right font-semibold">{c.monthlySalary ? formatFCFA(c.monthlySalary) : "—"}</td>
                   <td className="px-4 py-3">{statusBadge(c.status)}</td>
                   <td className="px-4 py-3 text-right">
-                    <Button size="sm" variant="ghost" onClick={() => { if (confirm("Supprimer ce contrat ?")) delMut.mutate(c.id); }}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    {!perms.isReadOnly && (
+                      <Button size="sm" variant="ghost" onClick={() => { if (confirm("Supprimer ce contrat ?")) delMut.mutate(c.id); }}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}

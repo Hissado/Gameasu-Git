@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -409,6 +410,7 @@ export default function InvoicesList() {
 
   return (
     <div data-tour="inv-header" className="space-y-5 animate-in fade-in duration-500">
+      <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
           title="Module Facturation"

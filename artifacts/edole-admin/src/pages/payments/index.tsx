@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { usePermissions } from "@/lib/permissions";
+import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -427,6 +429,7 @@ function RecordPaymentDialog({ onClose, onSuccess }: { onClose: () => void; onSu
 
 export default function PaymentsList() {
   const qc = useQueryClient();
+  const perms = usePermissions();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -448,6 +451,7 @@ export default function PaymentsList() {
 
   return (
     <div data-tour="pay-header" className="space-y-5 animate-in fade-in duration-500">
+      <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
           title="Journal des Encaissements"
@@ -463,7 +467,7 @@ export default function PaymentsList() {
         title="Encaissements"
         subtitle={`Journal des paiements · ${formatFCFA(totalEncaisse)} encaissé`}
         icon={CreditCard}
-        actions={
+        actions={!perms.isReadOnly ? (
           <Button
             onClick={() => setDialogOpen(true)}
             className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-sm gap-1.5"
@@ -471,7 +475,7 @@ export default function PaymentsList() {
             <Plus className="w-4 h-4" strokeWidth={3} />
             Saisir un encaissement
           </Button>
-        }
+        ) : undefined}
       />
 
       <Card className="shadow-sm border-border">
