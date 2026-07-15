@@ -274,6 +274,26 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     return true;
   };
 
+  // All registered nav paths — used to resolve "most specific match wins"
+  const allNavPaths = NAV_GROUPS.flatMap(g => g.items.map(i => i.path));
+
+  /**
+   * An item is active when:
+   *  1. The location matches exactly, OR
+   *  2. The location starts with `path + "/"` (sub-route / detail page)
+   * AND no other nav item with a longer (more specific) path also matches —
+   * that longer item takes priority (e.g. /rh/conges wins over /rh).
+   */
+  const isNavItemActive = (itemPath: string) => {
+    if (itemPath === "/") return location === "/";
+    const exactOrChild = location === itemPath || location.startsWith(itemPath + "/");
+    if (!exactOrChild) return false;
+    // Yield to any more-specific registered path that also matches
+    return !allNavPaths.some(
+      p => p !== itemPath && p.startsWith(itemPath + "/") && (location === p || location.startsWith(p + "/"))
+    );
+  };
+
   const initials = ((user?.firstName?.[0] || "") + (user?.lastName?.[0] || "")).toUpperCase() || "NX";
   const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Utilisateur";
   const roleLabel = user?.role ? (ROLE_LABEL[user.role] || user.role) : "Connecté";
@@ -491,7 +511,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                     <ul className="pt-0.5 pb-1 pl-2 space-y-0.5">
                       {/* ── Items primaires — filtrés par permission ── */}
                       {group.items.filter(i => !i.secondary && isItemVisible(i)).map((item) => {
-                        const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
+                        const active = isNavItemActive(item.path);
                         const locked = !!(item.moduleKey && modules && modules.length > 0 && !enabledKeys.has(item.moduleKey));
                         const lockedMod = locked ? modules?.find(m => m.moduleKey === item.moduleKey) : null;
                         const lockReason = locked
@@ -541,7 +561,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                         return (
                           <>
                             {isExp && sec.map((item) => {
-                              const active = location === item.path || (item.path !== "/" && location.startsWith(item.path));
+                              const active = isNavItemActive(item.path);
                               const locked = !!(item.moduleKey && modules && modules.length > 0 && !enabledKeys.has(item.moduleKey));
                               const lockedMod = locked ? modules?.find(m => m.moduleKey === item.moduleKey) : null;
                               const lockReason = locked
