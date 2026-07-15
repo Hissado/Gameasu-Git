@@ -61,7 +61,6 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Intelligence IA",   path: "/intelligence",        icon: Brain,           moduleKey: "dashboard",       permissionKey: "ai.view_insights", secondary: true, description: "Exploitez vos données métier grâce à l'analyse prédictive et aux recommandations intelligentes automatiques." },
       { name: "Assistant IA",      path: "/assistant-ia",        icon: Bot,             moduleKey: "ai_assistant",    permissionKey: "ai.view_insights",         description: "Posez vos questions métier à votre assistant IA : rédigez, analysez et obtenez des réponses en français." },
       { name: "Approbations",      path: "/approbations",        icon: CheckSquare,     moduleKey: "dashboard",       secondary: true,                           description: "Traitez les demandes en attente de votre approbation ou signature en un seul espace." },
-      { name: "Mon espace",        path: "/mon-espace",          icon: UserCircle,      moduleKey: "dashboard",                                                  description: "Votre espace personnel : bulletins de paie, congés, présences, avances et documents RH." },
       { name: "Documents cabinet", path: "/documents-cabinet",   icon: FileText,                                                                                description: "Déposez vos fichiers directement depuis l'ERP pour répondre aux demandes de votre cabinet comptable." },
     ],
   },
