@@ -5,13 +5,15 @@ import { eq } from "drizzle-orm";
 const router = Router();
 
 const DEFAULT_WIDGETS = [
-  { id: "kpis", enabled: true },
-  { id: "quick-links", enabled: true },
-  { id: "clock", enabled: true },
-  { id: "intelligence", enabled: true },
-  { id: "alerts", enabled: true },
-  { id: "chart", enabled: true },
-  { id: "projects", enabled: true },
+  { id: "kpis",           enabled: true },
+  { id: "quick-links",    enabled: true },
+  { id: "clock",          enabled: true },
+  { id: "intelligence",   enabled: true },
+  { id: "alerts",         enabled: true },
+  { id: "upcoming-tasks", enabled: true },
+  { id: "chart",          enabled: true },
+  { id: "projects",       enabled: true },
+  { id: "activity",       enabled: true },
 ];
 
 router.get("/user-preferences/dashboard", async (req, res, next) => {
