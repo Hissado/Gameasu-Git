@@ -212,7 +212,14 @@ function isGroupActive(group: NavGroup, location: string) {
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [location] = useLocation();
   const { logout, user, switchOrg } = useAuth();
-  const currentTourKey = TOUR_MODULE_MAP[location] ?? TOUR_MODULE_MAP[location.split("?")[0]];
+  const currentTourKey = (() => {
+    const clean = location.split("?")[0];
+    if (TOUR_MODULE_MAP[clean] !== undefined) return TOUR_MODULE_MAP[clean];
+    const match = Object.keys(TOUR_MODULE_MAP)
+      .filter(k => k !== "/" && clean.startsWith(k + "/"))
+      .sort((a, b) => b.length - a.length)[0];
+    return match ? TOUR_MODULE_MAP[match] : undefined;
+  })();
   const handleRelaunchTour = () => {
     if (currentTourKey) window.dispatchEvent(new CustomEvent(RELAUNCH_EVENT, { detail: currentTourKey }));
   };

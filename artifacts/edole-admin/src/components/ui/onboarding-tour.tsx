@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "wouter";
 import {
@@ -352,7 +352,7 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
           target: "task-list",
           title: "Filtres et sous-tâches",
           description: "Filtrez par statut, priorité ou projet. Chaque tâche peut avoir des sous-tâches, des commentaires d'équipe et des pièces jointes.",
-          action: { label: "Voir les tâches", href: "/taches" },
+          action: { label: "Voir les tâches", href: "/tasks" },
         },
       ],
     },
@@ -370,7 +370,7 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
           target: "task-list",
           title: "Commentaires et historique",
           description: "L'onglet Commentaires de chaque tâche constitue le fil de discussion de l'équipe : mentionnez un collègue avec @, joignez un fichier ou partagez une mise à jour d'avancement.",
-          action: { label: "Voir les tâches", href: "/taches" },
+          action: { label: "Voir les tâches", href: "/tasks" },
         },
       ],
     },
@@ -424,7 +424,7 @@ export const TOUR_MODULE_MAP: Record<string, string> = {
   "/collaborateurs": "collaborateurs",
   "/comptabilite/plan-comptable": "plan_comptable",
   "/fpa": "fpa",
-  "/taches": "taches",
+  "/tasks": "taches",
   "/factures": "factures",
   "/paiements": "paiements",
   "/locations": "locations",
@@ -468,6 +468,16 @@ export function useModuleTour(moduleKey: string, canAutoShow = false) {
   const [tourActive, setTourActive] = useState(false);
   const [selectedPathKey, setSelectedPathKey] = useState<string | null>(null);
 
+  const modulePaths = useMemo(() => TOUR_PATHS[moduleKey] ?? [], [moduleKey]);
+
+  // Active path: explicitly selected by user, or first available path
+  const activePathKey = selectedPathKey ?? modulePaths[0]?.key ?? null;
+
+  const activePathSteps = useMemo(
+    () => modulePaths.find(p => p.key === activePathKey)?.steps ?? [],
+    [modulePaths, activePathKey],
+  );
+
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | undefined;
     if (canAutoShow && !localStorage.getItem(LS_KEY(moduleKey))) {
@@ -491,12 +501,19 @@ export function useModuleTour(moduleKey: string, canAutoShow = false) {
   }, [moduleKey]);
 
   const startTour = useCallback(() => {
+    const pathKey = modulePaths[0]?.key;
+    if (pathKey && !localStorage.getItem(LS_PATH_DONE(moduleKey, pathKey))) {
+      localStorage.setItem(LS_PATH_STEP(moduleKey, pathKey), "0");
+    }
     localStorage.setItem(LS_KEY(moduleKey), "1");
     setShowWelcome(false);
     setTourActive(true);
-  }, [moduleKey]);
+  }, [moduleKey, modulePaths]);
 
   const startTourWithPath = useCallback((pathKey: string) => {
+    if (!localStorage.getItem(LS_PATH_DONE(moduleKey, pathKey))) {
+      localStorage.setItem(LS_PATH_STEP(moduleKey, pathKey), "0");
+    }
     setSelectedPathKey(pathKey);
     localStorage.setItem(LS_KEY(moduleKey), "1");
     setShowWelcome(false);
@@ -513,7 +530,40 @@ export function useModuleTour(moduleKey: string, canAutoShow = false) {
     setSelectedPathKey(null);
   }, []);
 
-  return { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey };
+  // Step change handler: persists to localStorage + server (for WelcomeModal-started tours)
+  const handleTourStepChange = useCallback((step: number) => {
+    if (!activePathKey || activePathSteps.length === 0) return;
+    savePathProgress(moduleKey, activePathKey, step, activePathSteps.length);
+    const token = localStorage.getItem("auth_token") ?? "";
+    fetch("/api/onboarding/tour-progress", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        moduleKey,
+        pathKey: activePathKey,
+        currentStep: step,
+        isDone: step >= activePathSteps.length - 1,
+      }),
+    }).catch(() => {});
+  }, [moduleKey, activePathKey, activePathSteps.length]);
+
+  // Initial step for resuming a tour across page navigations
+  const tourInitialStep = useMemo(() => {
+    if (!activePathKey || activePathSteps.length === 0) return 0;
+    const s = localStorage.getItem(LS_PATH_STEP(moduleKey, activePathKey));
+    return s ? Math.min(parseInt(s), Math.max(0, activePathSteps.length - 1)) : 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleKey, activePathKey, activePathSteps.length, tourActive]);
+
+  const tourPathLabel = useMemo(
+    () => modulePaths.find(p => p.key === activePathKey)?.name,
+    [modulePaths, activePathKey],
+  );
+
+  return {
+    showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour,
+    selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel,
+  };
 }
 
 // ─── WelcomeModal ──────────────────────────────────────────────────────────────

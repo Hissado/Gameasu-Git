@@ -160,7 +160,10 @@ export default function Dashboard() {
   const { data: invoices } = useListInvoices();
 
   const projectList: any[] = (projects as any)?.data || (projects as any) || [];
-  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey } = useModuleTour("dashboard", !loadingKpis && projectList.length === 0);
+  const {
+    showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour,
+    selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel,
+  } = useModuleTour("dashboard", !loadingKpis && projectList.length === 0);
   const activeSteps = selectedPathKey
     ? (TOUR_PATHS["dashboard"].find((p) => p.key === selectedPathKey)?.steps ?? DASHBOARD_TOUR)
     : DASHBOARD_TOUR;
@@ -234,7 +237,15 @@ export default function Dashboard() {
           onStartPath={startTourWithPath}
         />
       )}
-      {tourActive && <OnboardingTour steps={activeSteps} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
 
       {/* ── En-tête ─────────────────────────────────────────────────────── */}
       <header data-tour="dash-header" className="rounded-2xl overflow-hidden border border-slate-800 shadow-lg"
