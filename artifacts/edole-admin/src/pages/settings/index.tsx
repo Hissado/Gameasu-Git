@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useAuth } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Lock, ShieldCheck, Clock, MapPin, Camera, FolderKanban, Building2, TrendingUp, Save, Loader2, CreditCard, Package, Briefcase, Target, UsersRound, Truck, Megaphone, BarChart3, ChevronDown, ChevronRight, AlertTriangle, Shield, Layers, ArrowRight, Plus, Pencil, Trash2, Copy, Users, ChevronUp } from "lucide-react";
+import { Check, X, Lock, ShieldCheck, Clock, MapPin, Camera, FolderKanban, Building2, TrendingUp, Save, Loader2, CreditCard, Package, Briefcase, Target, UsersRound, Truck, Megaphone, BarChart3, ChevronDown, ChevronRight, AlertTriangle, Shield, Layers, ArrowRight, Plus, Pencil, Trash2, Copy, Users, ChevronUp, History, RefreshCw, TrendingDown, Zap, FileText } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ModulesActifsTab } from "@/components/ModulesActifsTab";
 
@@ -447,6 +447,101 @@ function AccountingFrameworkTab() {
   );
 }
 
+// ─── Helpers pour l'historique de facturation ────────────────────────────────
+function eventKindMeta(kind: string): { label: string; icon: React.ReactNode; color: string } {
+  switch (kind) {
+    case "plan_change":
+      return { label: "Changement de formule", icon: <ArrowRight className="w-3.5 h-3.5" />, color: "bg-violet-50 text-violet-700 border-violet-200" };
+    case "upgrade":
+      return { label: "Montée en gamme", icon: <TrendingUp className="w-3.5 h-3.5" />, color: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+    case "downgrade":
+      return { label: "Rétrogradation", icon: <TrendingDown className="w-3.5 h-3.5" />, color: "bg-amber-50 text-amber-700 border-amber-200" };
+    case "renewal":
+      return { label: "Renouvellement", icon: <RefreshCw className="w-3.5 h-3.5" />, color: "bg-blue-50 text-blue-700 border-blue-200" };
+    case "activation":
+      return { label: "Activation", icon: <Zap className="w-3.5 h-3.5" />, color: "bg-green-50 text-green-700 border-green-200" };
+    case "suspension":
+      return { label: "Suspension", icon: <X className="w-3.5 h-3.5" />, color: "bg-red-50 text-red-700 border-red-200" };
+    case "cancellation":
+      return { label: "Résiliation", icon: <X className="w-3.5 h-3.5" />, color: "bg-red-50 text-red-700 border-red-200" };
+    default:
+      return { label: kind, icon: <FileText className="w-3.5 h-3.5" />, color: "bg-slate-50 text-slate-600 border-slate-200" };
+  }
+}
+
+function BillingHistoryCard({ events }: { events: BillingEvent[] }) {
+  if (events.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <History className="w-5 h-5 text-primary" />
+          Historique de facturation
+        </CardTitle>
+        <CardDescription>{events.length} événement{events.length !== 1 ? "s" : ""} · du plus récent au plus ancien</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="divide-y divide-border">
+          {events.map((ev) => {
+            const meta = eventKindMeta(ev.kind);
+            const firmName = ev.metadata?.firmName as string | undefined;
+            const changedBy = ev.metadata?.changedByUserName as string | undefined;
+            const fromPlan = ev.metadata?.fromPlan as string | undefined;
+            const toPlan = ev.metadata?.toPlan as string | undefined;
+
+            const initiator = [
+              changedBy ? changedBy : null,
+              firmName ? `via ${firmName}` : null,
+            ].filter(Boolean).join(" ");
+
+            return (
+              <div key={ev.id} className="flex items-start gap-3 px-6 py-3.5 hover:bg-muted/30 transition-colors">
+                {/* Icône + badge type */}
+                <div className={`mt-0.5 shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium ${meta.color}`}>
+                  {meta.icon}
+                  <span>{meta.label}</span>
+                </div>
+
+                {/* Détails */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-snug">
+                    {fromPlan && toPlan ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="font-semibold">{fromPlan}</span>
+                        <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="font-semibold">{toPlan}</span>
+                      </span>
+                    ) : (
+                      ev.label
+                    )}
+                  </p>
+                  {fromPlan && toPlan && ev.label !== `${fromPlan} → ${toPlan}` && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{ev.label}</p>
+                  )}
+                </div>
+
+                {/* Date + initiateur */}
+                <div className="shrink-0 text-right space-y-0.5">
+                  <p className="text-xs font-medium text-foreground">
+                    {new Date(ev.occurredAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                  {initiator && (
+                    <p className="text-[11px] text-muted-foreground flex items-center justify-end gap-1">
+                      {firmName && <Briefcase className="w-3 h-3 shrink-0" />}
+                      {initiator}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function SubscriptionTab() {
   const { data: subData, isLoading: subLoading } = useQuery<SubInfo>({
     queryKey: ["subscription-current"],
@@ -538,23 +633,7 @@ function SubscriptionTab() {
         </Card>
       )}
 
-      {lastPlanChange && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dernier changement de formule</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <p className="text-sm font-medium">{lastPlanChange.label}</p>
-            <p className="text-xs text-muted-foreground">
-              {new Date(lastPlanChange.occurredAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-              {lastPlanChange.metadata?.changedByUserName
-                ? ` · par ${lastPlanChange.metadata.changedByUserName as string}`
-                : ""}
-              {managedByFirm ? ` (${managedByFirm})` : ""}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      <BillingHistoryCard events={eventsData ?? []} />
     </div>
   );
 }
