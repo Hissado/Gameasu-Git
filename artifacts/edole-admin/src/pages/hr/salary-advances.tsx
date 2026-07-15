@@ -251,12 +251,12 @@ export default function SalaryAdvancesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-[hsl(224_60%_14%)] min-h-full rounded-xl">
+    <div className="p-6 space-y-6">
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Avances sur salaire</h1>
-          <p className="text-sm text-white/50 mt-0.5">Gérez les demandes, approbations et remboursements</p>
+          <h1 className="text-2xl font-bold text-foreground">Avances sur salaire</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Gérez les demandes, approbations et remboursements</p>
         </div>
         <div className="flex gap-2">
           {["super_admin", "admin"].includes(user?.role ?? "") && (
@@ -272,28 +272,28 @@ export default function SalaryAdvancesPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="bg-white/[0.03] border-white/[0.07]">
+        <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-white/50">En attente</p>
-            <p className="text-2xl font-bold text-amber-400 mt-1">{kpi.pending}</p>
+            <p className="text-xs text-muted-foreground">En attente</p>
+            <p className="text-2xl font-bold text-amber-500 mt-1">{kpi.pending}</p>
           </CardContent>
         </Card>
-        <Card className="bg-white/[0.03] border-white/[0.07]">
+        <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-white/50">Décaissées actives</p>
-            <p className="text-2xl font-bold text-blue-400 mt-1">{kpi.disbursed}</p>
+            <p className="text-xs text-muted-foreground">Décaissées actives</p>
+            <p className="text-2xl font-bold text-blue-600 mt-1">{kpi.disbursed}</p>
           </CardContent>
         </Card>
-        <Card className="bg-white/[0.03] border-white/[0.07]">
+        <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-white/50">Total décaissé</p>
-            <p className="text-xl font-bold text-white mt-1">{formatFCFA(kpi.totalDisbursed)}</p>
+            <p className="text-xs text-muted-foreground">Total décaissé</p>
+            <p className="text-xl font-bold text-foreground mt-1">{formatFCFA(kpi.totalDisbursed)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-white/[0.03] border-white/[0.07]">
+        <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-white/50">Encours remboursement</p>
-            <p className="text-xl font-bold text-orange-400 mt-1">{formatFCFA(kpi.totalRemaining)}</p>
+            <p className="text-xs text-muted-foreground">Encours remboursement</p>
+            <p className="text-xl font-bold text-orange-500 mt-1">{formatFCFA(kpi.totalRemaining)}</p>
           </CardContent>
         </Card>
       </div>
@@ -301,16 +301,16 @@ export default function SalaryAdvancesPage() {
       {/* Filtres */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher un collaborateur…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-white/[0.04] border-white/[0.08] text-white"
+            className="pl-9"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-44 bg-white/[0.04] border-white/[0.08] text-white">
+          <SelectTrigger className="w-44">
             <SelectValue placeholder="Tous les statuts" />
           </SelectTrigger>
           <SelectContent>
@@ -323,43 +323,43 @@ export default function SalaryAdvancesPage() {
       </div>
 
       {/* Tableau */}
-      <div className="rounded-lg border border-white/[0.07] overflow-hidden">
+      <div className="rounded-lg border overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-white/[0.03] border-b border-white/[0.07]">
+          <thead className="bg-muted/50 border-b">
             <tr>
-              {isManager && <th className="text-left px-4 py-3 text-white/50 font-medium">Collaborateur</th>}
-              <th className="text-left px-4 py-3 text-white/50 font-medium">Période</th>
-              <th className="text-left px-4 py-3 text-white/50 font-medium">Montant demandé</th>
-              <th className="text-left px-4 py-3 text-white/50 font-medium">Montant approuvé</th>
-              <th className="text-left px-4 py-3 text-white/50 font-medium">Remboursement</th>
-              <th className="text-left px-4 py-3 text-white/50 font-medium">Statut</th>
-              <th className="text-right px-4 py-3 text-white/50 font-medium">Actions</th>
+              {isManager && <th className="text-left px-4 py-3 text-muted-foreground font-medium">Collaborateur</th>}
+              <th className="text-left px-4 py-3 text-muted-foreground font-medium">Période</th>
+              <th className="text-left px-4 py-3 text-muted-foreground font-medium">Montant demandé</th>
+              <th className="text-left px-4 py-3 text-muted-foreground font-medium">Montant approuvé</th>
+              <th className="text-left px-4 py-3 text-muted-foreground font-medium">Remboursement</th>
+              <th className="text-left px-4 py-3 text-muted-foreground font-medium">Statut</th>
+              <th className="text-right px-4 py-3 text-muted-foreground font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={7} className="text-center py-12 text-white/30">Chargement…</td></tr>
+              <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">Chargement…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-12 text-white/30">Aucune avance trouvée</td></tr>
+              <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">Aucune avance trouvée</td></tr>
             ) : filtered.map((adv) => (
-              <tr key={adv.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+              <tr key={adv.id} className="border-b hover:bg-muted/30 transition-colors">
                 {isManager && (
-                  <td className="px-4 py-3 text-white/80">
+                  <td className="px-4 py-3 text-foreground">
                     <div className="font-medium">{adv.collaboratorName || "—"}</div>
-                    {adv.employeeNumber && <div className="text-xs text-white/40">{adv.employeeNumber}</div>}
+                    {adv.employeeNumber && <div className="text-xs text-muted-foreground">{adv.employeeNumber}</div>}
                   </td>
                 )}
-                <td className="px-4 py-3 text-white/60">{adv.targetPeriod}</td>
-                <td className="px-4 py-3 text-white font-medium">{formatFCFA(adv.requestedAmount)}</td>
-                <td className="px-4 py-3 text-white/70">{adv.approvedAmount ? formatFCFA(adv.approvedAmount) : "—"}</td>
-                <td className="px-4 py-3 text-white/60">
+                <td className="px-4 py-3 text-muted-foreground">{adv.targetPeriod}</td>
+                <td className="px-4 py-3 text-foreground font-medium">{formatFCFA(adv.requestedAmount)}</td>
+                <td className="px-4 py-3 text-foreground">{adv.approvedAmount ? formatFCFA(adv.approvedAmount) : "—"}</td>
+                <td className="px-4 py-3 text-muted-foreground">
                   {adv.repaymentMode === "single" ? "Prélèvement unique" : `${adv.repaymentMonths} mois`}
                 </td>
                 <td className="px-4 py-3"><StatusBadge status={adv.status} /></td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
                     <Button
-                      variant="ghost" size="icon" className="h-7 w-7 text-white/40 hover:text-white"
+                      variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
                       onClick={() => { setSelectedAdvance(adv); setShowDetail(true); }}
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -514,25 +514,25 @@ export default function SalaryAdvancesPage() {
           {selectedAdvance && (
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-white/50">Collaborateur</span><p className="font-medium text-white mt-0.5">{selectedAdvance.collaboratorName || "—"}</p></div>
-                <div><span className="text-white/50">Statut</span><div className="mt-0.5"><StatusBadge status={selectedAdvance.status} /></div></div>
-                <div><span className="text-white/50">Montant demandé</span><p className="font-medium text-white mt-0.5">{formatFCFA(selectedAdvance.requestedAmount)}</p></div>
-                <div><span className="text-white/50">Montant approuvé</span><p className="font-medium text-white mt-0.5">{selectedAdvance.approvedAmount ? formatFCFA(selectedAdvance.approvedAmount) : "—"}</p></div>
-                <div><span className="text-white/50">Reste à rembourser</span><p className="font-medium text-orange-400 mt-0.5">{formatFCFA(selectedAdvance.remainingAmount ?? 0)}</p></div>
-                <div><span className="text-white/50">Période cible</span><p className="font-medium text-white mt-0.5">{selectedAdvance.targetPeriod}</p></div>
+                <div><span className="text-muted-foreground">Collaborateur</span><p className="font-medium text-foreground mt-0.5">{selectedAdvance.collaboratorName || "—"}</p></div>
+                <div><span className="text-muted-foreground">Statut</span><div className="mt-0.5"><StatusBadge status={selectedAdvance.status} /></div></div>
+                <div><span className="text-muted-foreground">Montant demandé</span><p className="font-medium text-foreground mt-0.5">{formatFCFA(selectedAdvance.requestedAmount)}</p></div>
+                <div><span className="text-muted-foreground">Montant approuvé</span><p className="font-medium text-foreground mt-0.5">{selectedAdvance.approvedAmount ? formatFCFA(selectedAdvance.approvedAmount) : "—"}</p></div>
+                <div><span className="text-muted-foreground">Reste à rembourser</span><p className="font-medium text-orange-500 mt-0.5">{formatFCFA(selectedAdvance.remainingAmount ?? 0)}</p></div>
+                <div><span className="text-muted-foreground">Période cible</span><p className="font-medium text-foreground mt-0.5">{selectedAdvance.targetPeriod}</p></div>
                 {selectedAdvance.reason && (
-                  <div className="col-span-2"><span className="text-white/50">Motif</span><p className="text-white/80 mt-0.5">{selectedAdvance.reason}</p></div>
+                  <div className="col-span-2"><span className="text-muted-foreground">Motif</span><p className="text-foreground mt-0.5">{selectedAdvance.reason}</p></div>
                 )}
               </div>
-              <Separator className="border-white/[0.07]" />
+              <Separator />
               <div>
-                <p className="text-sm font-medium text-white mb-2">Échéancier de remboursement</p>
+                <p className="text-sm font-medium text-foreground mb-2">Échéancier de remboursement</p>
                 {repayments.length === 0 ? (
-                  <p className="text-sm text-white/30">Aucun échéancier généré (avance non encore approuvée).</p>
+                  <p className="text-sm text-muted-foreground">Aucun échéancier généré (avance non encore approuvée).</p>
                 ) : (
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-white/40 border-b border-white/[0.07]">
+                      <tr className="text-muted-foreground border-b">
                         <th className="text-left py-1.5">Période</th>
                         <th className="text-right py-1.5">Prévu</th>
                         <th className="text-right py-1.5">Prélevé</th>
@@ -541,10 +541,10 @@ export default function SalaryAdvancesPage() {
                     </thead>
                     <tbody>
                       {repayments.map((r) => (
-                        <tr key={r.id} className="border-b border-white/[0.04]">
-                          <td className="py-1.5 text-white/70">{r.period}</td>
-                          <td className="py-1.5 text-right text-white">{formatFCFA(r.scheduledAmount)}</td>
-                          <td className="py-1.5 text-right text-white/60">{r.deductedAmount ? formatFCFA(r.deductedAmount) : "—"}</td>
+                        <tr key={r.id} className="border-b">
+                          <td className="py-1.5 text-foreground">{r.period}</td>
+                          <td className="py-1.5 text-right text-foreground">{formatFCFA(r.scheduledAmount)}</td>
+                          <td className="py-1.5 text-right text-muted-foreground">{r.deductedAmount ? formatFCFA(r.deductedAmount) : "—"}</td>
                           <td className="py-1.5 pl-3">
                             <Badge variant={r.status === "deducted" ? "default" : "secondary"} className="text-xs">
                               {r.status === "pending" ? "À venir" : r.status === "deducted" ? "Prélevé" : r.status}

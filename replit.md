@@ -125,6 +125,10 @@ PostgreSQL accessed via `DATABASE_URL` environment variable. Full Drizzle schema
 - 2 conversations with messages
 - 5 notifications
 
+## User preferences
+
+- **Thème des pages** : thème clair (light theme) — utiliser `text-foreground`, `text-muted-foreground`, `bg-muted/50`, `border` standards de shadcn/ui. Ne pas utiliser `text-white`, `bg-white/[0.03]`, `border-white/[0.07]` ou tout fond sombre sur les pages intérieures de l'ERP.
+
 ## Recent Changes
 
 L'historique détaillé des évolutions (transformation SaaS Gaméasù, gouvernance & sécurité, intelligence/automatisation, modules Operations / Attendance / FP&A / Inventory…) est désormais consigné dans [`CHANGELOG.md`](./CHANGELOG.md).
