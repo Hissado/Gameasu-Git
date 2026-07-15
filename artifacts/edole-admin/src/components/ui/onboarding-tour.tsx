@@ -243,6 +243,24 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
         },
       ],
     },
+    {
+      key: "rh_admin",
+      name: "Administration RH",
+      description: "Contrats, congés et gestion des droits d'accès par collaborateur.",
+      steps: [
+        {
+          target: "collab-list",
+          title: "Créer un collaborateur",
+          description: "Renseignez le profil complet : informations personnelles, poste, département et manager direct. Le compte d'accès à l'ERP est créé automatiquement si une adresse email est fournie.",
+        },
+        {
+          target: "collab-workload",
+          title: "Congés et absences",
+          description: "Suivez les soldes de congés, validez les demandes et visualisez les chevauchements pour éviter les sous-effectifs. Les absences s'intègrent à la feuille de paie.",
+          action: { label: "Gérer les collaborateurs", href: "/collaborateurs" },
+        },
+      ],
+    },
   ],
   paiements: [
     {
@@ -260,6 +278,24 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
           title: "Saisir un encaissement",
           description: "Associez un paiement à une ou plusieurs factures, y compris des règlements partiels. La balance de chaque facture se met à jour immédiatement.",
           action: { label: "Saisir un paiement", href: "/paiements" },
+        },
+      ],
+    },
+    {
+      key: "rapprochement",
+      name: "Rapprochement bancaire",
+      description: "Vérifiez que vos encaissements ERP correspondent aux relevés bancaires.",
+      steps: [
+        {
+          target: "pay-list",
+          title: "Filtrer par période",
+          description: "Sélectionnez une période et un compte bancaire pour lister les encaissements à rapprocher. Exportez la liste en CSV pour comparer avec votre relevé bancaire.",
+        },
+        {
+          target: "pay-list",
+          title: "Écarts et corrections",
+          description: "Si un montant ne correspond pas, corrigez-le directement depuis la fiche paiement. La balance de la facture associée se recalcule automatiquement.",
+          action: { label: "Voir les paiements", href: "/paiements" },
         },
       ],
     },
@@ -282,6 +318,24 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
         },
       ],
     },
+    {
+      key: "inspection_logistique",
+      name: "Inspections & logistique",
+      description: "Protocole de départ, retour et transport des équipements.",
+      steps: [
+        {
+          target: "rent-list",
+          title: "Inspection avant départ",
+          description: "Renseignez l'état de chaque équipement avant la livraison : photos, commentaires et signature client. Ce rapport constitue la référence contractuelle en cas de litige.",
+        },
+        {
+          target: "rent-detail",
+          title: "Opérations logistiques",
+          description: "Planifiez la livraison et le retour avec le module Logistique. Les chauffeurs et moyens de transport sont assignés depuis la fiche de location.",
+          action: { label: "Voir les locations", href: "/locations" },
+        },
+      ],
+    },
   ],
   taches: [
     {
@@ -298,7 +352,25 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
           target: "task-list",
           title: "Filtres et sous-tâches",
           description: "Filtrez par statut, priorité ou projet. Chaque tâche peut avoir des sous-tâches, des commentaires d'équipe et des pièces jointes.",
-          action: { label: "Voir les tâches", href: "/tasks" },
+          action: { label: "Voir les tâches", href: "/taches" },
+        },
+      ],
+    },
+    {
+      key: "collaboration",
+      name: "Collaboration & reporting",
+      description: "Commentaires, assignations multiples et suivi de l'avancement.",
+      steps: [
+        {
+          target: "task-list",
+          title: "Assigner et déléguer",
+          description: "Chaque tâche peut être assignée à un ou plusieurs collaborateurs. L'assigné reçoit une notification immédiate et la tâche apparaît en priorité dans son tableau de bord.",
+        },
+        {
+          target: "task-list",
+          title: "Commentaires et historique",
+          description: "L'onglet Commentaires de chaque tâche constitue le fil de discussion de l'équipe : mentionnez un collègue avec @, joignez un fichier ou partagez une mise à jour d'avancement.",
+          action: { label: "Voir les tâches", href: "/taches" },
         },
       ],
     },
@@ -319,6 +391,24 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
           title: "Comptes personnalisés",
           description: "Créez des sous-comptes spécifiques à votre organisation en respectant la nomenclature SYSCOHADA. Les journaux et saisies s'actualisent en temps réel.",
           action: { label: "Voir le plan", href: "/comptabilite/plan-comptable" },
+        },
+      ],
+    },
+    {
+      key: "saisie_journaux",
+      name: "Saisie & journaux comptables",
+      description: "Enregistrez les écritures et consultez les journaux de votre exercice.",
+      steps: [
+        {
+          target: "coa-list",
+          title: "Écriture de journal",
+          description: "Chaque écriture comptable est passée en partie double (débit/crédit) sur des comptes du plan SYSCOHADA. Le solde de chaque compte se met à jour immédiatement après validation.",
+        },
+        {
+          target: "coa-list",
+          title: "Journaux et lettrage",
+          description: "Consultez le journal général ou les journaux auxiliaires (ventes, achats, banque, caisse). Le lettrage permet d'identifier les règlements associés à chaque écriture client/fournisseur.",
+          action: { label: "Voir la comptabilité", href: "/comptabilite/plan-comptable" },
         },
       ],
     },
@@ -353,7 +443,7 @@ export type PathStatus = "done" | "in_progress" | "not_started";
 export function getPathStatus(moduleKey: string, pathKey: string): PathStatus {
   if (localStorage.getItem(LS_PATH_DONE(moduleKey, pathKey))) return "done";
   const step = localStorage.getItem(LS_PATH_STEP(moduleKey, pathKey));
-  if (step !== null && parseInt(step) > 0) return "in_progress";
+  if (step !== null) return "in_progress";
   return "not_started";
 }
 
@@ -376,6 +466,7 @@ export function resetPathProgress(moduleKey: string, pathKey: string) {
 export function useModuleTour(moduleKey: string, canAutoShow = false) {
   const [showWelcome, setShowWelcome] = useState(false);
   const [tourActive, setTourActive] = useState(false);
+  const [selectedPathKey, setSelectedPathKey] = useState<string | null>(null);
 
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | undefined;
@@ -391,6 +482,7 @@ export function useModuleTour(moduleKey: string, canAutoShow = false) {
       if (detail === moduleKey) {
         localStorage.removeItem(LS_KEY(moduleKey));
         setTourActive(false);
+        setSelectedPathKey(null);
         setTimeout(() => setShowWelcome(true), 100);
       }
     };
@@ -404,14 +496,24 @@ export function useModuleTour(moduleKey: string, canAutoShow = false) {
     setTourActive(true);
   }, [moduleKey]);
 
+  const startTourWithPath = useCallback((pathKey: string) => {
+    setSelectedPathKey(pathKey);
+    localStorage.setItem(LS_KEY(moduleKey), "1");
+    setShowWelcome(false);
+    setTourActive(true);
+  }, [moduleKey]);
+
   const dismissWelcome = useCallback(() => {
     localStorage.setItem(LS_KEY(moduleKey), "1");
     setShowWelcome(false);
   }, [moduleKey]);
 
-  const closeTour = useCallback(() => setTourActive(false), []);
+  const closeTour = useCallback(() => {
+    setTourActive(false);
+    setSelectedPathKey(null);
+  }, []);
 
-  return { showWelcome, tourActive, startTour, dismissWelcome, closeTour };
+  return { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey };
 }
 
 // ─── WelcomeModal ──────────────────────────────────────────────────────────────
@@ -423,9 +525,18 @@ interface WelcomeModalProps {
   steps: TourStep[];
   onStart: () => void;
   onDismiss: () => void;
+  /** Parcours disponibles — quand 2+, affiche un sélecteur au lieu de la liste d'étapes */
+  paths?: TourPath[];
+  /** Appelé avec le pathKey choisi quand plusieurs parcours sont disponibles */
+  onStartPath?: (pathKey: string) => void;
 }
 
-export function WelcomeModal({ title, subtitle, icon: Icon, steps, onStart, onDismiss }: WelcomeModalProps) {
+export function WelcomeModal({
+  title, subtitle, icon: Icon, steps, onStart, onDismiss, paths, onStartPath,
+}: WelcomeModalProps) {
+  const showPathSelector = (paths?.length ?? 0) >= 2 && onStartPath != null;
+  const [selectedPath, setSelectedPath] = useState<string>(paths?.[0]?.key ?? "");
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onDismiss();
@@ -433,6 +544,14 @@ export function WelcomeModal({ title, subtitle, icon: Icon, steps, onStart, onDi
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onDismiss]);
+
+  const handleStart = () => {
+    if (showPathSelector && onStartPath) {
+      onStartPath(selectedPath || paths![0].key);
+    } else {
+      onStart();
+    }
+  };
 
   return createPortal(
     <div
@@ -467,35 +586,73 @@ export function WelcomeModal({ title, subtitle, icon: Icon, steps, onStart, onDi
           <p className="text-sm text-white/60 mt-1">{subtitle}</p>
         </div>
 
-        {/* Steps preview */}
-        <div className="px-6 py-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Au programme ({steps.length} étapes)
-          </p>
-          <ol className="space-y-2">
-            {steps.map((s, i) => (
-              <li key={s.target} className="flex items-start gap-2.5">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">
-                  {i + 1}
-                </span>
-                <span className="text-sm text-slate-700 leading-snug">
-                  <span className="font-medium">{s.title}</span>
-                  {" "}
-                  <span className="text-muted-foreground">— {s.description}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
+        {/* Path selector — shown when 2+ paths are available */}
+        {showPathSelector ? (
+          <div className="px-6 py-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Choisissez votre parcours
+            </p>
+            <div className="space-y-2">
+              {paths!.map((path, i) => (
+                <button
+                  key={path.key}
+                  type="button"
+                  onClick={() => setSelectedPath(path.key)}
+                  className={`w-full text-left p-3 rounded-xl border transition-all ${
+                    selectedPath === path.key
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <span className={`flex-shrink-0 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center mt-0.5 ${
+                      selectedPath === path.key ? "bg-primary text-white" : "bg-slate-100 text-slate-500"
+                    }`}>
+                      {i + 1}
+                    </span>
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">{path.name}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{path.description}</div>
+                      <div className="text-[11px] text-muted-foreground/60 mt-1">
+                        {path.steps.length} étape{path.steps.length > 1 ? "s" : ""}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* Steps preview — shown when only 1 path or no paths */
+          <div className="px-6 py-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Au programme ({steps.length} étapes)
+            </p>
+            <ol className="space-y-2">
+              {steps.map((s, i) => (
+                <li key={s.target} className="flex items-start gap-2.5">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm text-slate-700 leading-snug">
+                    <span className="font-medium">{s.title}</span>
+                    {" "}
+                    <span className="text-muted-foreground">— {s.description}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="px-6 pb-6 flex gap-3">
           <Button variant="outline" size="sm" className="flex-1" onClick={onDismiss}>
             Ignorer
           </Button>
-          <Button size="sm" className="flex-1 gap-1.5 bg-primary hover:bg-primary/90" onClick={onStart}>
+          <Button size="sm" className="flex-1 gap-1.5 bg-primary hover:bg-primary/90" onClick={handleStart}>
             <BookOpen className="w-4 h-4" />
-            Démarrer la visite
+            {showPathSelector ? "Démarrer ce parcours" : "Démarrer la visite"}
           </Button>
         </div>
       </div>
@@ -774,45 +931,79 @@ export function GuidesPanel({ moduleKey, open, onOpenChange }: GuidesPanelProps)
 
   const paths = TOUR_PATHS[moduleKey] ?? [];
 
-  // Refresh status badges when panel opens
+  // Fire-and-forget sync to server
+  const syncProgressToServer = useCallback((pathKey: string, step: number, isDone: boolean) => {
+    if (!moduleKey) return;
+    const token = localStorage.getItem("auth_token") ?? "";
+    fetch("/api/onboarding/tour-progress", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ moduleKey, pathKey, currentStep: step, isDone }),
+    }).catch(() => {});
+  }, [moduleKey]);
+
+  // Refresh status badges + sync from server when panel opens
   useEffect(() => {
-    if (open) setTick(n => n + 1);
-  }, [open]);
+    if (!open) return;
+    setTick(n => n + 1);
+    if (!moduleKey) return;
+    const token = localStorage.getItem("auth_token") ?? "";
+    fetch(`/api/onboarding/tour-progress?moduleKey=${encodeURIComponent(moduleKey)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then((data: Array<{ pathKey: string; currentStep: number; isDone: boolean }> | null) => {
+        if (!data) return;
+        data.forEach((row) => {
+          if (row.isDone) {
+            localStorage.setItem(LS_PATH_DONE(moduleKey, row.pathKey), "1");
+            localStorage.removeItem(LS_PATH_STEP(moduleKey, row.pathKey));
+          } else if (!localStorage.getItem(LS_PATH_DONE(moduleKey, row.pathKey))) {
+            localStorage.setItem(LS_PATH_STEP(moduleKey, row.pathKey), String(row.currentStep));
+          }
+        });
+        setTick(n => n + 1);
+      })
+      .catch(() => {});
+  }, [open, moduleKey]);
 
   const startPath = useCallback((pathKey: string) => {
     const path = paths.find(p => p.key === pathKey);
     if (!path) return;
+    // Mark as started (step 0) immediately so status shows "in_progress"
+    if (!localStorage.getItem(LS_PATH_DONE(moduleKey, pathKey))) {
+      localStorage.setItem(LS_PATH_STEP(moduleKey, pathKey), "0");
+      syncProgressToServer(pathKey, 0, false);
+    }
     setActivePath(pathKey);
     setTourActive(true);
     onOpenChange(false);
-  }, [paths, onOpenChange]);
+  }, [paths, moduleKey, onOpenChange, syncProgressToServer]);
 
   const redoPath = useCallback((pathKey: string) => {
     resetPathProgress(moduleKey, pathKey);
+    localStorage.setItem(LS_PATH_STEP(moduleKey, pathKey), "0");
+    syncProgressToServer(pathKey, 0, false);
     setActivePath(pathKey);
     setTourActive(true);
     onOpenChange(false);
-  }, [moduleKey, onOpenChange]);
+  }, [moduleKey, onOpenChange, syncProgressToServer]);
 
   const handleTourStepChange = useCallback((step: number) => {
     if (activePath) {
       const path = paths.find(p => p.key === activePath);
-      if (path) savePathProgress(moduleKey, activePath, step, path.steps.length);
-    }
-  }, [activePath, paths, moduleKey]);
-
-  const handleTourClose = useCallback(() => {
-    if (activePath) {
-      const path = paths.find(p => p.key === activePath);
       if (path) {
-        // If already marked done by onStepChange on last step, leave it; otherwise keep step
-        // Nothing extra needed — onStepChange already saved
+        savePathProgress(moduleKey, activePath, step, path.steps.length);
+        syncProgressToServer(activePath, step, step >= path.steps.length - 1);
       }
     }
+  }, [activePath, paths, moduleKey, syncProgressToServer]);
+
+  const handleTourClose = useCallback(() => {
     setTourActive(false);
     setActivePath(null);
     setTick(n => n + 1);
-  }, [activePath, paths]);
+  }, []);
 
   const activePathObj = activePath ? (paths.find(p => p.key === activePath) ?? null) : null;
   const activeInitialStep = (activePath && activePathObj)

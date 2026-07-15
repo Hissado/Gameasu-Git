@@ -94,3 +94,16 @@ export type OnboardingTemplate = typeof onboardingTemplatesTable.$inferSelect;
 export type OnboardingTemplateItem = typeof onboardingTemplateItemsTable.$inferSelect;
 export type OnboardingProcess = typeof onboardingProcessesTable.$inferSelect;
 export type OnboardingProcessItem = typeof onboardingProcessItemsTable.$inferSelect;
+
+// ── Progression des visites guidées UI ──────────────────────────────────────────
+export const uiTourProgressTable = pgTable("ui_tour_progress", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  moduleKey: text("module_key").notNull(),
+  pathKey: text("path_key").notNull(),
+  currentStep: integer("current_step").notNull().default(0),
+  isDone: boolean("is_done").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  userModulePathIdx: uniqueIndex("ui_tour_progress_user_module_path_idx").on(t.userId, t.moduleKey, t.pathKey),
+}));

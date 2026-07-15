@@ -48,7 +48,7 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { IntelligenceWidget } from "@/components/IntelligenceWidget";
 import { QuickClockWidget } from "@/components/QuickClockWidget";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 import { LayoutDashboard } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -160,7 +160,10 @@ export default function Dashboard() {
   const { data: invoices } = useListInvoices();
 
   const projectList: any[] = (projects as any)?.data || (projects as any) || [];
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("dashboard", !loadingKpis && projectList.length === 0);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey } = useModuleTour("dashboard", !loadingKpis && projectList.length === 0);
+  const activeSteps = selectedPathKey
+    ? (TOUR_PATHS["dashboard"].find((p) => p.key === selectedPathKey)?.steps ?? DASHBOARD_TOUR)
+    : DASHBOARD_TOUR;
   const taskList: any[]    = (tasks as any)?.data    || (tasks as any)    || [];
   const invoiceList: any[] = (invoices as any)?.data || (invoices as any) || [];
 
@@ -227,9 +230,11 @@ export default function Dashboard() {
           steps={DASHBOARD_TOUR}
           onStart={startTour}
           onDismiss={dismissWelcome}
+          paths={TOUR_PATHS["dashboard"]}
+          onStartPath={startTourWithPath}
         />
       )}
-      {tourActive && <OnboardingTour steps={DASHBOARD_TOUR} onClose={closeTour} />}
+      {tourActive && <OnboardingTour steps={activeSteps} onClose={closeTour} />}
 
       {/* ── En-tête ─────────────────────────────────────────────────────── */}
       <header data-tour="dash-header" className="rounded-2xl overflow-hidden border border-slate-800 shadow-lg"
