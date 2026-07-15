@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, BookOpen } from "lucide-react";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 type OrgFramework = { orgType: string; orgTypeLabel: string; accountingFramework: string; frameworkLabel: string; frameworkDescription: string };
 
@@ -65,7 +65,8 @@ export default function ChartOfAccounts() {
     queryFn: () => apiFetch("/api/organizations/accounting-framework"),
     staleTime: 10 * 60 * 1000,
   });
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("plan_comptable", !isLoading);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("plan_comptable", !isLoading);
+  const activeSteps = TOUR_PATHS["plan_comptable"]?.find(p => p.key === selectedPathKey)?.steps ?? COA_TOUR;
 
   const grouped = (data?.data ?? []).reduce((acc, a) => {
     (acc[a.classNum] ??= []).push(a);
@@ -85,12 +86,22 @@ export default function ChartOfAccounts() {
           title="Plan Comptable"
           subtitle="Découvrez le référentiel SYSCOHADA : classes, comptes et sens normaux."
           icon={BookOpen}
-          steps={COA_TOUR}
+          steps={activeSteps}
+          paths={TOUR_PATHS["plan_comptable"]}
+          onStartPath={startTourWithPath}
           onStart={startTour}
           onDismiss={dismissWelcome}
         />
       )}
-      {tourActive && <OnboardingTour steps={COA_TOUR} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <div data-tour="coa-header" className="flex items-center gap-3 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
         <BookOpen className="w-5 h-5 text-amber-600 shrink-0" />
         <div>

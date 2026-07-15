@@ -19,7 +19,7 @@ import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 const TASKS_TOUR = [
   { target: "task-header", title: "Module Tâches", description: "Créez, assignez et suivez l'avancement de toutes vos tâches d'équipe et de projets." },
@@ -218,7 +218,8 @@ export default function TasksList() {
     return buckets;
   }, [tasks]);
 
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("taches", !isLoading && allTasks.length === 0);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("taches", !isLoading && allTasks.length === 0);
+  const activeSteps = TOUR_PATHS["taches"]?.find(p => p.key === selectedPathKey)?.steps ?? TASKS_TOUR;
 
   return (
     <div data-tour="task-header" className="space-y-6 animate-in fade-in duration-500">
@@ -228,12 +229,22 @@ export default function TasksList() {
           title="Gestion des Tâches"
           subtitle="Planifiez, assignez et suivez toutes vos tâches d'équipe en un seul endroit."
           icon={CheckSquare}
-          steps={TASKS_TOUR}
+          steps={activeSteps}
+          paths={TOUR_PATHS["taches"]}
+          onStartPath={startTourWithPath}
           onStart={startTour}
           onDismiss={dismissWelcome}
         />
       )}
-      {tourActive && <OnboardingTour steps={TASKS_TOUR} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <PageHeader
         title="Tâches"
         subtitle={`${allTasks.length} tâche${allTasks.length !== 1 ? "s" : ""} au total`}

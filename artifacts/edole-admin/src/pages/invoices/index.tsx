@@ -18,7 +18,7 @@ import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -406,7 +406,8 @@ export default function InvoicesList() {
     qc.invalidateQueries({ queryKey: ["payments"] });
   };
 
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("factures", !isLoading && allInvoices.length === 0);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("factures", !isLoading && allInvoices.length === 0);
+  const activeSteps = TOUR_PATHS["factures"]?.find(p => p.key === selectedPathKey)?.steps ?? INVOICES_TOUR;
 
   return (
     <div data-tour="inv-header" className="space-y-5 animate-in fade-in duration-500">
@@ -416,12 +417,22 @@ export default function InvoicesList() {
           title="Module Facturation"
           subtitle="Créez, envoyez et suivez toutes vos factures clients avec suivi de l'encours en temps réel."
           icon={FileText}
-          steps={INVOICES_TOUR}
+          steps={activeSteps}
+          paths={TOUR_PATHS["factures"]}
+          onStartPath={startTourWithPath}
           onStart={startTour}
           onDismiss={dismissWelcome}
         />
       )}
-      {tourActive && <OnboardingTour steps={INVOICES_TOUR} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <PageHeader
         title="Factures"
         icon={FileText}

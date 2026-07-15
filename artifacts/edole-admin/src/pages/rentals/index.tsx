@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Truck, ArrowRight, FileText, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -221,7 +221,8 @@ export default function RentalsList() {
     );
   }, [data, search]);
 
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("locations", !isLoading && rentals.length === 0);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("locations", !isLoading && rentals.length === 0);
+  const activeSteps = TOUR_PATHS["locations"]?.find(p => p.key === selectedPathKey)?.steps ?? RENTALS_TOUR;
 
   return (
     <div data-tour="rental-header" className="space-y-6 animate-in fade-in duration-500">
@@ -231,12 +232,22 @@ export default function RentalsList() {
           title="Gestion des Locations"
           subtitle="Gérez vos contrats de location d'équipements de la réservation à la restitution."
           icon={Truck}
-          steps={RENTALS_TOUR}
+          steps={activeSteps}
+          paths={TOUR_PATHS["locations"]}
+          onStartPath={startTourWithPath}
           onStart={startTour}
           onDismiss={dismissWelcome}
         />
       )}
-      {tourActive && <OnboardingTour steps={RENTALS_TOUR} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Locations</h1>

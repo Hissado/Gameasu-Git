@@ -17,7 +17,7 @@ import { Search, UserPlus, X, ArrowUpDown, User, Keyboard } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -160,7 +160,8 @@ export default function CollaboratorsList() {
   });
 
   const allCollabs = allCollabsData?.data ?? [];
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("collaborateurs", !isLoading && allCollabs.length === 0);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("collaborateurs", !isLoading && allCollabs.length === 0);
+  const activeSteps = TOUR_PATHS["collaborateurs"]?.find(p => p.key === selectedPathKey)?.steps ?? COLLABS_TOUR;
 
   const statusCounts = useMemo(() => {
     const now = Date.now();
@@ -335,12 +336,22 @@ export default function CollaboratorsList() {
           title="Collaborateurs"
           subtitle="Découvrez comment gérer les profils et l'annuaire de votre équipe."
           icon={User}
-          steps={COLLABS_TOUR}
+          steps={activeSteps}
+          paths={TOUR_PATHS["collaborateurs"]}
+          onStartPath={startTourWithPath}
           onStart={startTour}
           onDismiss={dismissWelcome}
         />
       )}
-      {tourActive && <OnboardingTour steps={COLLABS_TOUR} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
 
       {/* ── Page header ── */}
       <div data-tour="collab-header" className="flex items-start justify-between gap-4">

@@ -19,7 +19,7 @@ import { MoneyAmount } from "@/components/ui/money-amount";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 const PAYMENTS_TOUR = [
   { target: "pay-header",  title: "Journal des encaissements", description: "Enregistrez chaque paiement reçu et liez-le automatiquement à la facture correspondante." },
@@ -447,7 +447,8 @@ export default function PaymentsList() {
 
   const totalEncaisse = payments.reduce((s, p) => s + (p.amount ?? 0), 0);
 
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("paiements", !isLoading && payments.length === 0);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("paiements", !isLoading && payments.length === 0);
+  const activeSteps = TOUR_PATHS["paiements"]?.find(p => p.key === selectedPathKey)?.steps ?? PAYMENTS_TOUR;
 
   return (
     <div data-tour="pay-header" className="space-y-5 animate-in fade-in duration-500">
@@ -457,12 +458,22 @@ export default function PaymentsList() {
           title="Journal des Encaissements"
           subtitle="Enregistrez vos paiements reçus et liez-les aux factures pour une trésorerie toujours à jour."
           icon={CreditCard}
-          steps={PAYMENTS_TOUR}
+          steps={activeSteps}
+          paths={TOUR_PATHS["paiements"]}
+          onStartPath={startTourWithPath}
           onStart={startTour}
           onDismiss={dismissWelcome}
         />
       )}
-      {tourActive && <OnboardingTour steps={PAYMENTS_TOUR} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <PageHeader
         title="Encaissements"
         subtitle={`Journal des paiements · ${formatFCFA(totalEncaisse)} encaissé`}

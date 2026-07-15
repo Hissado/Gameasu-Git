@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 
 const router = Router();
 
-router.get("/api/onboarding/tour-progress", async (req, res, next) => {
+router.get("/onboarding/tour-progress", async (req, res, next) => {
   try {
     const user = req.authUser!;
     const { moduleKey } = req.query as { moduleKey?: string };
@@ -32,7 +32,7 @@ router.get("/api/onboarding/tour-progress", async (req, res, next) => {
   }
 });
 
-router.put("/api/onboarding/tour-progress", async (req, res, next) => {
+router.put("/onboarding/tour-progress", async (req, res, next) => {
   try {
     const user = req.authUser!;
     const { moduleKey, pathKey, currentStep, isDone } = req.body as {

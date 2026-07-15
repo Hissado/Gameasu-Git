@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { Link } from "wouter";
 import { PageHeader } from "@/components/ui/page-header";
 import { usePermissions } from "@/lib/permissions";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 // Progression logique des stades (prev → next)
 const STAGE_NEXT: Record<string, string> = {
@@ -236,7 +236,8 @@ export default function CrmHome() {
   };
 
   const isLoading = isLoadingPipeline || isLoadingOpps;
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("crm", !isLoading && (opportunities?.total ?? 1) === 0);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("crm", !isLoading && (opportunities?.total ?? 1) === 0);
+  const activeSteps = TOUR_PATHS["crm"]?.find(p => p.key === selectedPathKey)?.steps ?? CRM_TOUR;
 
   return (
     <div data-tour="crm-header" className="space-y-5 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
@@ -246,12 +247,22 @@ export default function CrmHome() {
           title="Pipeline Commercial"
           subtitle="Apprenez à gérer vos opportunités et suivre votre pipeline de vente."
           icon={Target}
-          steps={CRM_TOUR}
+          steps={activeSteps}
+          paths={TOUR_PATHS["crm"]}
+          onStartPath={startTourWithPath}
           onStart={startTour}
           onDismiss={dismissWelcome}
         />
       )}
-      {tourActive && <OnboardingTour steps={CRM_TOUR} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <PageHeader
         title="Pipeline Commercial"
         subtitle={`${opportunities?.total ?? 0} opportunités · ${pipeline ? formatFCFACompact(pipeline.totalValue ?? 0) : "0 FCFA"} en pipeline`}

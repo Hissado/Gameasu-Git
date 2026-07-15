@@ -87,7 +87,7 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
           description: "Les colonnes représentent les stades de votre cycle de vente. Faites glisser une opportunité d'une colonne à l'autre pour mettre à jour son avancement.",
         },
         {
-          target: "crm-opportunity",
+          target: "crm-pipeline",
           title: "Fiche opportunité",
           description: "Chaque carte affiche la valeur estimée, la probabilité de gain, le commercial responsable et la prochaine action planifiée.",
         },
@@ -104,7 +104,7 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
           description: "Utilisez les filtres en haut pour n'afficher que vos opportunités ou celles d'un commercial spécifique. Reassignez en un clic depuis la carte.",
         },
         {
-          target: "crm-opportunity",
+          target: "crm-pipeline",
           title: "Convertir en client",
           description: "Une opportunité «Gagnée» se convertit en client directement depuis la fiche détail. Les coordonnées et le contexte commercial sont repris automatiquement.",
           action: { label: "Voir le CRM", href: "/crm" },
@@ -119,12 +119,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Créez et suivez vos projets, phases et équipes.",
       steps: [
         {
-          target: "proj-list",
+          target: "proj-table",
           title: "Liste des projets",
           description: "Vue synthétique de tous vos projets actifs : budget alloué, taux d'avancement calculé automatiquement à partir des tâches, et équipe affectée.",
         },
         {
-          target: "proj-detail",
+          target: "proj-header",
           title: "Fiche projet",
           description: "Phases, tâches, documents, budget et collaborateurs — tout est centralisé. Naviguez par onglets pour chaque dimension.",
         },
@@ -136,12 +136,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Budget réalisé, avancement et gestion de la charge par collaborateur.",
       steps: [
         {
-          target: "proj-list",
+          target: "proj-table",
           title: "Avancement automatique",
           description: "Le taux d'avancement est calculé automatiquement à partir du ratio tâches terminées / total des tâches. Il se met à jour en temps réel.",
         },
         {
-          target: "proj-detail",
+          target: "proj-header",
           title: "Budget réalisé",
           description: "Le budget consommé se met à jour dès qu'une facture ou dépense est associée au projet. Suivez l'écart budget/réalisé à tout moment.",
           action: { label: "Voir les projets", href: "/projets" },
@@ -156,12 +156,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Créez et gérez vos factures conformément à la norme comptable.",
       steps: [
         {
-          target: "inv-list",
+          target: "inv-table",
           title: "Liste des factures",
           description: "Toutes vos factures avec leur statut (brouillon, envoyée, payée, annulée), montant TTC et date d'échéance. Le rouge indique les factures en retard.",
         },
         {
-          target: "inv-create",
+          target: "inv-header",
           title: "Nouvelle facture",
           description: "Sélectionnez le client, ajoutez les lignes de prestation avec TVA et définissez l'échéance. La numérotation SYSCOHADA est générée automatiquement.",
           action: { label: "Créer une facture", href: "/factures" },
@@ -174,12 +174,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Suivez les règlements reçus et gérez les relances clients.",
       steps: [
         {
-          target: "inv-list",
+          target: "inv-table",
           title: "Identifier les retards",
           description: "Les factures en rouge ont dépassé leur date d'échéance. Filtrez-les pour lancer des relances groupées ou accéder au module Recouvrement.",
         },
         {
-          target: "inv-list",
+          target: "inv-table",
           title: "Export PDF et email",
           description: "Chaque facture est exportable en PDF et peut être envoyée par email depuis la fiche. Le modèle reprend votre logo et vos coordonnées bancaires.",
           action: { label: "Voir les factures", href: "/factures" },
@@ -194,12 +194,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Budget, forecast et analyse des écarts financiers.",
       steps: [
         {
-          target: "fpa-budgets",
+          target: "fpa-nav",
           title: "Budgets versionnés",
           description: "Chaque budget est versionné et peut être dupliqué pour créer des scénarios alternatifs (best case, worst case). Un seul budget peut être «actif» par périmètre.",
         },
         {
-          target: "fpa-variance",
+          target: "fpa-chart",
           title: "Analyse des écarts",
           description: "Comparez budget vs réalisé compte par compte et mois par mois. Les écarts négatifs sont surlignés automatiquement pour attirer votre attention.",
         },
@@ -211,12 +211,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Anticipez la clôture avec les outils de projection FP&A.",
       steps: [
         {
-          target: "fpa-budgets",
+          target: "fpa-nav",
           title: "Activer un budget",
           description: "L'activation d'un budget l'élève en référence du périmètre et archive automatiquement le précédent. Un seul budget actif par périmètre à la fois.",
         },
         {
-          target: "fpa-variance",
+          target: "fpa-chart",
           title: "Projection fin d'année",
           description: "L'atterrissage (YTD + budget restant) et la projection linéaire vous donnent deux visions de la fin d'exercice pour affiner vos décisions budgétaires.",
           action: { label: "Voir les budgets", href: "/fpa" },
@@ -236,7 +236,7 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
           description: "Tous vos collaborateurs avec leur poste, statut et taux de charge actuel. La couleur de la barre indique la charge : vert = disponible, rouge = surchargé.",
         },
         {
-          target: "collab-workload",
+          target: "collab-search",
           title: "Matrice de charge",
           description: "Visualisez la charge semaine par semaine pour chaque collaborateur et anticipez les ressources disponibles pour vos prochains projets.",
           action: { label: "Voir les collaborateurs", href: "/collaborateurs" },
@@ -254,7 +254,7 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
           description: "Renseignez le profil complet : informations personnelles, poste, département et manager direct. Le compte d'accès à l'ERP est créé automatiquement si une adresse email est fournie.",
         },
         {
-          target: "collab-workload",
+          target: "collab-search",
           title: "Congés et absences",
           description: "Suivez les soldes de congés, validez les demandes et visualisez les chevauchements pour éviter les sous-effectifs. Les absences s'intègrent à la feuille de paie.",
           action: { label: "Gérer les collaborateurs", href: "/collaborateurs" },
@@ -269,12 +269,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Enregistrez et suivez tous les règlements reçus.",
       steps: [
         {
-          target: "pay-list",
+          target: "pay-table",
           title: "Journal des encaissements",
           description: "Tous les paiements reçus triés par date, avec le mode de règlement (virement, espèces, mobile money) et la facture associée. La comptabilisation est automatique.",
         },
         {
-          target: "pay-list",
+          target: "pay-table",
           title: "Saisir un encaissement",
           description: "Associez un paiement à une ou plusieurs factures, y compris des règlements partiels. La balance de chaque facture se met à jour immédiatement.",
           action: { label: "Saisir un paiement", href: "/paiements" },
@@ -287,12 +287,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Vérifiez que vos encaissements ERP correspondent aux relevés bancaires.",
       steps: [
         {
-          target: "pay-list",
+          target: "pay-table",
           title: "Filtrer par période",
           description: "Sélectionnez une période et un compte bancaire pour lister les encaissements à rapprocher. Exportez la liste en CSV pour comparer avec votre relevé bancaire.",
         },
         {
-          target: "pay-list",
+          target: "pay-table",
           title: "Écarts et corrections",
           description: "Si un montant ne correspond pas, corrigez-le directement depuis la fiche paiement. La balance de la facture associée se recalcule automatiquement.",
           action: { label: "Voir les paiements", href: "/paiements" },
@@ -307,12 +307,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Gérez les contrats de location et les états des lieux.",
       steps: [
         {
-          target: "rent-list",
+          target: "rental-table",
           title: "Planning des locations",
           description: "Vue calendaire des équipements loués : disponibilités, contrats en cours et retours prévus. Repérez les conflits de réservation en un coup d'œil.",
         },
         {
-          target: "rent-detail",
+          target: "rental-header",
           title: "États des lieux",
           description: "Chaque contrat inclut un état des lieux départ et retour pour documenter l'état des équipements et protéger vos intérêts.",
         },
@@ -324,12 +324,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Protocole de départ, retour et transport des équipements.",
       steps: [
         {
-          target: "rent-list",
+          target: "rental-table",
           title: "Inspection avant départ",
           description: "Renseignez l'état de chaque équipement avant la livraison : photos, commentaires et signature client. Ce rapport constitue la référence contractuelle en cas de litige.",
         },
         {
-          target: "rent-detail",
+          target: "rental-header",
           title: "Opérations logistiques",
           description: "Planifiez la livraison et le retour avec le module Logistique. Les chauffeurs et moyens de transport sont assignés depuis la fiche de location.",
           action: { label: "Voir les locations", href: "/locations" },
@@ -344,12 +344,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Organisez et suivez votre travail quotidien.",
       steps: [
         {
-          target: "task-list",
+          target: "task-table",
           title: "Liste des tâches",
           description: "Toutes vos tâches avec priorité (haute/normale/basse), assignation, date d'échéance et statut. Les tâches échues s'affichent en rouge.",
         },
         {
-          target: "task-list",
+          target: "task-table",
           title: "Filtres et sous-tâches",
           description: "Filtrez par statut, priorité ou projet. Chaque tâche peut avoir des sous-tâches, des commentaires d'équipe et des pièces jointes.",
           action: { label: "Voir les tâches", href: "/tasks" },
@@ -362,12 +362,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Commentaires, assignations multiples et suivi de l'avancement.",
       steps: [
         {
-          target: "task-list",
+          target: "task-table",
           title: "Assigner et déléguer",
           description: "Chaque tâche peut être assignée à un ou plusieurs collaborateurs. L'assigné reçoit une notification immédiate et la tâche apparaît en priorité dans son tableau de bord.",
         },
         {
-          target: "task-list",
+          target: "task-table",
           title: "Commentaires et historique",
           description: "L'onglet Commentaires de chaque tâche constitue le fil de discussion de l'équipe : mentionnez un collègue avec @, joignez un fichier ou partagez une mise à jour d'avancement.",
           action: { label: "Voir les tâches", href: "/tasks" },
@@ -382,12 +382,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Naviguez dans la structure comptable normalisée.",
       steps: [
         {
-          target: "coa-list",
+          target: "coa-classes",
           title: "Classes de comptes",
           description: "Les comptes sont organisés en 8 classes SYSCOHADA (immobilisations, stocks, tiers, financiers, charges, produits…). Développez chaque classe pour voir le détail.",
         },
         {
-          target: "coa-list",
+          target: "coa-classes",
           title: "Comptes personnalisés",
           description: "Créez des sous-comptes spécifiques à votre organisation en respectant la nomenclature SYSCOHADA. Les journaux et saisies s'actualisent en temps réel.",
           action: { label: "Voir le plan", href: "/comptabilite/plan-comptable" },
@@ -400,12 +400,12 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       description: "Enregistrez les écritures et consultez les journaux de votre exercice.",
       steps: [
         {
-          target: "coa-list",
+          target: "coa-classes",
           title: "Écriture de journal",
           description: "Chaque écriture comptable est passée en partie double (débit/crédit) sur des comptes du plan SYSCOHADA. Le solde de chaque compte se met à jour immédiatement après validation.",
         },
         {
-          target: "coa-list",
+          target: "coa-classes",
           title: "Journaux et lettrage",
           description: "Consultez le journal général ou les journaux auxiliaires (ventes, achats, banque, caisse). Le lettrage permet d'identifier les règlements associés à chaque écriture client/fournisseur.",
           action: { label: "Voir la comptabilité", href: "/comptabilite/plan-comptable" },

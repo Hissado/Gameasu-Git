@@ -29,7 +29,7 @@ import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 // ── RAG ───────────────────────────────────────────────────────────────────────
 
@@ -269,7 +269,8 @@ const PROJECTS_TOUR = [
 
 export default function ProjectsList() {
   const { data, isLoading } = useListProjects();
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("projets", !isLoading && (data?.data?.length ?? 1) === 0);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("projets", !isLoading && (data?.data?.length ?? 1) === 0);
+  const activeSteps = TOUR_PATHS["projets"]?.find(p => p.key === selectedPathKey)?.steps ?? PROJECTS_TOUR;
   const perms = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -326,12 +327,22 @@ export default function ProjectsList() {
           title="Gestion de Projets"
           subtitle="Apprenez à créer, planifier et suivre vos projets en temps réel."
           icon={FolderKanban}
-          steps={PROJECTS_TOUR}
+          steps={activeSteps}
+          paths={TOUR_PATHS["projets"]}
+          onStartPath={startTourWithPath}
           onStart={startTour}
           onDismiss={dismissWelcome}
         />
       )}
-      {tourActive && <OnboardingTour steps={PROJECTS_TOUR} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <PageHeader
         title="Projets"
         icon={FolderKanban}

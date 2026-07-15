@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { usePermissions } from "@/lib/permissions";
 import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
-import { useModuleTour, WelcomeModal, OnboardingTour } from "@/components/ui/onboarding-tour";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 import { Link } from "wouter";
 import { apiFetch } from "@/lib/api";
 import { formatFCFA, formatFCFACompact } from "@/lib/format";
@@ -78,7 +78,8 @@ export default function FpaDashboardPage() {
   const [byProject, setByProject] = useState<ByProjectResponse | null>(null);
   const [yearEnd, setYearEnd] = useState<YearEndResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const { showWelcome, tourActive, startTour, dismissWelcome, closeTour } = useModuleTour("fpa", !loading && summary !== null && !summary.companyBudget);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("fpa", !loading && summary !== null && !summary.companyBudget);
+  const activeSteps = TOUR_PATHS["fpa"]?.find(p => p.key === selectedPathKey)?.steps ?? FPA_TOUR;
 
   useEffect(() => {
     apiFetch<{ data: FiscalPeriod[] }>("/api/accounting/fiscal-periods").then((r) => {
@@ -148,12 +149,22 @@ export default function FpaDashboardPage() {
           title="Pilotage Financier (FP&A)"
           subtitle="Explorez le tableau de bord exécutif : budget, réalisé et projections."
           icon={BarChart3}
-          steps={FPA_TOUR}
+          steps={activeSteps}
+          paths={TOUR_PATHS["fpa"]}
+          onStartPath={startTourWithPath}
           onStart={startTour}
           onDismiss={dismissWelcome}
         />
       )}
-      {tourActive && <OnboardingTour steps={FPA_TOUR} onClose={closeTour} />}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       {/* ─── Hero header ────────────────────────────────────────────── */}
       <div data-tour="fpa-hero" className="rounded-xl border bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white p-6 sm:p-7 shadow-sm">
         <div className="flex items-start justify-between gap-4 flex-wrap">
