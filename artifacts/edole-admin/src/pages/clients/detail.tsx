@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -198,21 +199,21 @@ export default function ClientDetailWorkspace() {
       {/* Tabs */}
       <Tabs defaultValue="360" className="w-full">
         <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="360">Vue 360°</TabsTrigger>
-          <TabsTrigger value="tree">Arborescence</TabsTrigger>
-          <TabsTrigger value="engagements">Services</TabsTrigger>
-          <TabsTrigger value="projects">Projets</TabsTrigger>
+          <TabsTrigger value="360">Vue 360° <SectionHelp id="clients.detail.360" /></TabsTrigger>
+          <TabsTrigger value="tree">Arborescence <SectionHelp id="clients.detail.tree" /></TabsTrigger>
+          <TabsTrigger value="engagements">Services <SectionHelp id="clients.detail.engagements" /></TabsTrigger>
+          <TabsTrigger value="projects">Projets <SectionHelp id="clients.detail.projects" /></TabsTrigger>
           <TabsTrigger value="communication">
-            <Mail className="w-3.5 h-3.5 mr-1" />Communication
+            <Mail className="w-3.5 h-3.5 mr-1" />Communication <SectionHelp id="clients.detail.communication" />
           </TabsTrigger>
           <TabsTrigger value="messaging">
-            <MessageSquare className="w-3.5 h-3.5 mr-1" />Messagerie
+            <MessageSquare className="w-3.5 h-3.5 mr-1" />Messagerie <SectionHelp id="clients.detail.messaging" />
           </TabsTrigger>
           <TabsTrigger value="notes">
-            <FileText className="w-3.5 h-3.5 mr-1" />Notes
+            <FileText className="w-3.5 h-3.5 mr-1" />Notes <SectionHelp id="clients.detail.notes" />
           </TabsTrigger>
           <TabsTrigger value="journal">
-            <Activity className="w-3.5 h-3.5 mr-1" />Journal
+            <Activity className="w-3.5 h-3.5 mr-1" />Journal <SectionHelp id="clients.detail.journal" />
           </TabsTrigger>
         </TabsList>
 

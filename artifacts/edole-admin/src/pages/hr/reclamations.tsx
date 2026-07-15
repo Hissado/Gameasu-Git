@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { useToast } from "@/hooks/use-toast";
 import {
   MessageSquareWarning, Plus, Search, AlertTriangle, CheckCircle2, Clock,
@@ -341,13 +342,13 @@ export default function ReclamationsPage() {
       {/* ── Status tabs ───────────────────────────────────────────────────────── */}
       <Tabs value={statusTab} onValueChange={setStatusTab} className="mb-4">
         <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="all">Toutes</TabsTrigger>
-          <TabsTrigger value="soumise">Soumises</TabsTrigger>
-          <TabsTrigger value="en_cours">En cours</TabsTrigger>
-          <TabsTrigger value="infos_complementaires">Infos requises</TabsTrigger>
-          <TabsTrigger value="en_traitement">En traitement</TabsTrigger>
-          <TabsTrigger value="resolue">Résolues</TabsTrigger>
-          <TabsTrigger value="cloturee">Clôturées</TabsTrigger>
+          <TabsTrigger value="all">Toutes <SectionHelp id="hr.reclamations.all" /></TabsTrigger>
+          <TabsTrigger value="soumise">Soumises <SectionHelp id="hr.reclamations.soumise" /></TabsTrigger>
+          <TabsTrigger value="en_cours">En cours <SectionHelp id="hr.reclamations.en_cours" /></TabsTrigger>
+          <TabsTrigger value="infos_complementaires">Infos requises <SectionHelp id="hr.reclamations.infos_complementaires" /></TabsTrigger>
+          <TabsTrigger value="en_traitement">En traitement <SectionHelp id="hr.reclamations.en_traitement" /></TabsTrigger>
+          <TabsTrigger value="resolue">Résolues <SectionHelp id="hr.reclamations.resolue" /></TabsTrigger>
+          <TabsTrigger value="cloturee">Clôturées <SectionHelp id="hr.reclamations.cloturee" /></TabsTrigger>
         </TabsList>
       </Tabs>
 

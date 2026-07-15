@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -1234,31 +1235,31 @@ export default function MonEspace() {
       <Tabs defaultValue="travaux">
         <TabsList className="grid grid-cols-5 sm:grid-cols-9 h-auto p-1 bg-slate-100 rounded-xl mb-2">
           <TabsTrigger value="travaux" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
-            <ListTodo className="w-4 h-4" /> Mes Travaux
+            <ListTodo className="w-4 h-4" /> Mes Travaux <SectionHelp id="monespace.travaux" side="bottom" />
           </TabsTrigger>
           <TabsTrigger value="dashboard" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
-            <TrendingUp className="w-4 h-4" /> Tableau RH
+            <TrendingUp className="w-4 h-4" /> Tableau RH <SectionHelp id="monespace.dashboard" side="bottom" />
           </TabsTrigger>
           <TabsTrigger value="payslips" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
-            <FileText className="w-4 h-4" /> Bulletins
+            <FileText className="w-4 h-4" /> Bulletins <SectionHelp id="monespace.payslips" side="bottom" />
           </TabsTrigger>
           <TabsTrigger value="leaves" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
-            <CalendarDays className="w-4 h-4" /> Congés
+            <CalendarDays className="w-4 h-4" /> Congés <SectionHelp id="monespace.leaves" side="bottom" />
           </TabsTrigger>
           <TabsTrigger value="contract" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
-            <Briefcase className="w-4 h-4" /> Contrat
+            <Briefcase className="w-4 h-4" /> Contrat <SectionHelp id="monespace.contract" side="bottom" />
           </TabsTrigger>
           <TabsTrigger value="documents" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
-            <FolderArchive className="w-4 h-4" /> Documents
+            <FolderArchive className="w-4 h-4" /> Documents <SectionHelp id="monespace.documents" side="bottom" />
           </TabsTrigger>
           <TabsTrigger value="training" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
-            <GraduationCap className="w-4 h-4" /> Formations
+            <GraduationCap className="w-4 h-4" /> Formations <SectionHelp id="monespace.training" side="bottom" />
           </TabsTrigger>
           <TabsTrigger value="reclamations" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
-            <MessageSquareWarning className="w-4 h-4" /> Réclamations
+            <MessageSquareWarning className="w-4 h-4" /> Réclamations <SectionHelp id="monespace.reclamations" side="bottom" />
           </TabsTrigger>
           <TabsTrigger value="profil" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
-            <Landmark className="w-4 h-4" /> Profil
+            <Landmark className="w-4 h-4" /> Profil <SectionHelp id="monespace.profil" side="bottom" />
           </TabsTrigger>
         </TabsList>
 

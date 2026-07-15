@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
@@ -363,14 +364,14 @@ export default function MySpacePage() {
         <div className="lg:col-span-2">
           <Tabs defaultValue="conges">
             <TabsList className="w-full justify-start flex-wrap">
-              <TabsTrigger value="conges" className="gap-1.5"><CalendarDays className="w-4 h-4" />Congés</TabsTrigger>
-              <TabsTrigger value="soldes" className="gap-1.5"><CheckCircle2 className="w-4 h-4" />Soldes</TabsTrigger>
-              <TabsTrigger value="bulletins" className="gap-1.5"><Banknote className="w-4 h-4" />Bulletins</TabsTrigger>
-              <TabsTrigger value="cotisations" className="gap-1.5"><Receipt className="w-4 h-4" />Cotisations</TabsTrigger>
-              <TabsTrigger value="documents" className="gap-1.5"><FolderArchive className="w-4 h-4" />Documents</TabsTrigger>
-              <TabsTrigger value="attestations" className="gap-1.5"><FileText className="w-4 h-4" />Attestations</TabsTrigger>
-              <TabsTrigger value="virements" className="gap-1.5"><ArrowDownToLine className="w-4 h-4" />Virements</TabsTrigger>
-              <TabsTrigger value="reclamations" className="gap-1.5"><MessageSquareWarning className="w-4 h-4" />Réclamations</TabsTrigger>
+              <TabsTrigger value="conges" className="gap-1.5"><CalendarDays className="w-4 h-4" />Congés <SectionHelp id="myspace.conges" /></TabsTrigger>
+              <TabsTrigger value="soldes" className="gap-1.5"><CheckCircle2 className="w-4 h-4" />Soldes <SectionHelp id="myspace.soldes" /></TabsTrigger>
+              <TabsTrigger value="bulletins" className="gap-1.5"><Banknote className="w-4 h-4" />Bulletins <SectionHelp id="myspace.bulletins" /></TabsTrigger>
+              <TabsTrigger value="cotisations" className="gap-1.5"><Receipt className="w-4 h-4" />Cotisations <SectionHelp id="myspace.cotisations" /></TabsTrigger>
+              <TabsTrigger value="documents" className="gap-1.5"><FolderArchive className="w-4 h-4" />Documents <SectionHelp id="myspace.documents" /></TabsTrigger>
+              <TabsTrigger value="attestations" className="gap-1.5"><FileText className="w-4 h-4" />Attestations <SectionHelp id="myspace.attestations" /></TabsTrigger>
+              <TabsTrigger value="virements" className="gap-1.5"><ArrowDownToLine className="w-4 h-4" />Virements <SectionHelp id="myspace.virements" /></TabsTrigger>
+              <TabsTrigger value="reclamations" className="gap-1.5"><MessageSquareWarning className="w-4 h-4" />Réclamations <SectionHelp id="myspace.reclamations" /></TabsTrigger>
             </TabsList>
 
             {/* Mes congés */}

@@ -200,6 +200,86 @@ export const HELP_CONTENT: Record<string, string> = {
     "Créances en retard de 61 à 90 jours : risque élevé — envisagez une mise en demeure.",
   "recouvrement.90plus":
     "Créances de plus de 90 jours : risque critique — actions juridiques ou provisionnement à considérer.",
+
+  /* ─── Mon espace (portail RH collaborateur) ─────────────────────── */
+  "myspace.conges":
+    "Soumettez et suivez vos demandes de congés : planifiées, en attente de validation ou approuvées.",
+  "myspace.soldes":
+    "Visualisez vos droits acquis, les jours pris et votre solde restant pour chaque type de congé.",
+  "myspace.bulletins":
+    "Accédez à vos bulletins de paie mensuels et téléchargez-les en PDF.",
+  "myspace.cotisations":
+    "Détail de vos cotisations CNSS et fiscales prélevées chaque mois sur votre rémunération.",
+  "myspace.documents":
+    "Documents RH vous concernant : contrats, avenants et pièces administratives conservées dans l'ERP.",
+  "myspace.attestations":
+    "Demandez et téléchargez vos attestations de travail, de salaire ou de présence.",
+  "myspace.virements":
+    "Historique de vos virements de salaire et coordonnées de votre compte bancaire de paiement.",
+  "myspace.reclamations":
+    "Soumettez une réclamation ou un signalement et suivez son traitement par le service RH.",
+
+  /* ─── Mon espace général (portail employé) ──────────────────────── */
+  "monespace.travaux":
+    "Vos tâches et actions en cours : activités assignées, priorités et avancement de vos travaux.",
+  "monespace.dashboard":
+    "Tableau de bord RH personnel : vos indicateurs de performance, absences et points clés du mois.",
+  "monespace.payslips":
+    "Vos bulletins de paie mensuels : consultez et téléchargez vos fiches de rémunération.",
+  "monespace.leaves":
+    "Gérez vos demandes de congés et consultez vos soldes par type de congé.",
+  "monespace.contract":
+    "Détails de votre contrat de travail : type, dates, rémunération et avenant en vigueur.",
+  "monespace.documents":
+    "Vos documents RH : contrats, attestations et pièces administratives partagées par l'entreprise.",
+  "monespace.training":
+    "Vos formations suivies et à venir : progression, certificats obtenus et plan de développement.",
+  "monespace.reclamations":
+    "Soumettez une réclamation ou consultez le suivi des demandes que vous avez déposées.",
+  "monespace.profil":
+    "Vos informations personnelles et professionnelles : mettez à jour vos coordonnées et préférences.",
+
+  /* ─── Finance Intelligence ──────────────────────────────────────── */
+  "finance.intelligence.forecast":
+    "Projection des entrées et sorties de trésorerie sur les 30, 60 et 90 prochains jours.",
+  "finance.intelligence.aging":
+    "Classement des créances et dettes par ancienneté : identifiez les retards les plus critiques.",
+  "finance.intelligence.anomalies":
+    "Transactions inhabituelles détectées automatiquement : montants atypiques, doublons suspects et erreurs.",
+  "finance.intelligence.collections":
+    "Actions de recouvrement en cours : clients relancés, montants en attente et prochaines étapes.",
+
+  /* ─── Fiche client ───────────────────────────────────────────────── */
+  "clients.detail.360":
+    "Vue synthétique du client : activité récente, KPIs financiers et historique des interactions.",
+  "clients.detail.tree":
+    "Structure du client : hiérarchie, contacts clés et entités rattachées à ce compte.",
+  "clients.detail.engagements":
+    "Missions et services en cours pour ce client : avancement, livrables et responsables assignés.",
+  "clients.detail.projects":
+    "Projets actifs et passés pour ce client : budget, calendrier et statut d'avancement.",
+  "clients.detail.communication":
+    "Historique des échanges avec ce client : e-mails envoyés, notes et documents partagés.",
+  "clients.detail.messaging":
+    "Messagerie directe avec ce client : fil de conversation et pièces jointes échangées.",
+  "clients.detail.notes":
+    "Notes internes sur ce client : observations, mémos et points de contact de l'équipe commerciale.",
+  "clients.detail.journal":
+    "Journal d'activité complet : toutes les actions et événements enregistrés sur ce compte client.",
+
+  /* ─── Achats — Approbations ─────────────────────────────────────── */
+  "achats.approbations.invoices":
+    "Factures fournisseurs en attente de validation : approuvez ou rejetez chaque demande de paiement.",
+  "achats.approbations.pos":
+    "Bons de commande soumis pour approbation : vérifiez les montants, fournisseurs et justifications.",
+  "achats.approbations.expenses":
+    "Notes de frais en attente : validez les dépenses soumises par vos collaborateurs.",
+
+  /* ─── Réclamations RH — statuts supplémentaires ─────────────────── */
+  "hr.reclamations.infos_complementaires":
+    "Réclamations en attente d'informations supplémentaires de la part du collaborateur.",
+  "hr.reclamations.en_traitement":
+    "Réclamations prises en charge et en cours d'instruction par le service compétent.",
 };
 
 /**

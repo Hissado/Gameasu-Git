@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar, Cell } from "recharts";
 import { formatFCFA, formatFCFACompact } from "@/lib/format";
 import { Loader2, TrendingUp, AlertTriangle, Flame, Receipt, Clock } from "lucide-react";
@@ -99,10 +100,10 @@ export default function FinanceIntelligencePage() {
 
       <Tabs defaultValue="forecast" className="w-full">
         <TabsList>
-          <TabsTrigger value="forecast"><TrendingUp className="w-3.5 h-3.5 mr-1.5" />Prévision trésorerie</TabsTrigger>
-          <TabsTrigger value="aging"><Clock className="w-3.5 h-3.5 mr-1.5" />Aging</TabsTrigger>
-          <TabsTrigger value="anomalies"><AlertTriangle className="w-3.5 h-3.5 mr-1.5" />Anomalies ({anomalies.data?.count ?? 0})</TabsTrigger>
-          <TabsTrigger value="collections"><Flame className="w-3.5 h-3.5 mr-1.5" />Relances ({collections.data?.count ?? 0})</TabsTrigger>
+          <TabsTrigger value="forecast"><TrendingUp className="w-3.5 h-3.5 mr-1.5" />Prévision trésorerie <SectionHelp id="finance.intelligence.forecast" /></TabsTrigger>
+          <TabsTrigger value="aging"><Clock className="w-3.5 h-3.5 mr-1.5" />Aging <SectionHelp id="finance.intelligence.aging" /></TabsTrigger>
+          <TabsTrigger value="anomalies"><AlertTriangle className="w-3.5 h-3.5 mr-1.5" />Anomalies ({anomalies.data?.count ?? 0}) <SectionHelp id="finance.intelligence.anomalies" /></TabsTrigger>
+          <TabsTrigger value="collections"><Flame className="w-3.5 h-3.5 mr-1.5" />Relances ({collections.data?.count ?? 0}) <SectionHelp id="finance.intelligence.collections" /></TabsTrigger>
         </TabsList>
 
         <TabsContent value="forecast" className="space-y-3">

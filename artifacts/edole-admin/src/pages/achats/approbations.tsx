@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SectionHelp } from "@/components/ui/section-help";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { toast } from "sonner";
@@ -386,13 +387,13 @@ export default function ApprobationsPage() {
         <Tabs defaultValue="invoices">
           <TabsList>
             <TabsTrigger value="invoices" className="flex items-center gap-1.5">
-              <FileText className="h-4 w-4" />Factures {invoices.length > 0 && <Badge variant="secondary" className="text-xs">{invoices.length}</Badge>}
+              <FileText className="h-4 w-4" />Factures {invoices.length > 0 && <Badge variant="secondary" className="text-xs">{invoices.length}</Badge>} <SectionHelp id="achats.approbations.invoices" />
             </TabsTrigger>
             <TabsTrigger value="pos" className="flex items-center gap-1.5">
-              <ShoppingCart className="h-4 w-4" />Bons de commande {pos.length > 0 && <Badge variant="secondary" className="text-xs">{pos.length}</Badge>}
+              <ShoppingCart className="h-4 w-4" />Bons de commande {pos.length > 0 && <Badge variant="secondary" className="text-xs">{pos.length}</Badge>} <SectionHelp id="achats.approbations.pos" />
             </TabsTrigger>
             <TabsTrigger value="expenses" className="flex items-center gap-1.5">
-              <Receipt className="h-4 w-4" />Notes de frais {expenses.length > 0 && <Badge variant="secondary" className="text-xs">{expenses.length}</Badge>}
+              <Receipt className="h-4 w-4" />Notes de frais {expenses.length > 0 && <Badge variant="secondary" className="text-xs">{expenses.length}</Badge>} <SectionHelp id="achats.approbations.expenses" />
             </TabsTrigger>
           </TabsList>
 
