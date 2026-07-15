@@ -63,7 +63,7 @@ export function SubscriptionWidget() {
         </TooltipTrigger>
         <TooltipContent
           align="end"
-          className="p-0 overflow-hidden min-w-[210px] shadow-xl border-border/70"
+          className="p-0 overflow-hidden min-w-[210px] shadow-xl border bg-background text-foreground"
           sideOffset={8}
         >
           <div className="bg-muted/50 px-3 py-2.5 border-b border-border/60">
