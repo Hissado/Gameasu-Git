@@ -47,6 +47,13 @@ import {
   orgAttendanceSettingsTable,
   collaboratorQrTokensTable,
   attendanceRecordsTable,
+  salaryAdvancesTable,
+  salaryAdvanceRepaymentsTable,
+  salaryAdvancePolicyTable,
+  taxRateConfigsTable,
+  patenteBracketsTable,
+  taxObligationsTable,
+  taxObligationPaymentsTable,
 } from "@workspace/db";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -1044,6 +1051,205 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
       counts.qrTokens = activeTokenCollabs.length + disabledCollabs.length;
     } else {
       log.push(`✓ Tokens QR déjà existants (${qrCount})`);
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // AVANCES SUR SALAIRE (démo)
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    const existing = await db.select({ id: salaryAdvancesTable.id })
+      .from(salaryAdvancesTable)
+      .where(eq(salaryAdvancesTable.organizationId, ORG_ID))
+      .limit(1);
+
+    if (existing.length === 0) {
+      // Politique d'avances
+      await db.insert(salaryAdvancePolicyTable).values({
+        organizationId: ORG_ID,
+        maxPercentOfSalary: 50,
+        maxAbsoluteAmount: "500000",
+        maxActiveAdvances: 1,
+        maxRepaymentMonths: 6,
+        minTenureMonths: 3,
+        approvalWorkflow: "manager_then_hr",
+        notifyHr: true,
+        isActive: true,
+      }).onConflictDoNothing().catch(() => {});
+
+      // Récupérer quelques collaborateurs
+      const collabs = await db.select({ id: collaboratorsTable.id, userId: collaboratorsTable.userId })
+        .from(collaboratorsTable)
+        .where(eq(collaboratorsTable.organizationId, ORG_ID))
+        .limit(5);
+
+      if (collabs.length >= 2) {
+        // Avance 1 — disbursed, remboursement en cours
+        const [adv1] = await db.insert(salaryAdvancesTable).values({
+          organizationId: ORG_ID,
+          collaboratorId: collabs[0].id,
+          requestedAmount: "150000",
+          approvedAmount: "150000",
+          targetPeriod: "2026-05",
+          repaymentMode: "multi",
+          repaymentMonths: 3,
+          reason: "Frais médicaux urgents",
+          status: "disbursed",
+          requestedById: collabs[0].userId ?? undefined,
+          approvedById: collabs[0].userId ?? undefined,
+          approvedAt: new Date("2026-05-10T10:00:00Z"),
+          disbursedAt: new Date("2026-05-12T09:00:00Z"),
+          remainingAmount: "50000",
+          repaidAmount: "100000",
+        }).returning().catch(() => []);
+
+        if (adv1) {
+          // Échéancier
+          await db.insert(salaryAdvanceRepaymentsTable).values([
+            { organizationId: ORG_ID, advanceId: adv1.id, period: "2026-05", scheduledAmount: "50000", deductedAmount: "50000", status: "deducted" },
+            { organizationId: ORG_ID, advanceId: adv1.id, period: "2026-06", scheduledAmount: "50000", deductedAmount: "50000", status: "deducted" },
+            { organizationId: ORG_ID, advanceId: adv1.id, period: "2026-07", scheduledAmount: "50000", status: "pending" },
+          ]).catch(() => {});
+        }
+
+        // Avance 2 — pending_approval
+        await db.insert(salaryAdvancesTable).values({
+          organizationId: ORG_ID,
+          collaboratorId: collabs[1].id,
+          requestedAmount: "200000",
+          targetPeriod: "2026-07",
+          repaymentMode: "multi",
+          repaymentMonths: 2,
+          reason: "Achat matériel informatique",
+          status: "pending_approval",
+          requestedById: collabs[1].userId ?? undefined,
+          remainingAmount: "200000",
+          repaidAmount: "0",
+        }).catch(() => {});
+
+        // Avance 3 — draft
+        if (collabs.length >= 3) {
+          await db.insert(salaryAdvancesTable).values({
+            organizationId: ORG_ID,
+            collaboratorId: collabs[2].id,
+            requestedAmount: "75000",
+            targetPeriod: "2026-07",
+            repaymentMode: "single",
+            repaymentMonths: 1,
+            reason: "Loyer d'urgence",
+            status: "draft",
+            requestedById: collabs[2].userId ?? undefined,
+            remainingAmount: "75000",
+            repaidAmount: "0",
+          }).catch(() => {});
+        }
+      }
+      log.push(`✓ Avances sur salaire : politique + 3 demandes démo créées`);
+      counts.salaryAdvances = 3;
+    } else {
+      log.push(`✓ Avances sur salaire déjà présentes`);
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // MOTEUR FISCAL — Taux Togo + Obligations 2026 (démo)
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    const existingRates = await db.select({ id: taxRateConfigsTable.id })
+      .from(taxRateConfigsTable)
+      .where(eq(taxRateConfigsTable.organizationId, ORG_ID))
+      .limit(1);
+
+    if (existingRates.length === 0) {
+      // Récupérer un utilisateur admin pour createdById
+      const [adminUser] = await db.select({ id: usersTable.id })
+        .from(usersTable)
+        .where(and(eq(usersTable.organizationId, ORG_ID), eq(usersTable.role, "super_admin")))
+        .limit(1);
+      const adminId = adminUser?.id;
+
+      const togoRates = [
+        { taxCode: "TVA",     taxLabel: "Taxe sur la Valeur Ajoutée",               rate: "18",    calculationBase: "revenue_ht",      declarationFrequency: "monthly",  dueDayOfPeriod: 15 },
+        { taxCode: "IS",      taxLabel: "Impôt sur les Sociétés",                   rate: "27",    calculationBase: "net_profit",      declarationFrequency: "annual",   dueDayOfPeriod: 31, advancePaymentsPerYear: 4 },
+        { taxCode: "IMF",     taxLabel: "Impôt Minimum Forfaitaire",                rate: "1",     calculationBase: "turnover",        declarationFrequency: "annual",   dueDayOfPeriod: 31 },
+        { taxCode: "PATENTE", taxLabel: "Patente",                                  rate: null,    calculationBase: "turnover",        declarationFrequency: "annual",   dueDayOfPeriod: 31, advancePaymentsPerYear: 4 },
+        { taxCode: "CNSS",    taxLabel: "Cotisations CNSS",                         rate: "20.4",  calculationBase: "gross_salary",    declarationFrequency: "monthly",  dueDayOfPeriod: 15 },
+        { taxCode: "IPTS",    taxLabel: "Impôt Proportionnel sur Traitements",      rate: "2",     calculationBase: "gross_salary",    declarationFrequency: "monthly",  dueDayOfPeriod: 15 },
+        { taxCode: "IRPP",    taxLabel: "IRPP (retenues à la source)",               rate: null,    calculationBase: "gross_salary",    declarationFrequency: "monthly",  dueDayOfPeriod: 15 },
+        { taxCode: "RS",      taxLabel: "Retenue à la Source",                      rate: "5",     calculationBase: "payment",         declarationFrequency: "monthly",  dueDayOfPeriod: 15 },
+      ];
+
+      for (const r of togoRates) {
+        await db.insert(taxRateConfigsTable).values({
+          organizationId: ORG_ID,
+          country: "TG",
+          taxCode: r.taxCode,
+          taxLabel: r.taxLabel,
+          rate: r.rate ?? null,
+          fixedAmount: null,
+          calculationBase: r.calculationBase,
+          declarationFrequency: r.declarationFrequency,
+          dueDayOfPeriod: r.dueDayOfPeriod,
+          advancePaymentsPerYear: r.advancePaymentsPerYear ?? 0,
+          isActive: true,
+          createdById: adminId ?? null,
+        }).onConflictDoNothing().catch(() => {});
+      }
+
+      // Tranches patente secteur Services
+      await db.insert(patenteBracketsTable).values([
+        { organizationId: ORG_ID, country: "TG", sector: "SE", sectorLabel: "Services", fromAmount: "0",           toAmount: "500000000",  rate: "0.0075", isActive: true },
+        { organizationId: ORG_ID, country: "TG", sector: "SE", sectorLabel: "Services", fromAmount: "500000001",   toAmount: "10000000000", rate: "0.008",  isActive: true },
+        { organizationId: ORG_ID, country: "TG", sector: "SE", sectorLabel: "Services", fromAmount: "10000000001", toAmount: null,          rate: "0.010",  isActive: true },
+      ]).onConflictDoNothing().catch(() => {});
+
+      // Obligations fiscales 2026 réalistes pour Hissado Consulting
+      const today = new Date().toISOString().slice(0, 10);
+      const obligations = [
+        // TVA mensuelle — payée pour les mois passés, due pour les prochains
+        { taxCode: "TVA", taxLabel: "TVA Janvier 2026",   period: "2026-01", periodLabel: "Janvier 2026",   fiscalYear: "2026", declaredAmount: "1850000", paidAmount: "1850000", dueDate: "2026-02-15", status: "paid", paidDate: "2026-02-14" },
+        { taxCode: "TVA", taxLabel: "TVA Février 2026",   period: "2026-02", periodLabel: "Février 2026",   fiscalYear: "2026", declaredAmount: "2100000", paidAmount: "2100000", dueDate: "2026-03-15", status: "paid", paidDate: "2026-03-12" },
+        { taxCode: "TVA", taxLabel: "TVA Mars 2026",      period: "2026-03", periodLabel: "Mars 2026",      fiscalYear: "2026", declaredAmount: "2350000", paidAmount: "2350000", dueDate: "2026-04-15", status: "paid", paidDate: "2026-04-14" },
+        { taxCode: "TVA", taxLabel: "TVA Avril 2026",     period: "2026-04", periodLabel: "Avril 2026",     fiscalYear: "2026", declaredAmount: "1980000", paidAmount: "1980000", dueDate: "2026-05-15", status: "paid", paidDate: "2026-05-13" },
+        { taxCode: "TVA", taxLabel: "TVA Mai 2026",       period: "2026-05", periodLabel: "Mai 2026",       fiscalYear: "2026", declaredAmount: "2200000", paidAmount: "2200000", dueDate: "2026-06-15", status: "paid", paidDate: "2026-06-15" },
+        { taxCode: "TVA", taxLabel: "TVA Juin 2026",      period: "2026-06", periodLabel: "Juin 2026",      fiscalYear: "2026", declaredAmount: "2450000", paidAmount: "0",       dueDate: "2026-07-15", status: "due"  },
+        { taxCode: "TVA", taxLabel: "TVA Juillet 2026",   period: "2026-07", periodLabel: "Juillet 2026",   fiscalYear: "2026", declaredAmount: null,      paidAmount: "0",       dueDate: "2026-08-15", status: "upcoming" },
+        // CNSS mensuelle
+        { taxCode: "CNSS", taxLabel: "CNSS Mai 2026",     period: "2026-05", periodLabel: "Mai 2026",       fiscalYear: "2026", declaredAmount: "1245000", paidAmount: "1245000", dueDate: "2026-06-15", status: "paid", paidDate: "2026-06-10" },
+        { taxCode: "CNSS", taxLabel: "CNSS Juin 2026",    period: "2026-06", periodLabel: "Juin 2026",      fiscalYear: "2026", declaredAmount: "1310000", paidAmount: "0",       dueDate: "2026-07-15", status: "overdue" },
+        // IS — acomptes trimestriels
+        { taxCode: "IS",   taxLabel: "IS Acompte T1 2026", period: "2026-Q1", periodLabel: "T1 2026",       fiscalYear: "2026", declaredAmount: "1875000", paidAmount: "1875000", dueDate: "2026-01-31", status: "paid",     paidDate: "2026-01-30", obligationType: "advance" },
+        { taxCode: "IS",   taxLabel: "IS Acompte T2 2026", period: "2026-Q2", periodLabel: "T2 2026",       fiscalYear: "2026", declaredAmount: "1875000", paidAmount: "1875000", dueDate: "2026-05-31", status: "paid",     paidDate: "2026-05-28", obligationType: "advance" },
+        { taxCode: "IS",   taxLabel: "IS Acompte T3 2026", period: "2026-Q3", periodLabel: "T3 2026",       fiscalYear: "2026", declaredAmount: "1875000", paidAmount: "0",       dueDate: "2026-07-31", status: "due",                              obligationType: "advance" },
+        // Patente annuelle
+        { taxCode: "PATENTE", taxLabel: "Patente 2026",   period: "2026",    periodLabel: "Exercice 2026",  fiscalYear: "2026", declaredAmount: "2250000", paidAmount: "562500",  dueDate: "2026-01-31", status: "due",                              obligationType: "advance" },
+      ];
+
+      for (const o of obligations) {
+        await db.insert(taxObligationsTable).values({
+          organizationId: ORG_ID,
+          taxCode: o.taxCode,
+          taxLabel: o.taxLabel,
+          fiscalYear: o.fiscalYear,
+          period: o.period,
+          periodLabel: o.periodLabel,
+          status: o.status,
+          declaredAmount: o.declaredAmount ?? null,
+          calculatedAmount: o.declaredAmount ?? null,
+          paidAmount: o.paidAmount,
+          dueDate: o.dueDate,
+          paidDate: (o as Record<string, unknown>).paidDate as string | undefined ?? null,
+          submittedDate: o.status === "paid" ? (o as Record<string, unknown>).paidDate as string | undefined ?? null : null,
+          obligationType: (o as Record<string, unknown>).obligationType as string ?? "payment",
+          createdById: adminId ?? null,
+        }).catch(() => {});
+      }
+
+      log.push(`✓ Moteur fiscal : ${togoRates.length} taux Togo + 3 tranches patente + ${obligations.length} obligations 2026`);
+      counts.fiscalRates = togoRates.length;
+      counts.fiscalObligations = obligations.length;
+    } else {
+      log.push(`✓ Taux fiscaux déjà présents`);
     }
   }
 

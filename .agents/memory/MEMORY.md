@@ -31,3 +31,4 @@
 - [BTP payroll schema](btp-payroll-schema.md) — 5 tables in schema/btp.ts; useQuery onSuccess removed in RQ v5, use useEffect instead; drizzle-kit push handles unique constraints interactively with "y" echo.
 - [Tax-control table naming](tax-control-naming.md) — benefits.ts already exports taxDeclarationsTable; new fiscal control module uses fiscal_* prefix (fiscalDeclarationsTable etc.) to avoid ambiguous import esbuild errors.
 - [Static route-link guard](route-link-guard.md) — `pnpm run check-routes` catches broken internal nav links (wrong route literals, links to non-existent detail pages) app-wide.
+- [Salary advances + fiscal engine schema](salary-advances-fiscal-engine.md) — 8 tables (3 avances, 5 fiscal); seed-hissado extends idempotently via existingRates/existing length guard; patente needs separate brackets table (no inline rate).

@@ -39,3 +39,5 @@ export * from "./expert";
 export * from "./btp";
 export * from "./ai-assistant";
 export * from "./tax-control";
+export * from "./salary-advances";
+export * from "./fiscal-engine";

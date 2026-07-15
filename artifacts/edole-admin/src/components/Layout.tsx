@@ -129,6 +129,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Recouvrement",         path: "/recouvrement",                 icon: Flame,         moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Suivez et relancez vos créances clients échues : historique, litiges et relances automatiques." },
       { name: "Clôture des périodes", path: "/comptabilite/cloture",         icon: CalendarCheck, moduleKey: "accounting",         permissionKey: "accounting.manage", description: "Clôturez vos périodes comptables, verrouillez les écritures et générez les états de synthèse." },
       { name: "Budgets & prévisions", path: "/fpa",                          icon: TrendingUp,    moduleKey: "financial_planning", permissionKey: "fpa.read",          description: "Préparez vos budgets et comparez les prévisions aux réalisations." },
+      { name: "Moteur fiscal",        path: "/fiscal/moteur",                icon: Calculator,    moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Calculez TVA, IS, IMF, Patente et IRPP selon le barème OHADA/Togo, gérez vos obligations et simulez votre charge fiscale." },
       { name: "Rapports",             path: "/rapports",                     icon: BarChart3,     moduleKey: "reports",            permissionKey: "accounting.read",   description: "Générez les états financiers correspondant au référentiel comptable actif." },
     ],
   },
@@ -138,6 +139,7 @@ const NAV_GROUPS: NavGroup[] = [
     description: "Gérez vos collaborateurs, contrats, congés, présences, paie, recrutements et réclamations.",
     items: [
       { name: "Ressources humaines",  path: "/rh",        icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read",                    description: "Gérez les informations personnelles, professionnelles et administratives de vos collaborateurs." },
+      { name: "Avances sur salaire",  path: "/rh/avances-salaire", icon: Banknote, moduleKey: "team_hr", permissionKey: "hr.read",                    description: "Soumettez, approuvez et suivez les avances sur salaire avec workflow complet et échéancier de remboursement." },
       { name: "Présences",            path: "/presences", icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view",             description: "Suivez les horaires, pointages, pauses, retards, absences et heures travaillées." },
       { name: "Kiosques de pointage", path: "/kiosques",  icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings", secondary: true, description: "Configurez et gérez vos kiosques de pointage physiques connectés à Gaméasù." },
     ],
