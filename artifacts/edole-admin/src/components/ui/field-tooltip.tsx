@@ -46,11 +46,20 @@ export function FieldTooltip({ content, className }: FieldTooltipProps) {
 }
 
 interface FieldHintProps {
-  children: React.ReactNode;
+  text?: string;
+  children?: React.ReactNode;
   className?: string;
 }
 
-export function FieldHint({ children, className }: FieldHintProps) {
+/**
+ * FieldHint — two modes:
+ *  - `<FieldHint text="..." />` → HelpCircle icon + Radix tooltip (inline aide sur champ)
+ *  - `<FieldHint>texte</FieldHint>` → texte italic discret sous le champ (mode historique)
+ */
+export function FieldHint({ text, children, className }: FieldHintProps) {
+  if (text !== undefined) {
+    return <FieldTooltip content={text} className={className} />;
+  }
   return (
     <p
       className={cn(

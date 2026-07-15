@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { PageHeader, StatusTabs } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FieldTooltip, FieldHint } from "@/components/ui/field-tooltip";
 import { Link } from "wouter";
 import { formatFCFA, formatDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -166,7 +167,10 @@ function ProjectFormDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Statut *</Label>
+              <div className="flex items-center gap-1">
+                <Label>Statut *</Label>
+                <FieldTooltip content="Planification = avant démarrage. Actif = en cours. En attente = suspendu temporairement. Terminé / Annulé = clôturé. Influe sur les tableaux de bord et les filtres de reporting." />
+              </div>
               <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -179,7 +183,10 @@ function ProjectFormDialog({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Budget (FCFA)</Label>
+              <div className="flex items-center gap-1">
+                <Label>Budget (FCFA)</Label>
+                <FieldTooltip content="Budget prévisionnel global du projet en FCFA. Sert de référence pour le suivi de consommation dans le module FP&A et les rapports de marge." />
+              </div>
               <Input type="number" value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))} placeholder="Ex. 5000000" />
             </div>
           </div>
@@ -211,7 +218,10 @@ function ProjectFormDialog({
               <Input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label>Date de fin prévue</Label>
+              <div className="flex items-center gap-1">
+                <Label>Date de fin prévue</Label>
+                <FieldTooltip content="Date contractuelle ou prévisionnelle de livraison. Utilisée pour calculer l'avancement et détecter les retards dans le tableau de bord. Peut différer de la date de fin réelle." />
+              </div>
               <Input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
             </div>
           </div>

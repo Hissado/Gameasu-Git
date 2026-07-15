@@ -274,10 +274,22 @@ function EditInvoiceDialog({ invoice, onClose, onSuccess }: { invoice: Invoice; 
           )}
           <div className="grid grid-cols-2 gap-3">
             {canEdit("totalAmount") && (
-              <div className="space-y-1"><Label>Montant (FCFA)</Label><Input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Label>Montant (FCFA)</Label>
+                  <FieldTooltip content="Montant total TTC de la facture. Modifiable uniquement sur les factures en brouillon. Toute modification met à jour le solde client en comptabilité." />
+                </div>
+                <Input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              </div>
             )}
             {canEdit("dueDate") && (
-              <div className="space-y-1"><Label>Date d'échéance</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Label>Date d'échéance</Label>
+                  <FieldTooltip content="Date limite de paiement. Passé cette date, la facture bascule automatiquement en statut « En retard » et déclenche les relances." />
+                </div>
+                <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              </div>
             )}
           </div>
           {canEdit("notes") && (
