@@ -142,7 +142,7 @@ export default function SalaryAdvancesPage() {
 
   const { data: collabs = [] } = useQuery<Collaborator[]>({
     queryKey: ["/api/collaborators"],
-    queryFn: () => apiFetch("/api/collaborators"),
+    queryFn: () => apiFetch("/api/collaborators").then((r: any) => r.data ?? r),
     enabled: isManager,
   });
 
