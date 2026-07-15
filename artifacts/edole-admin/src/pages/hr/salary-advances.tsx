@@ -26,7 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
-import { apiRequest } from "@/lib/queryClient";
+import { apiFetch } from "@/lib/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Advance {
@@ -131,24 +131,24 @@ export default function SalaryAdvancesPage() {
     queryFn: () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
-      return apiRequest("GET", `${advancesKey}?${params}`);
+      return apiFetch(`${advancesKey}?${params}`);
     },
   });
 
   const { data: policy } = useQuery<Policy>({
     queryKey: ["/api/hr/salary-advance-policy"],
-    queryFn: () => apiRequest("GET", "/api/hr/salary-advance-policy"),
+    queryFn: () => apiFetch("/api/hr/salary-advance-policy"),
   });
 
   const { data: collabs = [] } = useQuery<Collaborator[]>({
     queryKey: ["/api/collaborators"],
-    queryFn: () => apiRequest("GET", "/api/collaborators"),
+    queryFn: () => apiFetch("/api/collaborators"),
     enabled: isManager,
   });
 
   const { data: repayments = [] } = useQuery<Repayment[]>({
     queryKey: ["/api/hr/salary-advances", selectedAdvance?.id, "repayments"],
-    queryFn: () => apiRequest("GET", `/api/hr/salary-advances/${selectedAdvance!.id}/repayments`),
+    queryFn: () => apiFetch(`/api/hr/salary-advances/${selectedAdvance!.id}/repayments`),
     enabled: !!selectedAdvance,
   });
 
@@ -160,7 +160,7 @@ export default function SalaryAdvancesPage() {
   };
 
   const createMut = useMutation({
-    mutationFn: (data: unknown) => apiRequest("POST", "/api/hr/salary-advances", data),
+    mutationFn: (data: unknown) => apiFetch("/api/hr/salary-advances", { method: "POST", body: data }),
     onSuccess: () => {
       toast({ title: "Demande créée" });
       setShowCreate(false);
@@ -171,14 +171,14 @@ export default function SalaryAdvancesPage() {
   });
 
   const submitMut = useMutation({
-    mutationFn: (id: string) => apiRequest("POST", `/api/hr/salary-advances/${id}/submit`),
+    mutationFn: (id: string) => apiFetch(`/api/hr/salary-advances/${id}/submit`, { method: "POST" }),
     onSuccess: () => { toast({ title: "Demande soumise pour approbation" }); invalidate(); },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
   const approveMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: unknown }) =>
-      apiRequest("POST", `/api/hr/salary-advances/${id}/approve`, data),
+      apiFetch(`/api/hr/salary-advances/${id}/approve`, { method: "POST", body: data }),
     onSuccess: () => {
       toast({ title: "Avance approuvée" });
       setShowApprove(false);
@@ -189,7 +189,7 @@ export default function SalaryAdvancesPage() {
 
   const rejectMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: unknown }) =>
-      apiRequest("POST", `/api/hr/salary-advances/${id}/reject`, data),
+      apiFetch(`/api/hr/salary-advances/${id}/reject`, { method: "POST", body: data }),
     onSuccess: () => {
       toast({ title: "Avance rejetée" });
       setShowReject(false);
@@ -199,7 +199,7 @@ export default function SalaryAdvancesPage() {
   });
 
   const disburseMut = useMutation({
-    mutationFn: (id: string) => apiRequest("POST", `/api/hr/salary-advances/${id}/disburse`),
+    mutationFn: (id: string) => apiFetch(`/api/hr/salary-advances/${id}/disburse`, { method: "POST" }),
     onSuccess: () => { toast({ title: "Avance marquée comme décaissée" }); invalidate(); },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });

@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { formatFCFA } from "@/lib/format";
-import { apiRequest } from "@/lib/queryClient";
+import { apiFetch } from "@/lib/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface TaxObligation {
@@ -145,18 +145,18 @@ export default function FiscalEnginePage() {
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: dashboard } = useQuery<Dashboard>({
     queryKey: ["/api/fiscal/engine/dashboard"],
-    queryFn: () => apiRequest("GET", "/api/fiscal/engine/dashboard"),
+    queryFn: () => apiFetch("/api/fiscal/engine/dashboard"),
   });
 
   const { data: obligations = [], isLoading: obligLoading } = useQuery<TaxObligation[]>({
     queryKey: ["/api/fiscal/engine/obligations", currentYear],
-    queryFn: () => apiRequest("GET", `/api/fiscal/engine/obligations?fiscalYear=${currentYear}`),
+    queryFn: () => apiFetch(`/api/fiscal/engine/obligations?fiscalYear=${currentYear}`),
     enabled: tab === "obligations",
   });
 
   const { data: rates = [] } = useQuery<TaxRate[]>({
     queryKey: ["/api/fiscal/engine/rates"],
-    queryFn: () => apiRequest("GET", "/api/fiscal/engine/rates"),
+    queryFn: () => apiFetch("/api/fiscal/engine/rates"),
     enabled: tab === "taux",
   });
 
@@ -167,7 +167,7 @@ export default function FiscalEnginePage() {
   };
 
   const seedMut = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/fiscal/engine/seed-togo"),
+    mutationFn: () => apiFetch("/api/fiscal/engine/seed-togo", { method: "POST" }),
     onSuccess: (data: { message: string }) => {
       toast({ title: data.message });
       qc.invalidateQueries({ queryKey: ["/api/fiscal/engine/rates"] });
@@ -176,7 +176,7 @@ export default function FiscalEnginePage() {
   });
 
   const simulateMut = useMutation({
-    mutationFn: (data: unknown) => apiRequest("POST", "/api/fiscal/engine/simulate", data),
+    mutationFn: (data: unknown) => apiFetch("/api/fiscal/engine/simulate", { method: "POST", body: data }),
     onSuccess: (data: { results: SimResult }) => {
       setSimResult(data.results);
     },
@@ -184,7 +184,7 @@ export default function FiscalEnginePage() {
   });
 
   const addObligMut = useMutation({
-    mutationFn: (data: unknown) => apiRequest("POST", "/api/fiscal/engine/obligations", data),
+    mutationFn: (data: unknown) => apiFetch("/api/fiscal/engine/obligations", { method: "POST", body: data }),
     onSuccess: () => {
       toast({ title: "Obligation créée" });
       setShowAddObligation(false);
@@ -195,7 +195,7 @@ export default function FiscalEnginePage() {
 
   const payMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: unknown }) =>
-      apiRequest("POST", `/api/fiscal/engine/obligations/${id}/pay`, data),
+      apiFetch(`/api/fiscal/engine/obligations/${id}/pay`, { method: "POST", body: data }),
     onSuccess: () => {
       toast({ title: "Paiement enregistré" });
       setShowPayDialog(null);
