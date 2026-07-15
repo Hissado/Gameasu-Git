@@ -219,6 +219,8 @@ export const HELP_CONTENT: Record<string, string> = {
     "Consultez l'historique de vos virements de salaire et vos coordonnées bancaires de paiement.",
   "myspace.reclamations":
     "Soumettez une réclamation ou un signalement et suivez son traitement par le service RH.",
+  "myspace.avances":
+    "Faites une demande d'avance sur salaire, suivez son statut (brouillon, en attente, approuvée) et consultez l'historique de vos remboursements.",
 
   /* ─── Mon espace général (portail employé) ──────────────────────── */
   "monespace.travaux":

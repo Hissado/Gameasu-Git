@@ -417,7 +417,7 @@ export default function MySpacePage() {
               <TabsTrigger value="attestations" className="gap-1.5"><FileText className="w-4 h-4" />Attestations <SectionHelp id="myspace.attestations" /></TabsTrigger>
               <TabsTrigger value="virements" className="gap-1.5"><ArrowDownToLine className="w-4 h-4" />Virements <SectionHelp id="myspace.virements" /></TabsTrigger>
               <TabsTrigger value="reclamations" className="gap-1.5"><MessageSquareWarning className="w-4 h-4" />Réclamations <SectionHelp id="myspace.reclamations" /></TabsTrigger>
-              <TabsTrigger value="avances" className="gap-1.5"><Banknote className="w-4 h-4" />Avances</TabsTrigger>
+              <TabsTrigger value="avances" className="gap-1.5"><Banknote className="w-4 h-4" />Avances <SectionHelp id="myspace.avances" /></TabsTrigger>
             </TabsList>
 
             {/* Mes congés */}
