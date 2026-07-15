@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { usersTable, organizationMembersTable } from "@workspace/db";
-import { eq, ilike, sql, and, ne, inArray } from "drizzle-orm";
+import { usersTable, organizationMembersTable, rolesTable } from "@workspace/db";
+import { eq, ilike, sql, and, ne, inArray, or } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions";
 import { audit } from "../lib/audit";
 
@@ -113,6 +113,18 @@ router.put("/users/:id", requirePermission("users.update"), async (req, res) => 
     }
   } catch (e: any) {
     return res.status(e.status || 500).json({ error: e.message });
+  }
+
+  // Valider que le rôle existe : rôle système global OU rôle custom de cette org
+  if (role !== undefined) {
+    const [roleRow] = await db.select({ code: rolesTable.code })
+      .from(rolesTable)
+      .where(and(
+        eq(rolesTable.code, role as string),
+        or(eq(rolesTable.isSystem, true), eq(rolesTable.organizationId, orgId)),
+      ))
+      .limit(1);
+    if (!roleRow) return res.status(400).json({ error: `Rôle inconnu : ${role}` });
   }
 
   const updateFields: Record<string, unknown> = {};

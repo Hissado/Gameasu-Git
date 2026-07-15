@@ -4,7 +4,7 @@ import {
   userProjectAccessTable, collaboratorsTable, collaboratorAssignmentsTable, usersTable,
   userClientAccessTable, projectsTable, userPermissionOverridesTable,
 } from "@workspace/db";
-import { eq, and, isNull, or, inArray } from "drizzle-orm";
+import { eq, and, isNull, or, inArray, asc } from "drizzle-orm";
 
 /**
  * Service RBAC : résolution des permissions et des projets accessibles.
@@ -28,7 +28,13 @@ async function loadEntry(userId: string): Promise<CacheEntry> {
   if (!user) return { perms: new Set(), projectIds: new Set(), clientIds: new Set(), expiresAt: Date.now() + TTL_MS };
 
   // Permissions = celles du rôle de l'utilisateur (résolu par code).
-  const [role] = await db.select().from(rolesTable).where(eq(rolesTable.code, user.role)).limit(1);
+  // Priorité : rôle custom de l'org > rôle système (code identique impossible par contrainte DB).
+  const [role] = await db.select().from(rolesTable).where(
+    and(
+      eq(rolesTable.code, user.role),
+      or(eq(rolesTable.isSystem, true), eq(rolesTable.organizationId, user.organizationId)),
+    )
+  ).orderBy(rolesTable.isSystem).limit(1); // isSystem=false (custom) sort avant isSystem=true
   let perms = new Set<string>();
   if (role) {
     const rows = await db

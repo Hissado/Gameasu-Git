@@ -23,14 +23,19 @@ export const rolesTable = pgTable("roles", {
   code: text("code").notNull(),               // ex. "admin", "chef_chantier"
   name: text("name").notNull(),               // libellé affiché
   description: text("description"),
-  // Rôles système : non supprimables, code immuable
+  // Rôles système : non supprimables, code immuable, organizationId=null
   isSystem: boolean("is_system").notNull().default(false),
   // Niveau hiérarchique (1=base → 100=super_admin) pour comparer "au-dessus de"
   level: jsonb("level").$type<number>().default(10),
+  // Pour les rôles personnalisés : organisation propriétaire. null = rôle système global.
+  organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
-  codeUidx: uniqueIndex("roles_code_uidx").on(t.code),
+  // Pour les rôles système (org_id IS NULL) : PG ne contraint pas les NULLs entre eux, unicité garantie par le seed.
+  // Pour les rôles custom : unicité (organization_id, code) par org.
+  codeOrgUidx: uniqueIndex("roles_code_org_uidx").on(t.organizationId, t.code),
+  orgIdx: index("roles_org_idx").on(t.organizationId),
 }));
 
 // ─────────────────────────────────────────────────────────────────

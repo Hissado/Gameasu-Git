@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SectionHelp } from "@/components/ui/section-help";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Lock, ShieldCheck, Clock, MapPin, Camera, FolderKanban, Building2, TrendingUp, Save, Loader2, CreditCard, Package, Briefcase, Target, UsersRound, Truck, Megaphone, BarChart3, ChevronDown, ChevronRight, AlertTriangle, Shield, Layers, ArrowRight } from "lucide-react";
+import { Check, X, Lock, ShieldCheck, Clock, MapPin, Camera, FolderKanban, Building2, TrendingUp, Save, Loader2, CreditCard, Package, Briefcase, Target, UsersRound, Truck, Megaphone, BarChart3, ChevronDown, ChevronRight, AlertTriangle, Shield, Layers, ArrowRight, Plus, Pencil, Trash2, Copy, Users, ChevronUp } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ModulesActifsTab } from "@/components/ModulesActifsTab";
 
@@ -559,6 +560,397 @@ function SubscriptionTab() {
 }
 
 
+// ─── Types rôles & permissions (API) ─────────────────────────────────────────
+type RoleRow = {
+  id: string; code: string; name: string; description?: string | null;
+  isSystem: boolean; level?: number | null;
+  permissionsCount?: number; usersCount?: number;
+};
+type PermRow = {
+  id: string; code: string; label: string; category: string; description?: string | null;
+};
+
+function slugify(name: string): string {
+  return name.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "")
+    .slice(0, 40);
+}
+
+function CustomRolesSection() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const { data: rolesData, isLoading: rolesLoading } = useQuery<{ data: RoleRow[] }>({
+    queryKey: ["admin/roles"],
+    queryFn: () => apiFetch("/api/admin/roles"),
+  });
+  const { data: permsData } = useQuery<{ data: PermRow[] }>({
+    queryKey: ["admin/permissions"],
+    queryFn: () => apiFetch("/api/admin/permissions"),
+  });
+
+  const customRoles = (rolesData?.data ?? []).filter((r) => !r.isSystem);
+  const allPerms = permsData?.data ?? [];
+
+  // Group permissions by category
+  const permsByCategory = useMemo(() => {
+    const map = new Map<string, PermRow[]>();
+    for (const p of allPerms) {
+      if (!map.has(p.category)) map.set(p.category, []);
+      map.get(p.category)!.push(p);
+    }
+    return map;
+  }, [allPerms]);
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<RoleRow | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formCode, setFormCode] = useState("");
+  const [formDesc, setFormDesc] = useState("");
+  const [selectedPermIds, setSelectedPermIds] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<RoleRow | null>(null);
+
+  function openCreate() {
+    setEditing(null);
+    setFormName(""); setFormCode(""); setFormDesc("");
+    setSelectedPermIds(new Set());
+    setExpandedCategories(new Set(Array.from(permsByCategory.keys()).slice(0, 3)));
+    setDialogOpen(true);
+  }
+
+  async function openEdit(role: RoleRow) {
+    setEditing(role);
+    setFormName(role.name);
+    setFormCode(role.code);
+    setFormDesc(role.description ?? "");
+    // Load current permissions for this role
+    try {
+      const detail = await apiFetch<{ permissionIds: string[] }>(`/api/admin/roles/${role.id}`);
+      setSelectedPermIds(new Set(detail.permissionIds ?? []));
+    } catch {
+      setSelectedPermIds(new Set());
+    }
+    setExpandedCategories(new Set(Array.from(permsByCategory.keys()).slice(0, 3)));
+    setDialogOpen(true);
+  }
+
+  const createMut = useMutation({
+    mutationFn: async (body: { name: string; code: string; description?: string; permissionIds: string[] }) => {
+      const role = await apiFetch<RoleRow>("/api/admin/roles", { method: "POST", body: { name: body.name, code: body.code, description: body.description } as any });
+      if (body.permissionIds.length > 0) {
+        await apiFetch(`/api/admin/roles/${role.id}/permissions`, { method: "PUT", body: { permissionIds: body.permissionIds } as any });
+      }
+      return role;
+    },
+    onSuccess: () => {
+      toast({ title: "Rôle créé avec succès" });
+      qc.invalidateQueries({ queryKey: ["admin/roles"] });
+      setDialogOpen(false);
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: async (body: { id: string; name: string; description?: string; permissionIds: string[] }) => {
+      await apiFetch(`/api/admin/roles/${body.id}`, { method: "PUT", body: { name: body.name, description: body.description } as any });
+      await apiFetch(`/api/admin/roles/${body.id}/permissions`, { method: "PUT", body: { permissionIds: body.permissionIds } as any });
+    },
+    onSuccess: () => {
+      toast({ title: "Rôle mis à jour" });
+      qc.invalidateQueries({ queryKey: ["admin/roles"] });
+      setDialogOpen(false);
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/admin/roles/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast({ title: "Rôle supprimé" });
+      qc.invalidateQueries({ queryKey: ["admin/roles"] });
+      setDeleteConfirm(null);
+    },
+    onError: (e: any) => toast({ title: "Suppression impossible", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+  });
+
+  const duplicateMut = useMutation({
+    mutationFn: ({ id, newCode, newName }: { id: string; newCode: string; newName: string }) =>
+      apiFetch(`/api/admin/roles/${id}/duplicate`, { method: "POST", body: { newCode, newName } as any }),
+    onSuccess: () => {
+      toast({ title: "Rôle dupliqué" });
+      qc.invalidateQueries({ queryKey: ["admin/roles"] });
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e?.body?.error ?? e?.message, variant: "destructive" }),
+  });
+
+  function handleSubmit() {
+    const name = formName.trim();
+    const code = formCode.trim();
+    if (!name) { toast({ title: "Nom requis", variant: "destructive" }); return; }
+    if (!code || !/^[a-z0-9_]+$/.test(code)) {
+      toast({ title: "Code invalide", description: "Minuscules, chiffres et underscores uniquement.", variant: "destructive" }); return;
+    }
+    const permissionIds = Array.from(selectedPermIds);
+    if (editing) {
+      updateMut.mutate({ id: editing.id, name, description: formDesc || undefined, permissionIds });
+    } else {
+      createMut.mutate({ name, code, description: formDesc || undefined, permissionIds });
+    }
+  }
+
+  function togglePerm(id: string) {
+    setSelectedPermIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleCategory(category: string, perms: PermRow[]) {
+    const allSelected = perms.every((p) => selectedPermIds.has(p.id));
+    setSelectedPermIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) perms.forEach((p) => next.delete(p.id));
+      else perms.forEach((p) => next.add(p.id));
+      return next;
+    });
+  }
+
+  function toggleCategoryExpand(cat: string) {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat); else next.add(cat);
+      return next;
+    });
+  }
+
+  const isPending = createMut.isPending || updateMut.isPending;
+
+  return (
+    <>
+      <Card className="mt-6">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              Rôles personnalisés
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Créez des rôles adaptés à votre organisation avec un ensemble de permissions sur mesure. Les rôles système sont gérés par Gaméasù.
+            </CardDescription>
+          </div>
+          <Button size="sm" onClick={openCreate} className="shrink-0 gap-1.5">
+            <Plus className="w-4 h-4" />
+            Créer un rôle
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {rolesLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground py-4">
+              <Loader2 className="w-4 h-4 animate-spin" /> Chargement…
+            </div>
+          ) : customRoles.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground border border-dashed rounded-lg">
+              <Shield className="w-8 h-8 opacity-30" />
+              <p className="text-sm">Aucun rôle personnalisé pour le moment.</p>
+              <Button variant="outline" size="sm" onClick={openCreate} className="gap-1.5 mt-1">
+                <Plus className="w-3.5 h-3.5" /> Créer le premier rôle
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto -mx-2 px-2">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-muted/30 text-xs uppercase">
+                    <th className="text-left p-3 border-b font-semibold">Nom du rôle</th>
+                    <th className="text-left p-3 border-b font-semibold hidden sm:table-cell">Code</th>
+                    <th className="text-center p-3 border-b font-semibold hidden md:table-cell">Permissions</th>
+                    <th className="text-center p-3 border-b font-semibold hidden md:table-cell">Utilisateurs</th>
+                    <th className="text-right p-3 border-b font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customRoles.map((role) => (
+                    <tr key={role.id} className="hover:bg-muted/20">
+                      <td className="p-3 border-b">
+                        <div className="font-medium">{role.name}</div>
+                        {role.description && (
+                          <div className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">{role.description}</div>
+                        )}
+                      </td>
+                      <td className="p-3 border-b hidden sm:table-cell">
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{role.code}</code>
+                      </td>
+                      <td className="p-3 border-b text-center hidden md:table-cell">
+                        <Badge variant="outline" className="text-xs">{role.permissionsCount ?? 0}</Badge>
+                      </td>
+                      <td className="p-3 border-b text-center hidden md:table-cell">
+                        <span className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                          <Users className="w-3.5 h-3.5" />
+                          {role.usersCount ?? 0}
+                        </span>
+                      </td>
+                      <td className="p-3 border-b text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="sm" className="h-7 px-2"
+                            onClick={() => openEdit(role)} title="Modifier">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 px-2"
+                            onClick={() => duplicateMut.mutate({ id: role.id, newCode: `${role.code}_copie`, newName: `${role.name} (copie)` })}
+                            title="Dupliquer">
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteConfirm(role)} title="Supprimer">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialog créer / modifier un rôle */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Modifier le rôle" : "Créer un rôle personnalisé"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="role-name">Nom du rôle *</Label>
+                <Input
+                  id="role-name"
+                  value={formName}
+                  onChange={(e) => {
+                    setFormName(e.target.value);
+                    if (!editing) setFormCode(slugify(e.target.value));
+                  }}
+                  placeholder="Ex. Comptable junior"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="role-code">Code technique *</Label>
+                <Input
+                  id="role-code"
+                  value={formCode}
+                  onChange={(e) => setFormCode(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                  placeholder="Ex. comptable_junior"
+                  disabled={!!editing}
+                  className={editing ? "opacity-60" : ""}
+                />
+                <p className="text-xs text-muted-foreground">Minuscules, chiffres, _ uniquement. Immuable après création.</p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="role-desc">Description</Label>
+              <Input id="role-desc" value={formDesc} onChange={(e) => setFormDesc(e.target.value)} placeholder="Ex. Accès limité à la comptabilité sans FP&A" />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Permissions ({selectedPermIds.size} sélectionnée{selectedPermIds.size !== 1 ? "s" : ""})</Label>
+                <div className="flex gap-2 text-xs">
+                  <button onClick={() => setSelectedPermIds(new Set(allPerms.map((p) => p.id)))} className="text-primary underline-offset-2 hover:underline">Tout sélectionner</button>
+                  <span className="text-muted-foreground">·</span>
+                  <button onClick={() => setSelectedPermIds(new Set())} className="text-muted-foreground underline-offset-2 hover:underline">Tout désélectionner</button>
+                </div>
+              </div>
+              <div className="border rounded-lg divide-y max-h-80 overflow-y-auto">
+                {Array.from(permsByCategory.entries()).map(([category, perms]) => {
+                  const allSelected = perms.every((p) => selectedPermIds.has(p.id));
+                  const someSelected = perms.some((p) => selectedPermIds.has(p.id)) && !allSelected;
+                  const expanded = expandedCategories.has(category);
+                  return (
+                    <div key={category}>
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
+                        onClick={() => toggleCategoryExpand(category)}
+                      >
+                        <Checkbox
+                          checked={allSelected}
+                          onCheckedChange={() => { toggleCategory(category, perms); }}
+                          onClick={(e) => e.stopPropagation()}
+                          className={someSelected ? "data-[state=unchecked]:bg-primary/30" : ""}
+                        />
+                        <span className="flex-1 text-sm font-semibold">{category}</span>
+                        <span className="text-xs text-muted-foreground">{perms.filter((p) => selectedPermIds.has(p.id)).length}/{perms.length}</span>
+                        {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                      </div>
+                      {expanded && (
+                        <div className="divide-y">
+                          {perms.map((p) => (
+                            <label key={p.id} className="flex items-center gap-3 px-4 py-2 hover:bg-muted/10 cursor-pointer">
+                              <Checkbox
+                                checked={selectedPermIds.has(p.id)}
+                                onCheckedChange={() => togglePerm(p.id)}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium leading-none">{p.label}</p>
+                                <p className="text-xs text-muted-foreground font-mono mt-0.5">{p.code}</p>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
+            <Button onClick={handleSubmit} disabled={isPending} className="gap-2">
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {editing ? "Enregistrer" : "Créer le rôle"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog confirmation suppression */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Supprimer le rôle</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Voulez-vous supprimer le rôle <strong>«&nbsp;{deleteConfirm?.name}&nbsp;»</strong> ?
+            {(deleteConfirm?.usersCount ?? 0) > 0 && (
+              <span className="block mt-1 text-destructive font-medium">
+                Impossible : {deleteConfirm?.usersCount} utilisateur(s) ont encore ce rôle.
+              </span>
+            )}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Annuler</Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMut.isPending || (deleteConfirm?.usersCount ?? 0) > 0}
+              onClick={() => deleteConfirm && deleteMut.mutate(deleteConfirm.id)}
+            >
+              {deleteMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -734,11 +1126,11 @@ export default function Settings() {
           <AccountingFrameworkTab />
         </TabsContent>
 
-        <TabsContent value="permissions" className="mt-6">
+        <TabsContent value="permissions" className="mt-6 space-y-0">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" /> Matrice des rôles & permissions</CardTitle>
-              <CardDescription>Vue d'ensemble de ce que chaque rôle peut faire dans la plateforme. Édition réservée au super administrateur (à venir).</CardDescription>
+              <CardDescription>Vue d'ensemble de ce que chaque rôle système peut faire dans la plateforme.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2 mb-5">
@@ -792,6 +1184,7 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+          <CustomRolesSection />
         </TabsContent>
 
         <TabsContent value="danger" className="mt-6">

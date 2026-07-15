@@ -6,7 +6,7 @@ import {
   departmentsTable, projectsTable, userClientAccessTable, clientsTable,
   userPermissionOverridesTable, organizationMembersTable, organizationsTable,
 } from "@workspace/db";
-import { and, eq, ilike, sql, desc, inArray, gte, lte } from "drizzle-orm";
+import { and, eq, ilike, sql, desc, inArray, gte, lte, or, isNull } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
 import { requirePermission } from "../middlewares/permissions";
 import { invalidatePermissionsCache } from "../lib/rbac/permissions";
@@ -39,19 +39,38 @@ router.get("/admin/permissions", requirePermission("roles.read"), async (_req, r
 });
 
 // ════════════════════════════════════════════════════════════════════
-// ROLES — CRUD + matrice permissions
+// ROLES — CRUD + matrice permissions (scoped à l'org)
+// Règle : rôles système (isSystem=true, organizationId=null) sont globaux (lecture seule).
+//         rôles custom (isSystem=false, organizationId=orgId) appartiennent à l'org.
 // ════════════════════════════════════════════════════════════════════
-router.get("/admin/roles", requirePermission("roles.read"), async (_req, res) => {
-  const roles = await db.select().from(rolesTable).orderBy(desc(sql`COALESCE((${rolesTable.level})::int, 0)`));
+
+/** Filtre : rôles système OU rôles custom de l'org appelante. */
+function orgRolesCond(orgId: string) {
+  return or(eq(rolesTable.isSystem, true), eq(rolesTable.organizationId, orgId));
+}
+/** Filtre : rôle custom appartenant à l'org (écriture/suppression). */
+function ownCustomRoleCond(id: string, orgId: string) {
+  return and(eq(rolesTable.id, id), eq(rolesTable.isSystem, false), eq(rolesTable.organizationId, orgId));
+}
+
+router.get("/admin/roles", requirePermission("roles.read"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const roles = await db.select().from(rolesTable)
+    .where(orgRolesCond(orgId))
+    .orderBy(desc(sql`COALESCE((${rolesTable.level})::int, 0)`));
   // Compte les permissions par rôle.
   const counts = await db
     .select({ roleId: rolePermissionsTable.roleId, n: sql<number>`COUNT(*)` })
     .from(rolePermissionsTable).groupBy(rolePermissionsTable.roleId);
   const byRole = new Map(counts.map(c => [c.roleId, Number(c.n)]));
-  // Compte les utilisateurs par rôle (matching role.code).
+  // Compte les utilisateurs par rôle (matching role.code) dans cette org.
+  const orgMemberIds = db.select({ uid: organizationMembersTable.userId })
+    .from(organizationMembersTable).where(eq(organizationMembersTable.organizationId, orgId));
   const userCounts = await db
     .select({ role: usersTable.role, n: sql<number>`COUNT(*)` })
-    .from(usersTable).where(eq(usersTable.isActive, true)).groupBy(usersTable.role);
+    .from(usersTable)
+    .where(and(eq(usersTable.isActive, true), inArray(usersTable.id, orgMemberIds)))
+    .groupBy(usersTable.role);
   const usersByRole = new Map(userCounts.map(c => [c.role, Number(c.n)]));
   return res.json({
     data: roles.map(r => ({
@@ -63,8 +82,10 @@ router.get("/admin/roles", requirePermission("roles.read"), async (_req, res) =>
 });
 
 router.get("/admin/roles/:id", requirePermission("roles.read"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
-  const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
+  const [role] = await db.select().from(rolesTable)
+    .where(and(eq(rolesTable.id, (req.params.id as string)), orgRolesCond(orgId))).limit(1);
   if (!role) return res.status(404).json({ error: "Introuvable" });
   const perms = await db
     .select({ id: permissionsTable.id, code: permissionsTable.code })
@@ -75,36 +96,40 @@ router.get("/admin/roles/:id", requirePermission("roles.read"), async (req, res)
 });
 
 router.post("/admin/roles", requirePermission("roles.manage"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   const { code, name, description, level } = req.body || {};
   if (typeof code !== "string" || !code.trim()) return res.status(400).json({ error: "code requis" });
   if (typeof name !== "string" || !name.trim()) return res.status(400).json({ error: "name requis" });
   if (!/^[a-z0-9_]+$/.test(code.trim())) return res.status(400).json({ error: "code : minuscules, chiffres, underscores uniquement" });
+  // Empêcher l'utilisation d'un code de rôle système
+  const [sysConflict] = await db.select({ id: rolesTable.id }).from(rolesTable)
+    .where(and(eq(rolesTable.code, code.trim()), eq(rolesTable.isSystem, true))).limit(1);
+  if (sysConflict) return res.status(409).json({ error: "Ce code est réservé à un rôle système" });
   try {
     const [r] = await db.insert(rolesTable).values({
-      code: code.trim(), name: name.trim(), description, level: level ?? 10, isSystem: false,
+      code: code.trim(), name: name.trim(), description, level: level ?? 10,
+      isSystem: false, organizationId: orgId,
     }).returning();
     await audit(req, "create", { entityType: "role", entityId: r.id, payload: r });
     return res.status(201).json(r);
   } catch (e: any) {
-    if (e?.code === "23505") return res.status(409).json({ error: "Un rôle avec ce code existe déjà" });
+    if (e?.code === "23505") return res.status(409).json({ error: "Un rôle avec ce code existe déjà dans votre organisation" });
     return res.status(500).json({ error: e.message });
   }
 });
 
 router.put("/admin/roles/:id", requirePermission("roles.manage"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
-  const [existing] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
-  if (!existing) return res.status(404).json({ error: "Introuvable" });
+  const [existing] = await db.select().from(rolesTable)
+    .where(ownCustomRoleCond((req.params.id as string), orgId)).limit(1);
+  if (!existing) return res.status(404).json({ error: "Rôle introuvable ou non modifiable" });
   const { name, description, level } = req.body || {};
   const upd: any = {};
   if (name !== undefined) upd.name = String(name).trim();
   if (description !== undefined) upd.description = description;
   if (level !== undefined) upd.level = level;
-  // Le code est immuable pour les rôles système (utilisé par usersTable.role).
-  if (!existing.isSystem && req.body?.code !== undefined) {
-    if (!/^[a-z0-9_]+$/.test(String(req.body.code))) return res.status(400).json({ error: "code invalide" });
-    upd.code = req.body.code;
-  }
+  // Le code est immuable après création (convention pour les rôles custom aussi).
   const [r] = await db.update(rolesTable).set(upd).where(eq(rolesTable.id, (req.params.id as string))).returning();
   invalidatePermissionsCache();
   await audit(req, "update", { entityType: "role", entityId: r.id, payload: { before: existing, after: r } });
@@ -112,13 +137,17 @@ router.put("/admin/roles/:id", requirePermission("roles.manage"), async (req, re
 });
 
 router.delete("/admin/roles/:id", requirePermission("roles.manage"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
-  const [r] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
-  if (!r) return res.status(404).json({ error: "Introuvable" });
-  if (r.isSystem) return res.status(400).json({ error: "Rôle système non supprimable" });
-  // Vérifier qu'aucun utilisateur ne porte ce rôle.
-  const [{ n }] = await db.select({ n: sql<number>`COUNT(*)::int` }).from(usersTable).where(eq(usersTable.role, r.code));
-  if (Number(n) > 0) return res.status(400).json({ error: `Impossible : ${n} utilisateur(s) utilisent ce rôle` });
+  const [r] = await db.select().from(rolesTable)
+    .where(ownCustomRoleCond((req.params.id as string), orgId)).limit(1);
+  if (!r) return res.status(404).json({ error: "Rôle introuvable ou non supprimable" });
+  // Vérifier qu'aucun utilisateur de cette org ne porte ce rôle.
+  const orgMemberIds = db.select({ uid: organizationMembersTable.userId })
+    .from(organizationMembersTable).where(eq(organizationMembersTable.organizationId, orgId));
+  const [{ n }] = await db.select({ n: sql<number>`COUNT(*)::int` })
+    .from(usersTable).where(and(eq(usersTable.role, r.code), inArray(usersTable.id, orgMemberIds)));
+  if (Number(n) > 0) return res.status(400).json({ error: `Impossible : ${n} utilisateur(s) de votre organisation utilisent ce rôle` });
   await db.delete(rolesTable).where(eq(rolesTable.id, r.id));
   invalidatePermissionsCache();
   await audit(req, "delete", { entityType: "role", entityId: r.id, payload: r });
@@ -127,9 +156,11 @@ router.delete("/admin/roles/:id", requirePermission("roles.manage"), async (req,
 
 // Mise à jour de la matrice de permissions d'un rôle (remplacement complet).
 router.put("/admin/roles/:id/permissions", requirePermission("roles.manage"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
   if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
-  const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
-  if (!role) return res.status(404).json({ error: "Introuvable" });
+  const [role] = await db.select().from(rolesTable)
+    .where(ownCustomRoleCond((req.params.id as string), orgId)).limit(1);
+  if (!role) return res.status(404).json({ error: "Rôle introuvable ou non modifiable" });
   const { permissionIds } = req.body || {};
   if (!Array.isArray(permissionIds)) return res.status(400).json({ error: "permissionIds doit être un tableau" });
   const cleanIds = permissionIds.filter(isUuid);
@@ -152,23 +183,30 @@ router.put("/admin/roles/:id/permissions", requirePermission("roles.manage"), as
 });
 
 // ════════════════════════════════════════════════════════════════════
-// DUPLICATION DE RÔLE
+// DUPLICATION DE RÔLE (scoped à l'org)
 // ════════════════════════════════════════════════════════════════════
 router.post("/admin/roles/:id/duplicate", requirePermission("roles.manage"), async (req, res, next) => {
   try {
+    const orgId = req.authUser!.organizationId;
     if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
-    const [src] = await db.select().from(rolesTable).where(eq(rolesTable.id, (req.params.id as string))).limit(1);
+    // Source : rôle système OU custom de l'org (on peut dupliquer depuis un rôle système)
+    const [src] = await db.select().from(rolesTable)
+      .where(and(eq(rolesTable.id, (req.params.id as string)), orgRolesCond(orgId))).limit(1);
     if (!src) return res.status(404).json({ error: "Introuvable" });
     const rawCode = (req.body?.newCode ?? `${src.code}_copie`).toString().trim();
     const rawName = (req.body?.newName ?? `${src.name} (copie)`).toString().trim();
     if (!/^[a-z0-9_]+$/.test(rawCode)) return res.status(400).json({ error: "code invalide (minuscules, chiffres, _)" });
+    // Empêcher conflit avec rôle système
+    const [sysConflict] = await db.select({ id: rolesTable.id }).from(rolesTable)
+      .where(and(eq(rolesTable.code, rawCode), eq(rolesTable.isSystem, true))).limit(1);
+    if (sysConflict) return res.status(409).json({ error: "Ce code est réservé à un rôle système" });
     const srcPerms = await db
       .select({ permissionId: rolePermissionsTable.permissionId })
       .from(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, src.id));
     const [newRole] = await db.insert(rolesTable).values({
       code: rawCode, name: rawName,
       description: src.description ? `Copie de : ${src.description}` : undefined,
-      level: src.level, isSystem: false,
+      level: src.level, isSystem: false, organizationId: orgId,
     }).returning();
     if (srcPerms.length > 0) {
       await db.insert(rolePermissionsTable).values(srcPerms.map((p) => ({
@@ -179,7 +217,7 @@ router.post("/admin/roles/:id/duplicate", requirePermission("roles.manage"), asy
     await audit(req, "create", { entityType: "role", entityId: newRole.id, payload: { duplicatedFrom: src.id, ...newRole } });
     return res.status(201).json({ ...newRole, permissionsCount: srcPerms.length, usersCount: 0 });
   } catch (e: any) {
-    if (e?.code === "23505") return res.status(409).json({ error: "Un rôle avec ce code existe déjà" });
+    if (e?.code === "23505") return res.status(409).json({ error: "Un rôle avec ce code existe déjà dans votre organisation" });
     return next(e);
   }
 });

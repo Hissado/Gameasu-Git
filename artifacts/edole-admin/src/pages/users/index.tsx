@@ -21,19 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
 import { usePermissions } from "@/lib/permissions";
 
-const ROLE_OPTIONS = [
-  { value: "admin",       label: "Administrateur" },
-  { value: "manager",     label: "Responsable" },
-  { value: "rh",          label: "Gestionnaire RH" },
-  { value: "financier",   label: "Responsable Financier" },
-  { value: "commercial",  label: "Commercial" },
-  { value: "logistique",  label: "Gestionnaire Logistique" },
-  { value: "comptable",   label: "Comptable" },
-  { value: "auditeur",    label: "Auditeur (lecture seule)" },
-  { value: "collaborator", label: "Collaborateur" },
-] as const;
-
-const ROLE_LABEL: Record<string, string> = {
+const FALLBACK_ROLE_LABEL: Record<string, string> = {
   super_admin: "Super administrateur",
   admin: "Administrateur",
   manager: "Responsable",
@@ -78,6 +66,23 @@ export default function UsersList() {
   const qc = useQueryClient();
   const perms = usePermissions();
   const { data: usersData, isLoading } = useListUsers();
+
+  // Charger les rôles disponibles (système + personnalisés)
+  const { data: rolesData } = useQuery<{ data: { id: string; code: string; name: string; isSystem: boolean }[] }>({
+    queryKey: ["admin/roles"],
+    queryFn: () => apiFetch("/api/admin/roles"),
+  });
+
+  // Rôles assignables (hors super_admin) — incluant les rôles personnalisés
+  const roleOptions = (rolesData?.data ?? [])
+    .filter((r) => r.code !== "super_admin")
+    .map((r) => ({ value: r.code, label: r.name }));
+
+  // Map code → label pour l'affichage
+  const roleLabelMap: Record<string, string> = {
+    ...FALLBACK_ROLE_LABEL,
+    ...(rolesData?.data ?? []).reduce((acc, r) => ({ ...acc, [r.code]: r.name }), {}),
+  };
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invEmail, setInvEmail] = useState("");
@@ -221,12 +226,12 @@ export default function UsersList() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button className="flex items-center gap-1 px-2 py-1 rounded-md border border-border/60 text-xs font-medium hover:bg-muted transition-colors">
-                                {ROLE_LABEL[user.role] || user.role}
+                                {roleLabelMap[user.role] || user.role}
                                 <ChevronDown className="w-3 h-3 text-muted-foreground ml-0.5" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-52">
-                              {ROLE_OPTIONS.map((opt) => (
+                              {(roleOptions.length > 0 ? roleOptions : Object.entries(FALLBACK_ROLE_LABEL).filter(([k]) => k !== "super_admin").map(([value, label]) => ({ value, label }))).map((opt) => (
                                 <DropdownMenuItem
                                   key={opt.value}
                                   onClick={() => {
@@ -245,7 +250,7 @@ export default function UsersList() {
                           </DropdownMenu>
                         ) : (
                           <Badge variant="outline" className="font-medium">
-                            {ROLE_LABEL[user.role] || user.role}
+                            {roleLabelMap[user.role] || user.role}
                           </Badge>
                         )}
                       </TableCell>
@@ -311,7 +316,7 @@ export default function UsersList() {
                         <div className="text-xs text-muted-foreground">{i.email}</div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge variant="outline" className="text-xs">{ROLE_LABEL[i.role] ?? i.role}</Badge>
+                        <Badge variant="outline" className="text-xs">{roleLabelMap[i.role] ?? i.role}</Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
                         {i.invitedAt ? new Date(i.invitedAt).toLocaleDateString("fr-FR") : "—"}
@@ -393,15 +398,12 @@ export default function UsersList() {
               <Select value={invRole} onValueChange={setInvRole}>
                 <SelectTrigger id="inv-role"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Administrateur</SelectItem>
-                  <SelectItem value="manager">Responsable</SelectItem>
-                  <SelectItem value="rh">Gestionnaire RH</SelectItem>
-                  <SelectItem value="financier">Responsable Financier</SelectItem>
-                  <SelectItem value="commercial">Commercial</SelectItem>
-                  <SelectItem value="logistique">Gestionnaire Logistique</SelectItem>
-                  <SelectItem value="comptable">Comptable</SelectItem>
-                  <SelectItem value="auditeur">Auditeur (lecture seule)</SelectItem>
-                  <SelectItem value="collaborator">Collaborateur</SelectItem>
+                  {(roleOptions.length > 0
+                    ? roleOptions
+                    : Object.entries(FALLBACK_ROLE_LABEL).filter(([k]) => !["super_admin", "client", "technicien"].includes(k)).map(([value, label]) => ({ value, label }))
+                  ).map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
