@@ -1432,9 +1432,7 @@ router.get("/hr/me/profile", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const [collab] = await db.select().from(collaboratorsTable)
-      .where(and(eq(collaboratorsTable.userId, userId), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
-      .limit(1);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié à votre compte" }); return; }
     res.json(collab);
   } catch (e) { next(e); }
@@ -1448,10 +1446,7 @@ router.patch("/hr/me/profile", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const [existing] = await db.select({ id: collaboratorsTable.id })
-      .from(collaboratorsTable)
-      .where(and(eq(collaboratorsTable.userId, userId), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
-      .limit(1);
+    const existing = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!existing) { res.status(404).json({ error: "Aucun profil collaborateur lié à votre compte" }); return; }
 
     const { phone, address, emergencyContact, avatarUrl } = req.body;
@@ -1477,11 +1472,25 @@ router.patch("/hr/me/profile", async (req, res, next) => {
 // SELF-SERVICE COLLABORATEUR — /hr/me/*
 // ════════════════════════════════════════════════════════════════
 
-async function getMyCollab(userId: string, orgId: string) {
+async function getMyCollab(userId: string, orgId: string, userEmail?: string) {
+  // 1. Fast path: lookup by userId
   const [collab] = await db.select().from(collaboratorsTable)
     .where(and(eq(collaboratorsTable.userId, userId), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
     .limit(1);
-  return collab ?? null;
+  if (collab) return collab;
+
+  // 2. Fallback: collaborateurs créés sans liaison userId — recherche par email
+  //    puis auto-liaison pour les prochaines requêtes.
+  if (!userEmail) return null;
+  const [byEmail] = await db.select().from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.email, userEmail), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
+    .limit(1);
+  if (!byEmail) return null;
+  const [linked] = await db.update(collaboratorsTable)
+    .set({ userId })
+    .where(eq(collaboratorsTable.id, byEmail.id))
+    .returning();
+  return linked ?? byEmail;
 }
 
 const toN = (v: unknown): number => (v == null ? 0 : Number(v));
@@ -1492,7 +1501,7 @@ router.get("/hr/me/payslips", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const payslips = await db.select({
@@ -1528,7 +1537,7 @@ router.get("/hr/me/payslips/:id/pdf", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const [payslip] = await db.select().from(payslipsTable)
@@ -1713,7 +1722,7 @@ router.get("/hr/me/contributions", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const payslips = await db.select({
@@ -1795,7 +1804,7 @@ router.get("/hr/me/transfers", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const orders = await db.select({
@@ -1851,7 +1860,7 @@ router.get("/hr/me/contract", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const [contract] = await db.select().from(contractsTable)
@@ -1868,7 +1877,7 @@ router.get("/hr/me/leave-requests", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
     const rows = await db.select().from(leaveRequestsTable)
       .where(and(eq(leaveRequestsTable.collaboratorId, collab.id), eq(leaveRequestsTable.organizationId, orgId)))
@@ -1882,7 +1891,7 @@ router.post("/hr/me/leave-requests", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const { type, startDate, endDate, reason } = req.body as { type: string; startDate: string; endDate: string; reason?: string };
@@ -1921,7 +1930,7 @@ router.patch("/hr/me/leave-requests/:id/cancel", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const [existing] = await db.select().from(leaveRequestsTable)
@@ -1944,7 +1953,7 @@ router.get("/hr/me/leave-balance", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const year = new Date().getFullYear();
@@ -1987,7 +1996,7 @@ router.get("/hr/me/documents", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
     const docs = await db.select().from(hrDocumentsTable)
       .where(and(eq(hrDocumentsTable.collaboratorId, collab.id), eq(hrDocumentsTable.organizationId, orgId)))
@@ -2001,7 +2010,7 @@ router.get("/hr/me/training", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
 
     const sessions = await db.select({
@@ -2031,7 +2040,7 @@ router.get("/hr/me/evaluations", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié" }); return; }
     const evals = await db.select().from(performanceReviewsTable)
       .where(and(eq(performanceReviewsTable.collaboratorId, collab.id), eq(performanceReviewsTable.organizationId, orgId)))

@@ -10,7 +10,7 @@ import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 const router = Router();
 router.use(requireAuth);
 
-async function getMyCollab(userId: string, orgId: string) {
+async function getMyCollab(userId: string, orgId: string, userEmail?: string) {
   const [collab] = await db.select()
     .from(collaboratorsTable)
     .where(and(
@@ -19,7 +19,17 @@ async function getMyCollab(userId: string, orgId: string) {
       isNull(collaboratorsTable.deletedAt),
     ))
     .limit(1);
-  return collab ?? null;
+  if (collab) return collab;
+  if (!userEmail) return null;
+  const [byEmail] = await db.select().from(collaboratorsTable)
+    .where(and(eq(collaboratorsTable.email, userEmail), eq(collaboratorsTable.organizationId, orgId), isNull(collaboratorsTable.deletedAt)))
+    .limit(1);
+  if (!byEmail) return null;
+  const [linked] = await db.update(collaboratorsTable)
+    .set({ userId })
+    .where(eq(collaboratorsTable.id, byEmail.id))
+    .returning();
+  return linked ?? byEmail;
 }
 
 // ── SELF-SERVICE EMPLOYÉ ──────────────────────────────────────────────────────
@@ -31,7 +41,7 @@ router.post("/hr/me/bank-request", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié à votre compte" }); return; }
 
     const { bankName, bankCode, bankAccountNumber } = req.body;
@@ -71,7 +81,7 @@ router.get("/hr/me/bank-request", async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
     const orgId = req.authUser!.organizationId;
-    const collab = await getMyCollab(userId, orgId);
+    const collab = await getMyCollab(userId, orgId, req.authUser!.email);
     if (!collab) { res.status(404).json({ error: "Aucun profil collaborateur lié à votre compte" }); return; }
 
     const [request] = await db.select({

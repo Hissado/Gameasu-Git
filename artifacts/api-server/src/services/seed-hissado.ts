@@ -150,6 +150,22 @@ export async function seedHissado(orgIdOverride?: string): Promise<Record<string
 
   const allCollabs = await db.select().from(collaboratorsTable)
     .where(and(eq(collaboratorsTable.organizationId, ORG_ID)));
+
+  // ── 0. Liaison collaborateurs → utilisateurs par email (idempotent) ────────
+  {
+    const userByEmail: Record<string, string> = {};
+    for (const u of allUsers) { if (u.email) userByEmail[u.email.toLowerCase()] = u.id; }
+    let linkCount = 0;
+    for (const c of allCollabs) {
+      if (c.userId || !c.email) continue;
+      const uid = userByEmail[c.email.toLowerCase()];
+      if (!uid) continue;
+      await db.update(collaboratorsTable).set({ userId: uid }).where(eq(collaboratorsTable.id, c.id)).catch(() => {});
+      linkCount++;
+    }
+    if (linkCount > 0) log.push(`✓ ${linkCount} collaborateur(s) liés à leur compte utilisateur par email`);
+  }
+
   const allProjects = await db.select().from(projectsTable)
     .where(eq(projectsTable.organizationId, ORG_ID));
   const allClients = await db.select().from(clientsTable)
