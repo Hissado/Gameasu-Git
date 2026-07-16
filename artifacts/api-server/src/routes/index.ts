@@ -25,6 +25,7 @@ import alertsRouter, { runAlertsScanForAllOrganizations } from "./alerts";
 import ticketsRouter from "./tickets";
 import fpaRouter from "./fpa";
 import adminRouter from "./admin";
+import auditEnrichedRouter from "./audit-enriched";
 import organizationsRouter from "./organizations";
 import subscriptionsRouter from "./subscriptions";
 import billingPaymentsRouter from "./billing-payments";
@@ -188,6 +189,7 @@ router.use(marketingRouter);
 router.use(alertsRouter);
 router.use(ticketsRouter);
 router.use(fpaRouter);
+router.use(auditEnrichedRouter); // audit enrichi — monté AVANT adminRouter pour que /admin/audit/:id ne soit pas capté par /admin/:id
 router.use(adminRouter);
 router.use(organizationsRouter);
 router.use(subscriptionsRouter);

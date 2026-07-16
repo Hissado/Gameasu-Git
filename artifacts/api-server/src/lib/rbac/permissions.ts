@@ -1,10 +1,10 @@
 import { db } from "@workspace/db";
 import {
-  rolesTable, rolePermissionsTable, permissionsTable,
+  rolesTable, rolePermissionsTable,
   userProjectAccessTable, collaboratorsTable, collaboratorAssignmentsTable, usersTable,
   userClientAccessTable, projectsTable, userPermissionOverridesTable,
 } from "@workspace/db";
-import { eq, and, isNull, or, inArray, asc } from "drizzle-orm";
+import { eq, and, isNull, or, inArray, asc, sql } from "drizzle-orm";
 
 /**
  * Service RBAC : résolution des permissions et des projets accessibles.
@@ -37,24 +37,29 @@ async function loadEntry(userId: string): Promise<CacheEntry> {
   ).orderBy(rolesTable.isSystem).limit(1); // isSystem=false (custom) sort avant isSystem=true
   let perms = new Set<string>();
   if (role) {
-    const rows = await db
-      .select({ code: permissionsTable.code })
-      .from(rolePermissionsTable)
-      .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
-      .where(eq(rolePermissionsTable.roleId, role.id));
-    perms = new Set(rows.map((r) => r.code));
+    // DB réelle : role_permissions(role_id, permission_id UUID → permissions.id)
+    // Le schema Drizzle est désaligné (permissionCode text n'existe pas en DB) ;
+    // on utilise du SQL brut pour coller à la structure réelle.
+    const rows = await db.execute(sql`
+      SELECT p.code FROM role_permissions rp
+      JOIN permissions p ON rp.permission_id = p.id
+      WHERE rp.role_id = ${role.id}
+    `);
+    perms = new Set((rows.rows as Array<{ code: string }>).map((r) => r.code));
   }
 
   // Surcharges individuelles : grant (ajoute) et deny (retire), expirées ignorées.
+  // DB table réelle : user_permission_overrides (schema Drizzle dit user_perm_overrides — désaligné).
   const now = new Date();
-  const overrides = await db
-    .select()
-    .from(userPermissionOverridesTable)
-    .where(eq(userPermissionOverridesTable.userId, userId));
-  for (const ov of overrides) {
-    if (ov.expiresAt && ov.expiresAt < now) continue;
-    if (ov.type === "grant") perms.add(ov.permissionCode);
-    else if (ov.type === "deny") perms.delete(ov.permissionCode);
+  const overridesResult = await db.execute(sql`
+    SELECT permission_code, type, expires_at
+    FROM user_permission_overrides
+    WHERE user_id = ${userId}
+  `);
+  for (const ov of overridesResult.rows as Array<{ permission_code: string; type: string; expires_at: Date | null }>) {
+    if (ov.expires_at && new Date(ov.expires_at) < now) continue;
+    if (ov.type === "grant") perms.add(ov.permission_code);
+    else if (ov.type === "deny") perms.delete(ov.permission_code);
   }
 
   // Clients accessibles : null si bypass (clients.read_all), sinon table user_client_access.

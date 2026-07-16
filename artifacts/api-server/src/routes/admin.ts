@@ -668,32 +668,7 @@ router.put("/admin/users/:id/client-access", requirePermission("users.assign_pro
   return res.json({ success: true, count: items.length });
 });
 
-// ════════════════════════════════════════════════════════════════════
-// AUDIT LOGS
-// ════════════════════════════════════════════════════════════════════
-router.get("/admin/audit", requirePermission("audit.read"), async (req, res) => {
-  const { action, entityType, userId, q, limit = "25", from, to, page: pageParam = "1" } = req.query as Record<string, string>;
-  const orgId = await getCurrentOrganizationId((req as any).authUser?.id);
-  if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
-  const conds = [eq(auditLogsTable.organizationId, orgId)] as any[];
-  if (action) conds.push(eq(auditLogsTable.action, action));
-  if (entityType) conds.push(eq(auditLogsTable.entityType, entityType));
-  if (userId && isUuid(userId)) conds.push(eq(auditLogsTable.userId, userId));
-  if (q) conds.push(ilike(auditLogsTable.userEmail, `%${q}%`));
-  if (from) { const d = new Date(from); if (!isNaN(d.getTime())) conds.push(gte(auditLogsTable.createdAt, d)); }
-  if (to) { const d = new Date(to + "T23:59:59.999Z"); if (!isNaN(d.getTime())) conds.push(lte(auditLogsTable.createdAt, d)); }
-  const lim = Math.min(Math.max(parseInt(limit) || 25, 1), 100);
-  const page = Math.max(1, parseInt(pageParam) || 1);
-  const offset = (page - 1) * lim;
-  const where = conds.length ? and(...conds) : undefined;
-  const [rows, countRows] = await Promise.all([
-    db.select().from(auditLogsTable).where(where as any).orderBy(desc(auditLogsTable.createdAt)).limit(lim).offset(offset),
-    db.select({ count: sql<number>`cast(count(*) as int)` }).from(auditLogsTable).where(where as any),
-  ]);
-  const total = Number(countRows[0]?.count ?? 0);
-  const pages = Math.ceil(total / lim);
-  return res.json({ data: rows, total, page, limit: lim, pages });
-});
+// NOTE: /admin/audit routes sont dans routes/audit-enriched.ts
 
 // ════════════════════════════════════════════════════════════════════
 // SEED DEMO — peuplement de données de démonstration cross-modules

@@ -5,96 +5,72 @@ import { usersTable } from "./users";
 import { projectsTable } from "./projects";
 import { organizationsTable } from "./saas";
 
-/**
- * Système RBAC dynamique :
- * - `roles` : rôles personnalisables (super_admin, admin, manager, collaborator + custom)
- * - `permissions` : catalogue de permissions (code unique, ex. "users.invite")
- * - `role_permissions` : matrice rôles × permissions
- * - `user_project_access` : ACL projet utilisateur direct (complémentaire à
- *   `collaborator_assignments` qui modélise la dimension RH)
- * - `audit_logs` : trace des actions sensibles (create/update/delete sur ressources critiques)
- */
-
 // ─────────────────────────────────────────────────────────────────
 // ROLES
 // ─────────────────────────────────────────────────────────────────
 export const rolesTable = pgTable("roles", {
   id: uuid("id").primaryKey().defaultRandom(),
-  code: text("code").notNull(),               // ex. "admin", "chef_chantier"
-  name: text("name").notNull(),               // libellé affiché
+  code: text("code").notNull(),
+  name: text("name").notNull(),
   description: text("description"),
-  // Rôles système : non supprimables, code immuable, organizationId=null
   isSystem: boolean("is_system").notNull().default(false),
-  // Niveau hiérarchique (1=base → 100=super_admin) pour comparer "au-dessus de"
   level: jsonb("level").$type<number>().default(10),
-  // Pour les rôles personnalisés : organisation propriétaire. null = rôle système global.
   organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  // Pour les rôles système (org_id IS NULL) : PG ne contraint pas les NULLs entre eux, unicité garantie par le seed.
-  // Pour les rôles custom : unicité (organization_id, code) par org.
-  codeOrgUidx: uniqueIndex("roles_code_org_uidx").on(t.organizationId, t.code),
-  orgIdx: index("roles_org_idx").on(t.organizationId),
+  codeOrgIdx: uniqueIndex("roles_code_org_uidx").on(t.code, t.organizationId),
 }));
 
 // ─────────────────────────────────────────────────────────────────
-// PERMISSIONS (catalogue figé géré par seed)
+// PERMISSIONS
 // ─────────────────────────────────────────────────────────────────
 export const permissionsTable = pgTable("permissions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  code: text("code").notNull(),               // ex. "users.invite", "projects.delete"
-  label: text("label").notNull(),             // libellé FR
-  category: text("category").notNull(),       // ex. "Utilisateurs", "Projets", "Comptabilité"
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
   description: text("description"),
+  module: text("module"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => ({
-  codeUidx: uniqueIndex("permissions_code_uidx").on(t.code),
-  catIdx: index("permissions_category_idx").on(t.category),
-}));
+});
 
 // ─────────────────────────────────────────────────────────────────
 // ROLE_PERMISSIONS
 // ─────────────────────────────────────────────────────────────────
 export const rolePermissionsTable = pgTable("role_permissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
   roleId: uuid("role_id").notNull().references(() => rolesTable.id, { onDelete: "cascade" }),
-  permissionId: uuid("permission_id").notNull().references(() => permissionsTable.id, { onDelete: "cascade" }),
-  grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
-  grantedById: uuid("granted_by_id").references(() => usersTable.id),
+  permissionCode: text("permission_code").notNull(),
+  organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  pk: uniqueIndex("role_permissions_pk").on(t.roleId, t.permissionId),
-  permIdx: index("role_permissions_perm_idx").on(t.permissionId),
+  rolePermIdx: uniqueIndex("role_permissions_uidx").on(t.roleId, t.permissionCode),
+  roleIdx: index("role_permissions_role_idx").on(t.roleId),
 }));
 
 // ─────────────────────────────────────────────────────────────────
-// USER_PROJECT_ACCESS — ACL directe utilisateur × projet
+// USER_PROJECT_ACCESS
 // ─────────────────────────────────────────────────────────────────
 export const userProjectAccessTable = pgTable("user_project_access", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
-  // viewer | editor | manager — niveau d'action sur ce projet
-  accessLevel: text("access_level").notNull().default("viewer"),
   grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
-  grantedById: uuid("granted_by_id").references(() => usersTable.id),
+  grantedBy: uuid("granted_by").references(() => usersTable.id, { onDelete: "set null" }),
 }, (t) => ({
-  uniq: uniqueIndex("user_project_access_uidx").on(t.userId, t.projectId),
-  userIdx: index("user_project_access_user_idx").on(t.userId),
-  projectIdx: index("user_project_access_project_idx").on(t.projectId),
+  userProjectIdx: uniqueIndex("user_project_access_uidx").on(t.userId, t.projectId),
 }));
 
 // ─────────────────────────────────────────────────────────────────
-// USER_PERMISSION_OVERRIDES — surcharges individuelles (grant / deny)
+// USER_PERMISSION_OVERRIDES
 // ─────────────────────────────────────────────────────────────────
-export const userPermissionOverridesTable = pgTable("user_permission_overrides", {
+export const userPermissionOverridesTable = pgTable("user_perm_overrides", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   permissionCode: text("permission_code").notNull(),
-  // 'grant' = ajout au-dessus du rôle | 'deny' = retrait même si le rôle le donne
-  type: text("type").notNull().$type<"grant" | "deny">(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
-  reason: text("reason"),
-  grantedBy: uuid("granted_by").references(() => usersTable.id),
+  organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "cascade" }),
+  granted: boolean("granted").notNull().default(true),
+  grantedBy: uuid("granted_by").references(() => usersTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   uniqueUserPerm: uniqueIndex("user_perm_overrides_uidx").on(t.userId, t.permissionCode),
@@ -102,27 +78,74 @@ export const userPermissionOverridesTable = pgTable("user_permission_overrides",
 }));
 
 // ─────────────────────────────────────────────────────────────────
-// AUDIT LOGS
+// AUDIT LOGS (enrichi v2)
+// category : "audit" | "navigation"
+// severity : "info" | "low" | "medium" | "high" | "critical"
+// status   : "success" | "failure" | "denied"
+// changes  : [{ field, label, before, after }]
 // ─────────────────────────────────────────────────────────────────
 export const auditLogsTable = pgTable("audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
   userId: uuid("user_id").references(() => usersTable.id, { onDelete: "set null" }),
-  userEmail: text("user_email"),              // dénormalisé pour conserver la trace si user supprimé
-  // create | update | delete | login | logout | invite | role_change | permission_change | password_change | …
+  userEmail: text("user_email"),
+  userRole: text("user_role"),
   action: text("action").notNull(),
-  entityType: text("entity_type"),            // "user", "role", "project", "department", …
+  category: text("category").notNull().default("audit"),
+  severity: text("severity").notNull().default("medium"),
+  status: text("status").notNull().default("success"),
+  module: text("module"),
+  subModule: text("sub_module"),
+  page: text("page"),
+  entityType: text("entity_type"),
   entityId: uuid("entity_id"),
-  // Détails de la mutation : { before?, after?, meta? }
+  entityName: text("entity_name"),
+  changes: jsonb("changes"),
   payload: jsonb("payload"),
+  errorMessage: text("error_message"),
+  sessionId: text("session_id"),
+  requestId: text("request_id"),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
+  browser: text("browser"),
+  os: text("os"),
+  device: text("device"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   userIdx: index("audit_logs_user_idx").on(t.userId),
+  orgIdx: index("audit_logs_org_idx").on(t.organizationId),
   entityIdx: index("audit_logs_entity_idx").on(t.entityType, t.entityId),
   actionIdx: index("audit_logs_action_idx").on(t.action),
+  categoryIdx: index("audit_logs_category_idx").on(t.category),
+  severityIdx: index("audit_logs_severity_idx").on(t.severity),
   createdIdx: index("audit_logs_created_idx").on(t.createdAt),
+  moduleIdx: index("audit_logs_module_idx").on(t.module),
+}));
+
+// ─────────────────────────────────────────────────────────────────
+// SECURITY ALERTS
+// type : "multiple_ips"|"brute_force"|"mass_delete"|"mass_export"|
+//        "unauthorized_access"|"salary_change"|"role_change"|
+//        "2fa_disabled"|"banking_change"|"suspicious_export"
+// severity : "medium" | "high" | "critical"
+// ─────────────────────────────────────────────────────────────────
+export const securityAlertsTable = pgTable("security_alerts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => usersTable.id, { onDelete: "set null" }),
+  userEmail: text("user_email"),
+  type: text("type").notNull(),
+  severity: text("severity").notNull().default("high"),
+  message: text("message").notNull(),
+  detail: jsonb("detail"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  resolvedBy: uuid("resolved_by").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  orgIdx: index("security_alerts_org_idx").on(t.organizationId),
+  userIdx: index("security_alerts_user_idx").on(t.userId),
+  resolvedIdx: index("security_alerts_resolved_idx").on(t.resolvedAt),
+  createdIdx: index("security_alerts_created_idx").on(t.createdAt),
 }));
 
 // ─────────────────────────────────────────────────────────────────
@@ -132,6 +155,7 @@ export const insertRoleSchema = createInsertSchema(rolesTable).omit({ id: true, 
 export const insertPermissionSchema = createInsertSchema(permissionsTable).omit({ id: true, createdAt: true });
 export const insertUserProjectAccessSchema = createInsertSchema(userProjectAccessTable).omit({ id: true, grantedAt: true });
 export const insertAuditLogSchema = createInsertSchema(auditLogsTable).omit({ id: true, createdAt: true });
+export const insertSecurityAlertSchema = createInsertSchema(securityAlertsTable).omit({ id: true, createdAt: true });
 
 export type Role = typeof rolesTable.$inferSelect;
 export type Permission = typeof permissionsTable.$inferSelect;
@@ -139,7 +163,9 @@ export type RolePermission = typeof rolePermissionsTable.$inferSelect;
 export type UserProjectAccess = typeof userProjectAccessTable.$inferSelect;
 export type UserPermissionOverride = typeof userPermissionOverridesTable.$inferSelect;
 export type AuditLog = typeof auditLogsTable.$inferSelect;
+export type SecurityAlert = typeof securityAlertsTable.$inferSelect;
 export type InsertRole = z.infer<typeof insertRoleSchema>;
 export type InsertPermission = z.infer<typeof insertPermissionSchema>;
 export type InsertUserProjectAccess = z.infer<typeof insertUserProjectAccessSchema>;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type InsertSecurityAlert = z.infer<typeof insertSecurityAlertSchema>;
