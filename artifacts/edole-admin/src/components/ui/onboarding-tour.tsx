@@ -760,65 +760,64 @@ export function WelcomeModal({
   return createPortal(
     <div
       className="fixed inset-0 z-[9990] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(0,0,0,0.18)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onDismiss(); }}
     >
       <div
-        className="relative bg-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="relative bg-card rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200 border"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header gradient */}
-        <div className="bg-gradient-to-br from-[#0F1A3A] to-[#162040] px-6 pt-6 pb-5 text-white">
+        {/* Header — thème clair (shadcn tokens) */}
+        <div className="bg-muted/60 border-b px-5 pt-5 pb-4">
           <button
             onClick={onDismiss}
-            className="absolute top-4 right-4 text-white/40 hover:text-white/80 transition-colors"
+            className="absolute top-3.5 right-3.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-              <Icon className="w-5 h-5 text-primary" />
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Icon className="w-4.5 h-4.5 w-[18px] h-[18px] text-primary" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5 text-primary/80 text-[10px] font-bold uppercase tracking-wider mb-0.5">
+              <div className="flex items-center gap-1 text-primary text-[10px] font-bold uppercase tracking-wider mb-0.5">
                 <Sparkles className="w-3 h-3" />
                 Visite guidée
               </div>
-              <h2 className="text-lg font-bold leading-tight">{title}</h2>
+              <h2 className="text-base font-bold text-foreground leading-tight">{title}</h2>
             </div>
           </div>
-          <p className="text-sm text-white/60 mt-1">{subtitle}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{subtitle}</p>
         </div>
 
         {/* Path selector — shown when 2+ paths are available */}
         {showPathSelector ? (
-          <div className="px-6 py-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <div className="px-5 py-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Choisissez votre parcours
             </p>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {paths!.map((path, i) => (
                 <button
                   key={path.key}
                   type="button"
                   onClick={() => setSelectedPath(path.key)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all ${
+                  className={`w-full text-left p-2.5 rounded-lg border transition-all ${
                     selectedPath === path.key
                       ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border hover:border hover:bg-muted/50"
+                      : "border hover:bg-muted/50"
                   }`}
                 >
-                  <div className="flex items-start gap-2.5">
-                    <span className={`flex-shrink-0 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center mt-0.5 ${
+                  <div className="flex items-center gap-2">
+                    <span className={`flex-shrink-0 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${
                       selectedPath === path.key ? "bg-primary text-white" : "bg-muted text-muted-foreground"
                     }`}>
                       {i + 1}
                     </span>
-                    <div>
-                      <div className="text-sm font-semibold text-foreground">{path.name}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{path.description}</div>
-                      <div className="text-[11px] text-muted-foreground/60 mt-1">
-                        {path.steps.length} étape{path.steps.length > 1 ? "s" : ""}
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-foreground">{path.name}</div>
+                      <div className="text-[11px] text-muted-foreground/70 leading-tight">
+                        {path.steps.length} étape{path.steps.length > 1 ? "s" : ""} · {path.description}
                       </div>
                     </div>
                   </div>
@@ -828,20 +827,19 @@ export function WelcomeModal({
           </div>
         ) : (
           /* Steps preview — shown when only 1 path or no paths */
-          <div className="px-6 py-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <div className="px-5 py-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Au programme ({steps.length} étapes)
             </p>
-            <ol className="space-y-2">
+            <ol className="space-y-1.5">
               {steps.map((s, i) => (
-                <li key={s.target} className="flex items-start gap-2.5">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">
+                <li key={s.target} className="flex items-start gap-2">
+                  <span className="flex-shrink-0 w-4 h-4 rounded-full bg-primary/10 text-primary text-[9px] font-bold flex items-center justify-center mt-0.5">
                     {i + 1}
                   </span>
-                  <span className="text-sm text-foreground leading-snug">
+                  <span className="text-xs text-foreground leading-snug">
                     <span className="font-medium">{s.title}</span>
-                    {" "}
-                    <span className="text-muted-foreground">— {s.description}</span>
+                    <span className="text-muted-foreground"> — {s.description}</span>
                   </span>
                 </li>
               ))}
@@ -850,14 +848,24 @@ export function WelcomeModal({
         )}
 
         {/* Actions */}
-        <div className="px-6 pb-6 flex gap-3">
-          <Button variant="outline" size="sm" className="flex-1" onClick={onDismiss}>
-            Ignorer
-          </Button>
-          <Button size="sm" className="flex-1 gap-1.5 bg-primary hover:bg-primary/90" onClick={handleStart}>
-            <BookOpen className="w-4 h-4" />
-            {showPathSelector ? "Démarrer ce parcours" : "Démarrer la visite"}
-          </Button>
+        <div className="px-5 pb-4 pt-1 space-y-2">
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={onDismiss}>
+              Plus tard
+            </Button>
+            <Button size="sm" className="flex-1 h-8 text-xs gap-1 bg-primary hover:bg-primary/90" onClick={handleStart}>
+              <BookOpen className="w-3.5 h-3.5" />
+              {showPathSelector ? "Démarrer" : "Démarrer la visite"}
+            </Button>
+          </div>
+          {/* Ne plus afficher */}
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="w-full text-center text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors py-0.5"
+          >
+            Ne plus afficher cette visite
+          </button>
         </div>
       </div>
     </div>,
@@ -879,34 +887,39 @@ interface OnboardingTourProps {
 }
 
 const LENS_PADDING = 8;
-const BUBBLE_GAP = 16;
-const BUBBLE_WIDTH = 320;
+const BUBBLE_GAP = 14;
+const BUBBLE_WIDTH = 300;
+
+function clamp(val: number, min: number, max: number) {
+  return Math.max(min, Math.min(val, max));
+}
 
 function getBubblePosition(rect: DOMRect, bubbleHeight: number) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const spaceBelow = vh - (rect.bottom + LENS_PADDING);
-  const spaceAbove = rect.top - LENS_PADDING;
+  const lp = LENS_PADDING;
 
-  let top: number;
-  let placement: "top" | "bottom";
+  const spaceBelow = vh - (rect.bottom + lp) - BUBBLE_GAP;
+  const spaceAbove = rect.top - lp - BUBBLE_GAP;
+  const spaceRight = vw - (rect.right + lp) - BUBBLE_GAP;
+  const spaceLeft = rect.left - lp - BUBBLE_GAP;
 
-  if (spaceBelow >= bubbleHeight + BUBBLE_GAP) {
-    top = rect.bottom + LENS_PADDING + BUBBLE_GAP;
-    placement = "bottom";
-  } else if (spaceAbove >= bubbleHeight + BUBBLE_GAP) {
-    top = rect.top - LENS_PADDING - BUBBLE_GAP - bubbleHeight;
-    placement = "top";
-  } else {
-    top = rect.bottom + LENS_PADDING + BUBBLE_GAP;
-    placement = "bottom";
+  const centerLeft = clamp(rect.left + rect.width / 2 - BUBBLE_WIDTH / 2, 12, vw - BUBBLE_WIDTH - 12);
+  const centerTop = clamp(rect.top + rect.height / 2 - bubbleHeight / 2, 12, vh - bubbleHeight - 12);
+
+  if (spaceBelow >= bubbleHeight) {
+    return { top: rect.bottom + lp + BUBBLE_GAP, left: centerLeft, placement: "bottom" as const };
   }
-
-  const lensCenter = rect.left + rect.width / 2;
-  let left = lensCenter - BUBBLE_WIDTH / 2;
-  left = Math.max(12, Math.min(left, vw - BUBBLE_WIDTH - 12));
-
-  return { top, left, placement };
+  if (spaceAbove >= bubbleHeight) {
+    return { top: rect.top - lp - BUBBLE_GAP - bubbleHeight, left: centerLeft, placement: "top" as const };
+  }
+  if (spaceRight >= BUBBLE_WIDTH) {
+    return { top: centerTop, left: rect.right + lp + BUBBLE_GAP, placement: "right" as const };
+  }
+  if (spaceLeft >= BUBBLE_WIDTH) {
+    return { top: centerTop, left: rect.left - lp - BUBBLE_GAP - BUBBLE_WIDTH, placement: "left" as const };
+  }
+  return { top: clamp(rect.bottom + lp + BUBBLE_GAP, 12, vh - bubbleHeight - 12), left: centerLeft, placement: "bottom" as const };
 }
 
 export function OnboardingTour({ steps, onClose, pathLabel, initialStep = 0, onStepChange }: OnboardingTourProps) {
@@ -964,25 +977,26 @@ export function OnboardingTour({ steps, onClose, pathLabel, initialStep = 0, onS
   const isLast = currentStep === steps.length - 1;
   const isFirst = currentStep === 0;
 
-  const BUBBLE_HEIGHT_ESTIMATE = 210;
+  const BUBBLE_HEIGHT_ESTIMATE = 220;
 
+  // Overlay ultra-léger + ring orange autour de l'élément ciblé (pas de masque sombre)
   const lensStyle: React.CSSProperties = rect ? {
     position: "fixed",
     top: rect.top - LENS_PADDING,
     left: rect.left - LENS_PADDING,
     width: rect.width + LENS_PADDING * 2,
     height: rect.height + LENS_PADDING * 2,
-    boxShadow: "0 0 0 9999px rgba(0,0,0,0.65)",
     borderRadius: 10,
     zIndex: 9995,
     pointerEvents: "none",
-    transition: "top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease",
-    outline: "2px solid rgba(243,112,33,0.7)",
-    outlineOffset: 0,
+    // voile très léger sur le reste, ring orange bien visible sur la cible
+    boxShadow: "0 0 0 9999px rgba(0,0,0,0.10), 0 0 0 2px rgba(243,112,33,0.9), 0 0 0 5px rgba(243,112,33,0.18)",
+    transition: "top 0.3s cubic-bezier(0.4,0,0.2,1), left 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1), height 0.3s cubic-bezier(0.4,0,0.2,1)",
   } : {
+    // Cible introuvable : voile minimal, non bloquant
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.65)",
+    background: "rgba(0,0,0,0.06)",
     zIndex: 9995,
     pointerEvents: "none",
   };
@@ -990,7 +1004,7 @@ export function OnboardingTour({ steps, onClose, pathLabel, initialStep = 0, onS
   const bubblePos = rect
     ? getBubblePosition(rect, BUBBLE_HEIGHT_ESTIMATE)
     : {
-        top: window.innerHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2,
+        top: window.innerHeight - BUBBLE_HEIGHT_ESTIMATE - 24,
         left: window.innerWidth / 2 - BUBBLE_WIDTH / 2,
         placement: "bottom" as const,
       };
@@ -999,53 +1013,54 @@ export function OnboardingTour({ steps, onClose, pathLabel, initialStep = 0, onS
     position: "fixed",
     top: bubblePos.top,
     left: bubblePos.left,
-    width: BUBBLE_WIDTH,
+    width: Math.min(BUBBLE_WIDTH, window.innerWidth - 24),
     zIndex: 9999,
-    transition: "top 0.25s ease, left 0.25s ease",
+    transition: "top 0.3s cubic-bezier(0.4,0,0.2,1), left 0.3s cubic-bezier(0.4,0,0.2,1)",
   };
 
   return createPortal(
     <>
-      {/* Lens (spotlight) */}
+      {/* Spotlight ring (voile très léger + contour orange sur la cible) */}
       <div style={lensStyle} />
 
-      {/* Bubble */}
+      {/* Bulle de guidage */}
       <div style={bubbleStyle}>
-        <div className="bg-card rounded-xl shadow-2xl overflow-hidden border border">
-          {/* Progress bar */}
-          <div className="h-1 bg-muted">
+        <div className="bg-card rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] overflow-hidden border">
+          {/* Barre de progression */}
+          <div className="h-0.5 bg-muted">
             <div
               className="h-full bg-primary transition-all duration-300"
               style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
             />
           </div>
 
-          <div className="px-4 pt-3.5 pb-3">
-            {/* Parcours label */}
+          <div className="px-4 pt-3 pb-3">
+            {/* Label parcours */}
             {pathLabel && (
-              <div className="flex items-center gap-1 mb-2">
-                <BookOpen className="w-3 h-3 text-primary/60" />
-                <span className="text-[10px] font-semibold text-primary/70 uppercase tracking-wide truncate">{pathLabel}</span>
+              <div className="flex items-center gap-1 mb-1.5">
+                <BookOpen className="w-3 h-3 text-primary/50" />
+                <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-wide truncate">{pathLabel}</span>
               </div>
             )}
 
-            {/* Header */}
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
+            {/* En-tête */}
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex-shrink-0 w-4.5 h-4.5 w-[18px] h-[18px] rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center">
                   {currentStep + 1}
                 </span>
-                <h3 className="text-sm font-bold text-foreground">{step.title}</h3>
+                <h3 className="text-[13px] font-bold text-foreground leading-tight">{step.title}</h3>
               </div>
               <button
                 onClick={onClose}
-                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                title="Fermer la visite"
+                className="text-muted-foreground/60 hover:text-foreground transition-colors shrink-0 mt-0.5"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{step.description}</p>
 
             {/* Action optionnelle */}
             {step.action && (
@@ -1053,7 +1068,7 @@ export function OnboardingTour({ steps, onClose, pathLabel, initialStep = 0, onS
                 <Button
                   size="sm"
                   variant="outline"
-                  className="mt-2.5 h-7 text-xs gap-1 w-full border-primary/30 text-primary hover:bg-primary/5"
+                  className="mt-2 h-6 text-[11px] gap-1 w-full border-primary/25 text-primary hover:bg-primary/5"
                 >
                   {step.action.label}
                   <ChevronRight className="w-3 h-3" />
@@ -1062,56 +1077,48 @@ export function OnboardingTour({ steps, onClose, pathLabel, initialStep = 0, onS
             )}
 
             {/* Navigation */}
-            <div className="flex items-center justify-between mt-3 gap-2">
-              <span className="text-[11px] text-muted-foreground font-medium tabular-nums">
-                Étape {currentStep + 1} / {steps.length}
-              </span>
-              <div className="flex gap-2">
+            <div className="flex items-center justify-between mt-2.5 gap-2">
+              {/* Indicateurs dots */}
+              <div className="flex gap-1">
+                {steps.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => goTo(i)}
+                    className={`h-1 rounded-full transition-all ${
+                      i === currentStep ? "bg-primary w-4" : "bg-muted-foreground/25 hover:bg-muted-foreground/40 w-1"
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="flex gap-1.5 items-center">
                 {!isFirst && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 px-2.5 text-xs gap-1"
+                  <button
                     onClick={() => goTo(currentStep - 1)}
+                    className="h-7 px-2 text-[11px] rounded-md border border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <ChevronLeft className="w-3 h-3" />
                     Préc.
-                  </Button>
+                  </button>
                 )}
                 {isLast ? (
-                  <Button
-                    size="sm"
-                    className="h-7 px-3 text-xs gap-1 bg-primary hover:bg-primary/90"
+                  <button
                     onClick={onClose}
+                    className="h-7 px-2.5 text-[11px] rounded-md bg-primary hover:bg-primary/90 text-white transition-colors flex items-center gap-1 font-medium"
                   >
                     Terminer
-                    <MapPin className="w-3.5 h-3.5" />
-                  </Button>
+                    <MapPin className="w-3 h-3" />
+                  </button>
                 ) : (
-                  <Button
-                    size="sm"
-                    className="h-7 px-2.5 text-xs gap-1 bg-primary hover:bg-primary/90"
+                  <button
                     onClick={() => goTo(currentStep + 1)}
+                    className="h-7 px-2.5 text-[11px] rounded-md bg-primary hover:bg-primary/90 text-white transition-colors flex items-center gap-1 font-medium"
                   >
                     Suivant
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Button>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Dot indicators */}
-          <div className="flex justify-center gap-1.5 pb-3">
-            {steps.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => goTo(i)}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === currentStep ? "bg-primary w-4" : "bg-slate-200 hover:bg-slate-300 w-1.5"
-                }`}
-              />
-            ))}
           </div>
         </div>
       </div>
