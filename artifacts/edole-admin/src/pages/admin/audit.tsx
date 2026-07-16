@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ClipboardList, Search, ChevronLeft, ChevronRight, Filter, X,
-  Shield, AlertTriangle, Download, Activity, Users, Trash2, LogIn,
+  Shield, AlertTriangle, Download, Activity, Users, User, Trash2, LogIn,
   Eye, BarChart3, Clock, Monitor, Globe, CheckCircle2, XCircle,
   AlertCircle, Info, Zap, RefreshCw, ChevronDown, ChevronUp,
 } from "lucide-react";
@@ -585,6 +585,7 @@ export default function AdminAuditPage() {
   const [module, setModule] = useState("_all");
   const [category, setCategory] = useState("_all");
   const [q, setQ] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
@@ -602,13 +603,14 @@ export default function AdminAuditPage() {
   if (module !== "_all") params.set("module", module);
   if (category !== "_all") params.set("category", category);
   if (q) params.set("q", q);
+  if (userEmail) params.set("userEmail", userEmail);
   if (from) params.set("from", from);
   if (to) params.set("to", to);
   params.set("page", String(page));
   params.set("limit", "25");
 
   const { data, isLoading, refetch } = useQuery<AuditResponse>({
-    queryKey: ["admin/audit", quick, action, severity, status, module, category, q, from, to, page],
+    queryKey: ["admin/audit", quick, action, severity, status, module, category, q, userEmail, from, to, page],
     queryFn: () => apiFetch<AuditResponse>(`/api/admin/audit?${params.toString()}`),
   });
 
@@ -642,7 +644,7 @@ export default function AdminAuditPage() {
   };
 
   const activeFiltersCount = [action, severity, status, module, category].filter(v => v !== "_all").length
-    + (q ? 1 : 0) + (from || to ? 1 : 0);
+    + (q ? 1 : 0) + (userEmail ? 1 : 0) + (from || to ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -710,6 +712,12 @@ export default function AdminAuditPage() {
                     <Input value={q} onChange={e => { setQ(e.target.value); resetPage(); }}
                       placeholder="Email, entité…" className="pl-8 h-8 text-sm" />
                   </div>
+                  <div className="w-52 relative">
+                    <Label className="text-xs mb-1 block">Utilisateur (email)</Label>
+                    <User className="absolute left-3 bottom-2.5 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input value={userEmail} onChange={e => { setUserEmail(e.target.value); resetPage(); }}
+                      placeholder="prenom.nom@…" className="pl-8 h-8 text-sm" />
+                  </div>
                   <div className="w-44">
                     <Label className="text-xs mb-1 block">Action</Label>
                     <Select value={action} onValueChange={v => { setAction(v); resetPage(); }}>
@@ -773,7 +781,7 @@ export default function AdminAuditPage() {
                   </div>
                   {activeFiltersCount > 0 && (
                     <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5 text-destructive"
-                      onClick={() => { setAction("_all"); setSeverity("_all"); setStatus("_all"); setModule("_all"); setCategory("_all"); setQ(""); setFrom(""); setTo(""); setQuick("_all"); resetPage(); }}>
+                      onClick={() => { setAction("_all"); setSeverity("_all"); setStatus("_all"); setModule("_all"); setCategory("_all"); setQ(""); setUserEmail(""); setFrom(""); setTo(""); setQuick("_all"); resetPage(); }}>
                       <X className="w-3.5 h-3.5" />Réinitialiser
                     </Button>
                   )}

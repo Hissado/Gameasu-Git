@@ -23,6 +23,7 @@ function buildAuditWhere(orgId: string, q: Record<string, string>) {
   if (q.subModule)  conds.push(eq(auditLogsTable.subModule, q.subModule));
   if (q.entityType) conds.push(eq(auditLogsTable.entityType, q.entityType));
   if (q.userId && isUuid(q.userId)) conds.push(eq(auditLogsTable.userId, q.userId));
+  if (q.userEmail)  conds.push(ilike(auditLogsTable.userEmail, `%${q.userEmail}%`));
   if (q.device)     conds.push(ilike(auditLogsTable.device, `%${q.device}%`));
   if (q.browser)    conds.push(ilike(auditLogsTable.browser, `%${q.browser}%`));
   if (q.ip)         conds.push(ilike(auditLogsTable.ipAddress, `%${q.ip}%`));
