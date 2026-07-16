@@ -593,11 +593,13 @@ export default function AdminAuditPage() {
   const [timelineUserId, setTimelineUserId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const { data: orgUsers } = useQuery<Array<{ id: string; email: string; firstName: string; lastName: string }>>({
+  const { data: orgUsersRaw } = useQuery({
     queryKey: ["users/list"],
-    queryFn: () => apiFetch("/api/users?limit=200&isActive=true"),
+    queryFn: (): Promise<any> => apiFetch("/api/users?limit=200"),
     staleTime: 5 * 60 * 1000,
   });
+  const orgUsers: Array<{ id: string; email: string; firstName: string; lastName: string }> =
+    Array.isArray(orgUsersRaw) ? orgUsersRaw : (orgUsersRaw?.data ?? []);
 
   const resetPage = useCallback(() => setPage(1), []);
 
