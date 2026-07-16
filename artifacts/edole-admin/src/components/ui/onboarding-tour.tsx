@@ -527,6 +527,203 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       ],
     },
   ],
+  clients: [
+    {
+      key: "decouverte",
+      name: "Portefeuille clients",
+      description: "Naviguez dans votre base clients B2B et accédez aux fiches détail.",
+      steps: [
+        {
+          target: "clients-list",
+          title: "Base clients B2B",
+          description: "Tous vos clients avec leur secteur, statut (Actif / Prospect) et contacts principaux. Utilisez la recherche pour trouver rapidement un tiers.",
+        },
+        {
+          target: "clients-list",
+          title: "Fiche client",
+          description: "Chaque fiche regroupe les coordonnées, les opportunités CRM associées, les factures, les projets et l'historique des interactions. Cliquez sur un client pour l'ouvrir.",
+          action: { label: "Voir le CRM", href: "/crm" },
+        },
+      ],
+    },
+    {
+      key: "suivi",
+      name: "Suivi & historique",
+      description: "Activités, documents et opportunities liés à chaque client.",
+      steps: [
+        {
+          target: "clients-list",
+          title: "Filtrer par statut",
+          description: "Filtrez entre Actifs et Prospects pour cibler vos relances commerciales. Exportez la liste filtrée en CSV pour vos campagnes.",
+        },
+        {
+          target: "clients-list",
+          title: "Ajouter un client",
+          description: "Le bouton «+ Nouveau» crée une fiche client en moins d'une minute. Les coordonnées saisies sont immédiatement disponibles dans les devis, factures et contrats.",
+          action: { label: "Voir les clients", href: "/clients" },
+        },
+      ],
+    },
+  ],
+  equipements: [
+    {
+      key: "decouverte",
+      name: "Inventaire & disponibilité",
+      description: "Gérez votre parc d'équipements et suivez leur état.",
+      steps: [
+        {
+          target: "equip-list",
+          title: "Catalogue équipements",
+          description: "Chaque équipement affiche sa catégorie, son état (Disponible, En location, En maintenance) et sa valeur d'acquisition. Les codes couleur facilitent la lecture rapide.",
+        },
+        {
+          target: "equip-list",
+          title: "Disponibilité calendaire",
+          description: "L'indicateur de disponibilité se met à jour automatiquement dès qu'un contrat de location est créé ou qu'une maintenance est planifiée.",
+          action: { label: "Voir les équipements", href: "/equipements" },
+        },
+      ],
+    },
+    {
+      key: "maintenance",
+      name: "Maintenance & QR codes",
+      description: "Planifiez les maintenances et identifiez les actifs par QR code.",
+      steps: [
+        {
+          target: "equip-list",
+          title: "Catégories d'équipements",
+          description: "Organisez votre parc par catégories (véhicules, matériel BTP, informatique…). Chaque catégorie peut avoir des règles de maintenance et d'amortissement distinctes.",
+          action: { label: "Voir les catégories", href: "/equipements/categories" },
+        },
+        {
+          target: "equip-list",
+          title: "QR codes d'identification",
+          description: "Générez un QR code par équipement pour accéder instantanément à sa fiche depuis un smartphone : état, historique de location et prochaine maintenance.",
+          action: { label: "Voir les QR codes", href: "/equipements/qr" },
+        },
+      ],
+    },
+  ],
+  logistique: [
+    {
+      key: "decouverte",
+      name: "Opérations logistiques",
+      description: "Planifiez et suivez les livraisons et collectes terrain.",
+      steps: [
+        {
+          target: "logis-list",
+          title: "Journal des opérations",
+          description: "Toutes les opérations de livraison et collecte liées aux contrats de location. Chaque ligne affiche l'équipement, le chauffeur assigné, l'adresse et le statut.",
+        },
+        {
+          target: "logis-list",
+          title: "Planifier une opération",
+          description: "Créez une opération depuis la fiche de location. Assignez un chauffeur, renseignez l'adresse et la fenêtre horaire. Le responsable est notifié automatiquement.",
+          action: { label: "Voir les locations", href: "/locations" },
+        },
+      ],
+    },
+  ],
+  services: [
+    {
+      key: "decouverte",
+      name: "Catalogue de services",
+      description: "Gérez vos prestations et tarifications par client ou segment.",
+      steps: [
+        {
+          target: "svc-list",
+          title: "Catalogue des prestations",
+          description: "Chaque service décrit une prestation facturable : désignation, unité, tarif HT et TVA applicable. Les services sont réutilisables dans les devis et factures.",
+        },
+        {
+          target: "svc-list",
+          title: "Créer un service",
+          description: "Définissez vos prestations standards une seule fois. Lors de la création d'un devis ou d'une facture, sélectionnez-les depuis ce catalogue pour gagner du temps.",
+          action: { label: "Voir les services", href: "/services" },
+        },
+      ],
+    },
+  ],
+  commandes: [
+    {
+      key: "decouverte",
+      name: "Bons de commande clients",
+      description: "Suivez vos commandes de la validation à la livraison.",
+      steps: [
+        {
+          target: "cmd-list",
+          title: "Liste des commandes",
+          description: "Toutes les commandes clients avec leur statut (brouillon, confirmée, livrée, annulée). Les commandes en retard de livraison s'affichent en rouge.",
+        },
+        {
+          target: "cmd-list",
+          title: "De la commande à la facture",
+          description: "Une commande confirmée peut être convertie en facture en un clic. Les lignes, quantités et prix sont repris automatiquement.",
+          action: { label: "Voir les factures", href: "/factures" },
+        },
+      ],
+    },
+  ],
+  devis: [
+    {
+      key: "decouverte",
+      name: "Devis & propositions",
+      description: "Créez des propositions commerciales professionnelles.",
+      steps: [
+        {
+          target: "devis-list",
+          title: "Portefeuille devis",
+          description: "Vos devis en cours avec leur statut (brouillon, envoyé, accepté, refusé). Le taux d'acceptation sur 30 jours est affiché en haut du tableau.",
+        },
+        {
+          target: "devis-list",
+          title: "Convertir en bon de commande",
+          description: "Un devis accepté se transforme en bon de commande ou directement en facture d'un clic. Les lignes, remises et conditions sont reprises automatiquement.",
+          action: { label: "Voir les commandes", href: "/commandes" },
+        },
+      ],
+    },
+  ],
+  utilisateurs: [
+    {
+      key: "decouverte",
+      name: "Gestion des utilisateurs",
+      description: "Invitez les membres de votre équipe et gérez leurs droits.",
+      steps: [
+        {
+          target: "users-list",
+          title: "Annuaire des utilisateurs",
+          description: "Tous les comptes ayant accès à votre espace Gaméasù : rôle, statut (actif / inactif) et dernière connexion. Seuls les Super Admins et Admins peuvent inviter de nouveaux membres.",
+        },
+        {
+          target: "users-list",
+          title: "Inviter un collaborateur",
+          description: "Saisissez l'adresse email et choisissez le rôle. L'invité reçoit un email avec un lien d'activation valable 7 jours. L'accès est immédiatement limité aux modules autorisés par son rôle.",
+          action: { label: "Voir les utilisateurs", href: "/utilisateurs" },
+        },
+      ],
+    },
+  ],
+  parametres: [
+    {
+      key: "decouverte",
+      name: "Paramètres de l'espace",
+      description: "Configurez votre organisation, vos modules et vos préférences.",
+      steps: [
+        {
+          target: "settings-nav",
+          title: "Onglets de paramétrage",
+          description: "Les paramètres sont organisés par thèmes : Profil, Sécurité, Organisation, Modules, Permissions, Comptabilité, Pointage et Zone danger. Naviguez par onglets.",
+        },
+        {
+          target: "settings-nav",
+          title: "Activer / désactiver des modules",
+          description: "L'onglet Modules permet d'activer ou désactiver les fonctionnalités disponibles dans votre formule. Les modules désactivés disparaissent du menu pour tous les utilisateurs.",
+          action: { label: "Aller aux paramètres", href: "/parametres" },
+        },
+      ],
+    },
+  ],
   messagerie: [
     {
       key: "decouverte",
@@ -569,19 +766,34 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
 
 export const TOUR_MODULE_MAP: Record<string, string> = {
   "/": "dashboard",
+  // CRM & Commercial
   "/crm": "crm",
+  "/clients": "clients",
+  "/devis": "devis",
+  "/commandes": "commandes",
+  "/factures": "factures",
+  "/paiements": "paiements",
+  "/avoirs": "factures",
+  // Opérations
   "/projets": "projets",
-  "/collaborateurs": "collaborateurs",
+  "/tasks": "taches",
+  "/services": "services",
+  "/equipements": "equipements",
+  "/locations": "locations",
+  "/inspections": "locations",
+  "/logistique": "logistique",
+  // Finance
   "/comptabilite/plan-comptable": "plan_comptable",
   "/comptabilite": "comptabilite",
   "/fpa": "fpa",
-  "/tasks": "taches",
-  "/factures": "factures",
-  "/paiements": "paiements",
-  "/locations": "locations",
-  "/rh": "rh",
   "/achats": "achats",
+  // RH
+  "/rh": "rh",
+  "/collaborateurs": "collaborateurs",
+  // Administration & Communication
   "/messaging": "messagerie",
+  "/utilisateurs": "utilisateurs",
+  "/parametres": "parametres",
 };
 
 const LS_KEY = (k: string) => `tour_seen_${k}`;
