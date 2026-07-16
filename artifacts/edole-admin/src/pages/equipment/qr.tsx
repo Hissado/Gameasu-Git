@@ -37,11 +37,11 @@ export default function EquipmentQRCodes() {
               {(data?.data || []).map((eq) => {
                 const payload = JSON.stringify({ id: eq.id, code: eq.code, name: eq.name });
                 return (
-                  <div key={eq.id} className="border-2 border-slate-300 rounded-md p-4 flex flex-col items-center gap-2 break-inside-avoid">
+                  <div key={eq.id} className="border-2 border rounded-md p-4 flex flex-col items-center gap-2 break-inside-avoid">
                     <QRCodeSVG value={payload} size={140} level="M" />
                     <div className="text-center">
                       <div className="font-bold text-sm">{eq.name}</div>
-                      <div className="font-mono text-xs text-slate-500">{eq.code || eq.id.substring(0, 8)}</div>
+                      <div className="font-mono text-xs text-muted-foreground">{eq.code || eq.id.substring(0, 8)}</div>
                     </div>
                   </div>
                 );

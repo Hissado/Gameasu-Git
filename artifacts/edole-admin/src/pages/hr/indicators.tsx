@@ -46,7 +46,7 @@ export default function HrIndicatorsPage() {
     { label: "Départs", value: d.departuresThisYear ?? 0, sub: `sur ${year}`, icon: UserMinus, color: "text-red-600" },
     { label: "Taux de turnover", value: `${d.turnoverRate ?? 0}%`, sub: `moy. secteur 15%`, icon: TrendingDown, color: d.turnoverRate > 15 ? "text-red-600" : "text-emerald-600" },
     { label: "Ancienneté moy.", value: `${d.avgTenureYears ?? 0} ans`, sub: "", icon: Clock, color: "text-purple-600" },
-    { label: "CDI / CDD", value: `${d.permanentCount ?? 0} / ${d.temporaryCount ?? 0}`, sub: "", icon: UserCheck, color: "text-slate-600" },
+    { label: "CDI / CDD", value: `${d.permanentCount ?? 0} / ${d.temporaryCount ?? 0}`, sub: "", icon: UserCheck, color: "text-muted-foreground" },
     { label: "Jours abs. / ETP", value: d.absenceDaysPerFTE ?? 0, sub: `jours/an`, icon: Calendar, color: "text-amber-600" },
     { label: "Taux de présence", value: `${d.attendanceRate ?? 0}%`, sub: `ce mois`, icon: TrendingUp, color: d.attendanceRate >= 90 ? "text-emerald-600" : "text-amber-600" },
   ];

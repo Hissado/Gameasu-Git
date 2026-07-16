@@ -113,7 +113,7 @@ function MyClockPanel() {
   if (!data?.collaborator) {
     return (
       <Card className="p-6">
-        <p className="text-sm text-slate-600">Votre compte utilisateur n'est lié à aucun collaborateur. Demandez à l'administrateur de créer la liaison RH avant de pouvoir pointer.</p>
+        <p className="text-sm text-muted-foreground">Votre compte utilisateur n'est lié à aucun collaborateur. Demandez à l'administrateur de créer la liaison RH avant de pouvoir pointer.</p>
       </Card>
     );
   }
@@ -122,20 +122,20 @@ function MyClockPanel() {
     <Card className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Pointage du jour</h2>
-          <p className="text-xs text-slate-500">
+          <h2 className="text-lg font-bold text-foreground">Pointage du jour</h2>
+          <p className="text-xs text-muted-foreground">
             {session ? `Session ouverte à ${fmtTime(session.clockInAt)}` : "Aucune session ouverte aujourd'hui"}
           </p>
         </div>
         {session && (
           <div className="flex items-center gap-3 text-right">
             <div>
-              <p className="text-[10px] uppercase text-slate-400 font-semibold">Présence</p>
+              <p className="text-[10px] uppercase text-muted-foreground/60 font-semibold">Présence</p>
               <p className="text-lg font-bold text-primary">{formatMinutes(session.effectiveMinutes)}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase text-slate-400 font-semibold">Pause</p>
-              <p className="text-lg font-bold text-slate-700">{formatMinutes(session.breakMinutes)}</p>
+              <p className="text-[10px] uppercase text-muted-foreground/60 font-semibold">Pause</p>
+              <p className="text-lg font-bold text-foreground">{formatMinutes(session.breakMinutes)}</p>
             </div>
             {session.isLate && <Badge variant="destructive">Retard</Badge>}
             {session.status === "closed" && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Clôturée</Badge>}
@@ -158,21 +158,21 @@ function MyClockPanel() {
         </Button>
       </div>
 
-      <div className="text-xs text-slate-500 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 flex items-start gap-2">
+      <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-md px-3 py-2 flex items-start gap-2">
         <MapPin className="w-3.5 h-3.5 mt-0.5 text-amber-600" />
         La géolocalisation est demandée à chaque pointage. Vous pouvez l'autoriser depuis votre navigateur pour assurer la traçabilité. Si elle est refusée, le pointage est tout de même enregistré sans coordonnées.
       </div>
 
       {records.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase text-slate-500 mb-2">Historique du jour</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Historique du jour</p>
           <div className="space-y-1.5">
             {records.map((r: AttendanceRecord) => (
-              <div key={r.id} className="flex items-center justify-between text-sm bg-slate-50 rounded-md px-3 py-2 gap-2">
+              <div key={r.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-md px-3 py-2 gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="font-medium text-slate-700">{KIND_LABEL[r.kind] ?? r.kind}</span>
-                  <span className="text-slate-500">{fmtTime(r.occurredAt)}</span>
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+                  <span className="font-medium text-foreground">{KIND_LABEL[r.kind] ?? r.kind}</span>
+                  <span className="text-muted-foreground">{fmtTime(r.occurredAt)}</span>
                   {r.source === "kiosk" && (
                     <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 rounded px-1.5 py-0.5 shrink-0">
                       <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosque
@@ -184,13 +184,13 @@ function MyClockPanel() {
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-slate-500 flex items-center gap-2 shrink-0">
+                <div className="text-xs text-muted-foreground flex items-center gap-2 shrink-0">
                   {resolveStorageUrl(r.photoUrl) && (
                     <a href={resolveStorageUrl(r.photoUrl)!} target="_blank" rel="noreferrer" title="Voir la photo de présence">
                       <img
                         src={resolveStorageUrl(r.photoUrl)!}
                         alt="Photo pointage"
-                        className="w-8 h-8 rounded object-cover border border-slate-200 hover:opacity-80 transition-opacity cursor-zoom-in"
+                        className="w-8 h-8 rounded object-cover border border hover:opacity-80 transition-opacity cursor-zoom-in"
                       />
                     </a>
                   )}
@@ -203,7 +203,7 @@ function MyClockPanel() {
                       <MapPin className="w-3 h-3" />
                       {Number(r.latitude).toFixed(4)}, {Number(r.longitude).toFixed(4)}
                     </a>
-                  ) : <span className="text-slate-400">Sans GPS</span>}
+                  ) : <span className="text-muted-foreground/60">Sans GPS</span>}
                 </div>
               </div>
             ))}
@@ -243,30 +243,30 @@ function CollaboratorRecordsDialog({
           </DialogTitle>
         </DialogHeader>
         {isLoading ? (
-          <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+          <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground/60" /></div>
         ) : todayRecords.length === 0 ? (
-          <p className="text-sm text-slate-500 py-4 text-center">Aucun enregistrement pour cette date.</p>
+          <p className="text-sm text-muted-foreground py-4 text-center">Aucun enregistrement pour cette date.</p>
         ) : (
           <div className="space-y-2">
             {todayRecords.map((r) => (
-              <div key={r.id} className="flex items-center gap-3 bg-slate-50 rounded-lg px-3 py-2.5">
+              <div key={r.id} className="flex items-center gap-3 bg-muted/50 rounded-lg px-3 py-2.5">
                 {resolveStorageUrl(r.photoUrl) ? (
                   <a href={resolveStorageUrl(r.photoUrl)!} target="_blank" rel="noreferrer" title="Voir la photo en grand">
                     <img
                       src={resolveStorageUrl(r.photoUrl)!}
                       alt="Photo pointage"
-                      className="w-12 h-12 rounded-lg object-cover border border-slate-200 hover:opacity-80 transition-opacity cursor-zoom-in shrink-0"
+                      className="w-12 h-12 rounded-lg object-cover border border hover:opacity-80 transition-opacity cursor-zoom-in shrink-0"
                     />
                   </a>
                 ) : (
-                  <div className="w-12 h-12 rounded-lg bg-slate-200 flex items-center justify-center shrink-0">
-                    <Camera className="w-5 h-5 text-slate-400" />
+                  <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <Camera className="w-5 h-5 text-muted-foreground/60" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-slate-800 text-sm">{KIND_LABEL[r.kind] ?? r.kind}</span>
-                    <span className="text-slate-500 text-sm">{fmtTime(r.occurredAt)}</span>
+                    <span className="font-semibold text-foreground text-sm">{KIND_LABEL[r.kind] ?? r.kind}</span>
+                    <span className="text-muted-foreground text-sm">{fmtTime(r.occurredAt)}</span>
                     {r.source === "kiosk" && (
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 rounded px-1.5 py-0.5">
                         <MonitorSmartphone className="w-2.5 h-2.5" /> Kiosque
@@ -283,7 +283,7 @@ function CollaboratorRecordsDialog({
                       </span>
                     )}
                     {(!r.source || r.source === "manual") && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-slate-100 text-slate-500 rounded px-1.5 py-0.5">
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-muted text-muted-foreground rounded px-1.5 py-0.5">
                         Manuel
                       </span>
                     )}
@@ -298,7 +298,7 @@ function CollaboratorRecordsDialog({
                       {Number(r.latitude).toFixed(4)}, {Number(r.longitude).toFixed(4)}
                     </a>
                   ) : (
-                    <p className="text-xs text-slate-400 mt-0.5">Sans GPS</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">Sans GPS</p>
                   )}
                 </div>
               </div>
@@ -335,10 +335,10 @@ function HRDashboard() {
     <>
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><Users className="w-5 h-5" />Tableau RH des présences</h2>
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><Users className="w-5 h-5" />Tableau RH des présences</h2>
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border border-slate-200 rounded-md px-2 py-1 text-sm" />
+            <Calendar className="w-4 h-4 text-muted-foreground/60" />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border border rounded-md px-2 py-1 text-sm" />
           </div>
         </div>
 
@@ -354,7 +354,7 @@ function HRDashboard() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="text-left px-3 py-2">Collaborateur</th>
                 <th className="text-left px-3 py-2">Département</th>
@@ -369,15 +369,15 @@ function HRDashboard() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={9} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
+                <tr><td colSpan={9} className="px-3 py-6 text-center text-muted-foreground/60"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
               ) : data?.sessions.length ? data.sessions.map((s) => (
                 <tr
                   key={s.id}
-                  className="border-t border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
+                  className="border-t border hover:bg-muted/50 cursor-pointer transition-colors"
                   onClick={() => setSelected({ id: s.collaboratorId, name: s.collaboratorName ?? "—" })}
                 >
-                  <td className="px-3 py-2 font-medium text-slate-700">{s.collaboratorName}</td>
-                  <td className="px-3 py-2 text-slate-500">{s.departmentName ?? "—"}</td>
+                  <td className="px-3 py-2 font-medium text-foreground">{s.collaboratorName}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{s.departmentName ?? "—"}</td>
                   <td className="px-3 py-2">{fmtTime(s.clockInAt)}</td>
                   <td className="px-3 py-2">{fmtTime(s.clockOutAt)}</td>
                   <td className="px-3 py-2">{formatMinutes(s.breakMinutes)}</td>
@@ -385,7 +385,7 @@ function HRDashboard() {
                   <td className="px-3 py-2 text-xs">
                     {((s as any).overtimeMinutes ?? 0) > 0
                       ? <span className="text-emerald-600 font-medium">+{formatMinutes((s as any).overtimeMinutes)}</span>
-                      : <span className="text-slate-400">—</span>}
+                      : <span className="text-muted-foreground/60">—</span>}
                   </td>
                   <td className="px-3 py-2">
                     {s.status === "closed" ? <Badge variant="secondary">Clôturée</Badge> :
@@ -402,17 +402,17 @@ function HRDashboard() {
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
                       </Button>
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
                     </div>
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={9} className="px-3 py-6 text-center text-slate-400">Aucun pointage pour cette date.</td></tr>
+                <tr><td colSpan={9} className="px-3 py-6 text-center text-muted-foreground/60">Aucun pointage pour cette date.</td></tr>
               )}
             </tbody>
           </table>
           {data?.sessions.length ? (
-            <p className="text-xs text-slate-400 mt-2 px-1">Cliquez sur une ligne pour voir le détail des pointages et photos.</p>
+            <p className="text-xs text-muted-foreground/60 mt-2 px-1">Cliquez sur une ligne pour voir le détail des pointages et photos.</p>
           ) : null}
         </div>
       </Card>
@@ -462,30 +462,30 @@ function MonthlySummaryCard() {
   return (
     <Card className="p-6 space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
           <Clock className="w-5 h-5 text-primary" />
           Récapitulatif mensuel par collaborateur
         </h2>
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-slate-400" />
+          <Calendar className="w-4 h-4 text-muted-foreground/60" />
           <input
             type="month"
             value={period}
             onChange={e => setPeriod(e.target.value)}
-            className="border border-slate-200 rounded-md px-2 py-1 text-sm"
+            className="border border rounded-md px-2 py-1 text-sm"
           />
         </div>
       </div>
       {data && (
-        <div className="flex gap-4 text-xs text-slate-500">
-          <span>Période : <strong className="text-slate-700">{periodLabel}</strong></span>
-          <span>Total présence : <strong className="text-slate-700">{formatMinutes(totals.effMin)}</strong></span>
+        <div className="flex gap-4 text-xs text-muted-foreground">
+          <span>Période : <strong className="text-foreground">{periodLabel}</strong></span>
+          <span>Total présence : <strong className="text-foreground">{formatMinutes(totals.effMin)}</strong></span>
           {totals.otMin > 0 && <span className="text-emerald-600">H. sup. totales : <strong>+{formatMinutes(totals.otMin)}</strong></span>}
         </div>
       )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="text-left px-3 py-2">Collaborateur</th>
               <th className="text-right px-3 py-2">Jours travaillés</th>
@@ -496,26 +496,26 @@ function MonthlySummaryCard() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-400">
+              <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground/60">
                 <Loader2 className="w-4 h-4 inline animate-spin" />
               </td></tr>
             ) : !data?.data.length ? (
-              <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-400">Aucune présence pour cette période.</td></tr>
+              <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground/60">Aucune présence pour cette période.</td></tr>
             ) : (
               [...data.data].sort((a, b) => b.effectiveMinutes - a.effectiveMinutes).map(row => (
-                <tr key={row.collaboratorId} className="border-t border-slate-100 hover:bg-slate-50">
-                  <td className="px-3 py-2 font-medium text-slate-700">{row.collaboratorName}</td>
-                  <td className="px-3 py-2 text-right text-slate-600">{row.workDays}j</td>
+                <tr key={row.collaboratorId} className="border-t border hover:bg-muted/50">
+                  <td className="px-3 py-2 font-medium text-foreground">{row.collaboratorName}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">{row.workDays}j</td>
                   <td className="px-3 py-2 text-right">
                     {row.lateDays > 0
                       ? <span className="text-amber-600 font-medium">{row.lateDays}</span>
-                      : <span className="text-slate-400">—</span>}
+                      : <span className="text-muted-foreground/60">—</span>}
                   </td>
                   <td className="px-3 py-2 text-right font-semibold">{formatMinutes(row.effectiveMinutes)}</td>
                   <td className="px-3 py-2 text-right">
                     {row.overtimeMinutes > 0
                       ? <span className="text-emerald-600 font-medium">+{formatMinutes(row.overtimeMinutes)}</span>
-                      : <span className="text-slate-400">—</span>}
+                      : <span className="text-muted-foreground/60">—</span>}
                   </td>
                 </tr>
               ))
@@ -553,16 +553,16 @@ function AnomaliesPanel() {
   return (
     <div className="space-y-4">
       <Card className="p-6 space-y-3">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />Anomalies de présence</h2>
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />Anomalies de présence</h2>
         {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> :
-          !data?.data.length ? <p className="text-sm text-slate-500">Aucune anomalie active.</p> :
+          !data?.data.length ? <p className="text-sm text-muted-foreground">Aucune anomalie active.</p> :
             <div className="space-y-2">
               {data.data.map((f) => (
                 <div key={f.id} className="flex items-start justify-between bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
                   <div className="space-y-0.5">
-                    <p className="text-sm font-semibold text-slate-800">{FLAG_KIND_LABEL[f.kind] ?? f.kind}</p>
-                    <p className="text-xs text-slate-600">{f.collaboratorName} — {f.workDate}</p>
-                    {f.description && <p className="text-xs text-slate-500">{f.description}</p>}
+                    <p className="text-sm font-semibold text-foreground">{FLAG_KIND_LABEL[f.kind] ?? f.kind}</p>
+                    <p className="text-xs text-muted-foreground">{f.collaboratorName} — {f.workDate}</p>
+                    {f.description && <p className="text-xs text-muted-foreground">{f.description}</p>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Badge variant={f.severity === "high" ? "destructive" : "secondary"}>{severityLabel(f.severity)}</Badge>
@@ -576,7 +576,7 @@ function AnomaliesPanel() {
       </Card>
 
       <Card className="p-6 space-y-3">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
           <FilePlus2 className="w-5 h-5 text-blue-500" />
           Demandes de correction
           {pendingCorrs.length > 0 && (
@@ -584,21 +584,21 @@ function AnomaliesPanel() {
           )}
         </h2>
         {corrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> :
-          !pendingCorrs.length ? <p className="text-sm text-slate-500">Aucune demande de correction en attente.</p> :
+          !pendingCorrs.length ? <p className="text-sm text-muted-foreground">Aucune demande de correction en attente.</p> :
             <div className="space-y-2">
               {pendingCorrs.map((c) => (
                 <div key={c.id} className="bg-blue-50 border border-blue-200 rounded-md px-3 py-3 space-y-1.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-0.5 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">
-                        {c.collaboratorName} <span className="font-normal text-slate-500">— {c.workDate ?? "—"}</span>
+                      <p className="text-sm font-semibold text-foreground">
+                        {c.collaboratorName} <span className="font-normal text-muted-foreground">— {c.workDate ?? "—"}</span>
                       </p>
-                      <p className="text-xs text-slate-600">
+                      <p className="text-xs text-muted-foreground">
                         Type : <span className="font-medium">{CORR_KIND_LABEL[c.kind] ?? c.kind}</span>
-                        {c.currentAt && <> · Système : <span className="font-medium text-slate-700">{fmtTime(c.currentAt)}</span></>}
+                        {c.currentAt && <> · Système : <span className="font-medium text-foreground">{fmtTime(c.currentAt)}</span></>}
                         {c.proposedAt && <> → Proposé : <span className="font-medium text-blue-700">{fmtTime(c.proposedAt)}</span></>}
                       </p>
-                      <p className="text-xs text-slate-500 italic">"{c.reason}"</p>
+                      <p className="text-xs text-muted-foreground italic">"{c.reason}"</p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Button size="sm" className="h-7 bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1"
@@ -695,7 +695,7 @@ function CorrectionModal({ session, onClose, onSuccess }: {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><FilePlus2 className="w-4 h-4" />Demander une correction</DialogTitle>
-          {session && <p className="text-xs text-slate-500">Journée du {new Date(session.workDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>}
+          {session && <p className="text-xs text-muted-foreground">Journée du {new Date(session.workDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>}
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div>
@@ -768,8 +768,8 @@ function MyHistoryPanel() {
   return (
     <Card className="p-6 space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-900">Mon historique</h2>
-        <p className="text-xs text-slate-500">
+        <h2 className="text-lg font-bold text-foreground">Mon historique</h2>
+        <p className="text-xs text-muted-foreground">
           Cumul {currentMonthLabel} : {formatMinutes(totals.total)}
           {totals.lateDays > 0 && <> · {totals.lateDays} retard{totals.lateDays > 1 ? "s" : ""}</>}
           {totals.overtimeTotal > 0 && <> · <span className="text-emerald-600 font-medium">+{formatMinutes(totals.overtimeTotal)} h.sup.</span></>}
@@ -777,7 +777,7 @@ function MyHistoryPanel() {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="text-left px-3 py-2">Date</th>
               <th className="text-left px-3 py-2">Arrivée</th>
@@ -791,19 +791,19 @@ function MyHistoryPanel() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
+              <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground/60"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
             ) : sessions.length ? sessions.map((s) => {
               const ot = (s as any).overtimeMinutes ?? 0;
               const corr = corrBySessId.get(s.id);
               return (
-                <tr key={s.id} className="border-t border-slate-100">
+                <tr key={s.id} className="border-t border">
                   <td className="px-3 py-2 font-medium">{new Date(s.workDate).toLocaleDateString("fr-FR")}</td>
                   <td className="px-3 py-2">{fmtTime(s.clockInAt)}</td>
                   <td className="px-3 py-2">{fmtTime(s.clockOutAt)}</td>
                   <td className="px-3 py-2">{formatMinutes(s.breakMinutes)}</td>
                   <td className="px-3 py-2 font-semibold">{formatMinutes(s.effectiveMinutes)}</td>
                   <td className="px-3 py-2 text-xs">
-                    {ot > 0 ? <span className="text-emerald-600 font-medium">+{formatMinutes(ot)}</span> : <span className="text-slate-400">—</span>}
+                    {ot > 0 ? <span className="text-emerald-600 font-medium">+{formatMinutes(ot)}</span> : <span className="text-muted-foreground/60">—</span>}
                   </td>
                   <td className="px-3 py-2">{s.status === "closed" ? "Clôturée" : "Ouverte"}</td>
                   <td className="px-3 py-2">
@@ -821,7 +821,7 @@ function MyHistoryPanel() {
                 </tr>
               );
             }) : (
-              <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400">Aucun pointage enregistré.</td></tr>
+              <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground/60">Aucun pointage enregistré.</td></tr>
             )}
           </tbody>
         </table>
@@ -832,10 +832,10 @@ function MyHistoryPanel() {
 }
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "emerald" | "amber" | "primary" }) {
-  const cls = tone === "emerald" ? "text-emerald-600" : tone === "amber" ? "text-amber-600" : tone === "primary" ? "text-primary" : "text-slate-700";
+  const cls = tone === "emerald" ? "text-emerald-600" : tone === "amber" ? "text-amber-600" : tone === "primary" ? "text-primary" : "text-foreground";
   return (
-    <div className="bg-slate-50 rounded-md p-3">
-      <p className="text-[10px] uppercase font-semibold text-slate-400">{label}</p>
+    <div className="bg-muted/50 rounded-md p-3">
+      <p className="text-[10px] uppercase font-semibold text-muted-foreground/60">{label}</p>
       <p className={`text-2xl font-bold ${cls}`}>{value}</p>
     </div>
   );
@@ -887,7 +887,7 @@ function WeekLabel({ weekStart }: { weekStart: string }) {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  draft:     "bg-slate-100 text-slate-600",
+  draft:     "bg-muted text-muted-foreground",
   submitted: "bg-amber-100 text-amber-700",
   approved:  "bg-emerald-100 text-emerald-700",
   rejected:  "bg-red-100 text-red-700",
@@ -913,7 +913,7 @@ function EntryRow({
       <td className="px-3 py-2 text-center">
         {entry.billable
           ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">Fact.</span>
-          : <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Non fact.</span>}
+          : <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">Non fact.</span>}
       </td>
       <td className="px-3 py-2 text-xs text-muted-foreground max-w-[160px] truncate">{entry.description ?? ""}</td>
       {editable && (
@@ -1589,7 +1589,7 @@ function ReportsPanel() {
       {/* Results */}
       <Card className="p-0 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b">
-          <h3 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+          <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-primary" />
             {REPORT_TYPES.find(t => t.value === reportType)?.label}
             {isMonthly ? ` — ${months[reportMonth - 1]} ${reportYear}` : ` — ${from} → ${to}`}
@@ -1607,7 +1607,7 @@ function ReportsPanel() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+          <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground/60" /></div>
         ) : (
           <div className="overflow-x-auto print:overflow-visible">
             {reportType === "by-collaborator" && <ByCollabTable data={(reportData as any)?.data ?? []} />}
@@ -1627,7 +1627,7 @@ function ByCollabTable({ data }: { data: ByCollabRow[] }) {
   if (!data.length) return <EmptyReport />;
   return (
     <table className="w-full text-sm print:text-xs">
-      <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+      <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
         <tr>
           <th className="text-left px-4 py-2.5">Collaborateur</th>
           <th className="text-left px-4 py-2.5">Département</th>
@@ -1640,14 +1640,14 @@ function ByCollabTable({ data }: { data: ByCollabRow[] }) {
       </thead>
       <tbody>
         {data.map(r => (
-          <tr key={r.collaboratorId} className="border-t hover:bg-slate-50">
-            <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
-            <td className="px-4 py-2.5 text-slate-500">{r.department}</td>
+          <tr key={r.collaboratorId} className="border-t hover:bg-muted/50">
+            <td className="px-4 py-2.5 font-medium text-foreground">{r.name}</td>
+            <td className="px-4 py-2.5 text-muted-foreground">{r.department}</td>
             <td className="px-4 py-2.5 text-center">{r.workDays}</td>
             <td className="px-4 py-2.5 text-center font-semibold">{fmtMins(r.totalMinutes)}</td>
-            <td className="px-4 py-2.5 text-center">{r.lateDays > 0 ? <span className="text-amber-600 font-medium">{r.lateDays}</span> : <span className="text-slate-400">0</span>}</td>
-            <td className="px-4 py-2.5 text-center">{r.earlyLeaveDays > 0 ? <span className="text-orange-600 font-medium">{r.earlyLeaveDays}</span> : <span className="text-slate-400">0</span>}</td>
-            <td className="px-4 py-2.5 text-center">{r.overtimeDays > 0 ? <span className="text-emerald-600 font-medium">{r.overtimeDays}</span> : <span className="text-slate-400">0</span>}</td>
+            <td className="px-4 py-2.5 text-center">{r.lateDays > 0 ? <span className="text-amber-600 font-medium">{r.lateDays}</span> : <span className="text-muted-foreground/60">0</span>}</td>
+            <td className="px-4 py-2.5 text-center">{r.earlyLeaveDays > 0 ? <span className="text-orange-600 font-medium">{r.earlyLeaveDays}</span> : <span className="text-muted-foreground/60">0</span>}</td>
+            <td className="px-4 py-2.5 text-center">{r.overtimeDays > 0 ? <span className="text-emerald-600 font-medium">{r.overtimeDays}</span> : <span className="text-muted-foreground/60">0</span>}</td>
           </tr>
         ))}
       </tbody>
@@ -1659,7 +1659,7 @@ function ByDeptTable({ data }: { data: ByDeptRow[] }) {
   if (!data.length) return <EmptyReport />;
   return (
     <table className="w-full text-sm">
-      <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+      <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
         <tr>
           <th className="text-left px-4 py-2.5">Département</th>
           <th className="text-center px-4 py-2.5">Jours travaillés</th>
@@ -1669,11 +1669,11 @@ function ByDeptTable({ data }: { data: ByDeptRow[] }) {
       </thead>
       <tbody>
         {data.map(r => (
-          <tr key={r.deptId} className="border-t hover:bg-slate-50">
-            <td className="px-4 py-2.5 font-medium text-slate-800">{r.deptName}</td>
+          <tr key={r.deptId} className="border-t hover:bg-muted/50">
+            <td className="px-4 py-2.5 font-medium text-foreground">{r.deptName}</td>
             <td className="px-4 py-2.5 text-center">{r.workDays}</td>
             <td className="px-4 py-2.5 text-center font-semibold">{r.totalHours}h</td>
-            <td className="px-4 py-2.5 text-center">{r.lateDays > 0 ? <span className="text-amber-600 font-medium">{r.lateDays}</span> : <span className="text-slate-400">0</span>}</td>
+            <td className="px-4 py-2.5 text-center">{r.lateDays > 0 ? <span className="text-amber-600 font-medium">{r.lateDays}</span> : <span className="text-muted-foreground/60">0</span>}</td>
           </tr>
         ))}
       </tbody>
@@ -1685,7 +1685,7 @@ function ByProjectTable({ data }: { data: ByProjectRow[] }) {
   if (!data.length) return <EmptyReport />;
   return (
     <table className="w-full text-sm">
-      <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+      <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
         <tr>
           <th className="text-left px-4 py-2.5">Projet</th>
           <th className="text-center px-4 py-2.5">Heures totales</th>
@@ -1696,16 +1696,16 @@ function ByProjectTable({ data }: { data: ByProjectRow[] }) {
       </thead>
       <tbody>
         {data.map(r => (
-          <tr key={r.projectId} className="border-t hover:bg-slate-50">
-            <td className="px-4 py-2.5 font-medium text-slate-800">{r.projectName}</td>
+          <tr key={r.projectId} className="border-t hover:bg-muted/50">
+            <td className="px-4 py-2.5 font-medium text-foreground">{r.projectName}</td>
             <td className="px-4 py-2.5 text-center font-semibold">{r.totalHours}h</td>
             <td className="px-4 py-2.5 text-center text-emerald-700 font-medium">{r.billableHours}h</td>
             <td className="px-4 py-2.5 text-center">
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.billableRate >= 80 ? "bg-emerald-100 text-emerald-700" : r.billableRate >= 50 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.billableRate >= 80 ? "bg-emerald-100 text-emerald-700" : r.billableRate >= 50 ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground"}`}>
                 {r.billableRate}%
               </span>
             </td>
-            <td className="px-4 py-2.5 text-center text-slate-600">{r.collaboratorCount}</td>
+            <td className="px-4 py-2.5 text-center text-muted-foreground">{r.collaboratorCount}</td>
           </tr>
         ))}
       </tbody>
@@ -1718,13 +1718,13 @@ function DelaysTable({ detail, summary }: { detail: FlagRow[]; summary: FlagSumm
   if (!detail.length && !summary.length) return <EmptyReport />;
   return (
     <div>
-      <div className="flex gap-2 p-3 border-b bg-slate-50">
+      <div className="flex gap-2 p-3 border-b bg-muted/50">
         <Button size="sm" variant={view === "summary" ? "default" : "outline"} className="h-7 text-xs" onClick={() => setView("summary")}>Synthèse</Button>
         <Button size="sm" variant={view === "detail" ? "default" : "outline"} className="h-7 text-xs" onClick={() => setView("detail")}>Détail ({detail.length})</Button>
       </div>
       {view === "summary" ? (
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
             <tr>
               <th className="text-left px-4 py-2.5">Collaborateur</th>
               <th className="text-left px-4 py-2.5">Département</th>
@@ -1736,20 +1736,20 @@ function DelaysTable({ detail, summary }: { detail: FlagRow[]; summary: FlagSumm
           </thead>
           <tbody>
             {summary.map((r, i) => (
-              <tr key={i} className="border-t hover:bg-slate-50">
-                <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
-                <td className="px-4 py-2.5 text-slate-500">{r.dept}</td>
-                <td className="px-4 py-2.5 text-center">{r.late > 0 ? <span className="text-amber-600 font-medium">{r.late}</span> : <span className="text-slate-400">0</span>}</td>
-                <td className="px-4 py-2.5 text-center">{r.earlyLeave > 0 ? <span className="text-orange-500 font-medium">{r.earlyLeave}</span> : <span className="text-slate-400">0</span>}</td>
-                <td className="px-4 py-2.5 text-center">{r.missing > 0 ? <span className="text-red-600 font-medium">{r.missing}</span> : <span className="text-slate-400">0</span>}</td>
-                <td className="px-4 py-2.5 text-center">{r.other || <span className="text-slate-400">0</span>}</td>
+              <tr key={i} className="border-t hover:bg-muted/50">
+                <td className="px-4 py-2.5 font-medium text-foreground">{r.name}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{r.dept}</td>
+                <td className="px-4 py-2.5 text-center">{r.late > 0 ? <span className="text-amber-600 font-medium">{r.late}</span> : <span className="text-muted-foreground/60">0</span>}</td>
+                <td className="px-4 py-2.5 text-center">{r.earlyLeave > 0 ? <span className="text-orange-500 font-medium">{r.earlyLeave}</span> : <span className="text-muted-foreground/60">0</span>}</td>
+                <td className="px-4 py-2.5 text-center">{r.missing > 0 ? <span className="text-red-600 font-medium">{r.missing}</span> : <span className="text-muted-foreground/60">0</span>}</td>
+                <td className="px-4 py-2.5 text-center">{r.other || <span className="text-muted-foreground/60">0</span>}</td>
               </tr>
             ))}
           </tbody>
         </table>
       ) : (
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
             <tr>
               <th className="text-left px-4 py-2.5">Date</th>
               <th className="text-left px-4 py-2.5">Collaborateur</th>
@@ -1761,17 +1761,17 @@ function DelaysTable({ detail, summary }: { detail: FlagRow[]; summary: FlagSumm
           </thead>
           <tbody>
             {detail.map(r => (
-              <tr key={r.id} className="border-t hover:bg-slate-50">
-                <td className="px-4 py-2.5 text-slate-600">{r.workDate ?? "—"}</td>
-                <td className="px-4 py-2.5 font-medium text-slate-800">{r.collaboratorName}</td>
-                <td className="px-4 py-2.5 text-slate-500">{r.department}</td>
+              <tr key={r.id} className="border-t hover:bg-muted/50">
+                <td className="px-4 py-2.5 text-muted-foreground">{r.workDate ?? "—"}</td>
+                <td className="px-4 py-2.5 font-medium text-foreground">{r.collaboratorName}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{r.department}</td>
                 <td className="px-4 py-2.5">{FLAG_KIND_MAP[r.kind] ?? r.kind}</td>
                 <td className="px-4 py-2.5">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${r.severity === "high" ? "bg-red-100 text-red-700" : r.severity === "medium" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${r.severity === "high" ? "bg-red-100 text-red-700" : r.severity === "medium" ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground"}`}>
                     {r.severity === "high" ? "Élevée" : r.severity === "medium" ? "Moyenne" : "Faible"}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-xs text-slate-500 max-w-[200px] truncate">{r.description ?? "—"}</td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate">{r.description ?? "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -1792,7 +1792,7 @@ function OvertimeTable({ data }: { data: OtRow[] }) {
         <span className="text-emerald-600 text-xs">({data.length} collaborateurs concernés)</span>
       </div>
       <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+        <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
           <tr>
             <th className="text-left px-4 py-2.5">Collaborateur</th>
             <th className="text-left px-4 py-2.5">Département</th>
@@ -1804,9 +1804,9 @@ function OvertimeTable({ data }: { data: OtRow[] }) {
         </thead>
         <tbody>
           {data.map(r => (
-            <tr key={r.collaboratorId} className="border-t hover:bg-slate-50">
-              <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
-              <td className="px-4 py-2.5 text-slate-500">{r.department}</td>
+            <tr key={r.collaboratorId} className="border-t hover:bg-muted/50">
+              <td className="px-4 py-2.5 font-medium text-foreground">{r.name}</td>
+              <td className="px-4 py-2.5 text-muted-foreground">{r.department}</td>
               <td className="px-4 py-2.5 text-center">{r.workDays}</td>
               <td className="px-4 py-2.5 text-center">{fmtMins(r.totalEffMinutes)}</td>
               <td className="px-4 py-2.5 text-center font-bold text-emerald-700">{fmtMins(r.totalOvertimeMinutes)}</td>
@@ -1823,7 +1823,7 @@ function MonthlyTable({ data, expectedDays }: { data: MonthlyRow[]; expectedDays
   if (!data.length) return <EmptyReport />;
   return (
     <table className="w-full text-sm">
-      <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b">
+      <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
         <tr>
           <th className="text-left px-4 py-2.5">Collaborateur</th>
           <th className="text-left px-4 py-2.5">Département</th>
@@ -1838,18 +1838,18 @@ function MonthlyTable({ data, expectedDays }: { data: MonthlyRow[]; expectedDays
       </thead>
       <tbody>
         {data.map(r => (
-          <tr key={r.collaboratorId} className="border-t hover:bg-slate-50">
-            <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
-            <td className="px-4 py-2.5 text-slate-500">{r.department}</td>
-            <td className="px-4 py-2.5 text-center text-slate-500">{expectedDays}</td>
+          <tr key={r.collaboratorId} className="border-t hover:bg-muted/50">
+            <td className="px-4 py-2.5 font-medium text-foreground">{r.name}</td>
+            <td className="px-4 py-2.5 text-muted-foreground">{r.department}</td>
+            <td className="px-4 py-2.5 text-center text-muted-foreground">{expectedDays}</td>
             <td className="px-4 py-2.5 text-center text-emerald-700 font-semibold">{r.presentDays}</td>
-            <td className="px-4 py-2.5 text-center">{r.absentDays > 0 ? <span className="text-red-600 font-medium">{r.absentDays}</span> : <span className="text-slate-400">0</span>}</td>
+            <td className="px-4 py-2.5 text-center">{r.absentDays > 0 ? <span className="text-red-600 font-medium">{r.absentDays}</span> : <span className="text-muted-foreground/60">0</span>}</td>
             <td className="px-4 py-2.5 text-center">
               <span className={`text-xs font-bold ${r.attendanceRate >= 90 ? "text-emerald-700" : r.attendanceRate >= 75 ? "text-amber-600" : "text-red-600"}`}>{r.attendanceRate}%</span>
             </td>
             <td className="px-4 py-2.5 text-center font-semibold">{r.totalHours}h</td>
             <td className="px-4 py-2.5 text-center text-emerald-600">{r.overtimeHours > 0 ? `+${r.overtimeHours}h` : "—"}</td>
-            <td className="px-4 py-2.5 text-center">{r.lateDays > 0 ? <span className="text-amber-600 font-medium">{r.lateDays}</span> : <span className="text-slate-400">0</span>}</td>
+            <td className="px-4 py-2.5 text-center">{r.lateDays > 0 ? <span className="text-amber-600 font-medium">{r.lateDays}</span> : <span className="text-muted-foreground/60">0</span>}</td>
           </tr>
         ))}
       </tbody>
@@ -1858,7 +1858,7 @@ function MonthlyTable({ data, expectedDays }: { data: MonthlyRow[]; expectedDays
 }
 
 function EmptyReport() {
-  return <p className="text-sm text-slate-400 text-center py-12">Aucune donnée pour les critères sélectionnés.</p>;
+  return <p className="text-sm text-muted-foreground/60 text-center py-12">Aucune donnée pour les critères sélectionnés.</p>;
 }
 
 const SOURCE_OPTIONS = [
@@ -1873,7 +1873,7 @@ function SourceBadge({ source }: { source: string | null | undefined }) {
   if (source === "kiosk") return <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 rounded px-1.5 py-0.5"><MonitorSmartphone className="w-2.5 h-2.5" /> Kiosque</span>;
   if (source === "qr") return <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 rounded px-1.5 py-0.5">QR</span>;
   if (source === "app") return <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded px-1.5 py-0.5">Application</span>;
-  return <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-slate-100 text-slate-500 rounded px-1.5 py-0.5">Manuel</span>;
+  return <span className="inline-flex items-center gap-0.5 text-[10px] font-medium bg-muted text-muted-foreground rounded px-1.5 py-0.5">Manuel</span>;
 }
 
 type RecordRow = {
@@ -1909,16 +1909,16 @@ function RecordsRegistrePanel() {
   return (
     <Card className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
           <Clock className="w-5 h-5 text-primary" />
           Registre des pointages
         </h2>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="border border-slate-200 rounded-md px-2 py-1 text-sm" />
-            <span className="text-slate-400 text-sm">→</span>
-            <input type="date" value={to} onChange={e => setTo(e.target.value)} className="border border-slate-200 rounded-md px-2 py-1 text-sm" />
+            <Calendar className="w-4 h-4 text-muted-foreground/60" />
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="border border rounded-md px-2 py-1 text-sm" />
+            <span className="text-muted-foreground/60 text-sm">→</span>
+            <input type="date" value={to} onChange={e => setTo(e.target.value)} className="border border rounded-md px-2 py-1 text-sm" />
           </div>
           <Select value={source || "__all"} onValueChange={v => setSource(v === "__all" ? "" : v)}>
             <SelectTrigger className="w-44 h-8 text-sm">
@@ -1934,12 +1934,12 @@ function RecordsRegistrePanel() {
       </div>
 
       {data && (
-        <p className="text-xs text-slate-500">{rows.length} enregistrement{rows.length > 1 ? "s" : ""} sur la période</p>
+        <p className="text-xs text-muted-foreground">{rows.length} enregistrement{rows.length > 1 ? "s" : ""} sur la période</p>
       )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="text-left px-3 py-2">Collaborateur</th>
               <th className="text-left px-3 py-2">Département</th>
@@ -1951,19 +1951,19 @@ function RecordsRegistrePanel() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground/60"><Loader2 className="w-4 h-4 inline animate-spin" /></td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-400">Aucun pointage pour les critères sélectionnés.</td></tr>
+              <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground/60">Aucun pointage pour les critères sélectionnés.</td></tr>
             ) : rows.map(r => (
-              <tr key={r.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
-                <td className="px-3 py-2 font-medium text-slate-800">{r.collaboratorName}</td>
-                <td className="px-3 py-2 text-slate-500">{r.department}</td>
+              <tr key={r.id} className="border-t border hover:bg-muted/50 transition-colors">
+                <td className="px-3 py-2 font-medium text-foreground">{r.collaboratorName}</td>
+                <td className="px-3 py-2 text-muted-foreground">{r.department}</td>
                 <td className="px-3 py-2">{KIND_LABEL[r.kind] ?? r.kind}</td>
                 <td className="px-3 py-2"><SourceBadge source={r.source} /></td>
-                <td className="px-3 py-2 tabular-nums text-slate-700">
+                <td className="px-3 py-2 tabular-nums text-foreground">
                   {new Date(r.occurredAt).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </td>
-                <td className="px-3 py-2 text-slate-500 text-xs">{r.locationLabel ?? "—"}</td>
+                <td className="px-3 py-2 text-muted-foreground text-xs">{r.locationLabel ?? "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -1977,8 +1977,8 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Présences & Pointage</h1>
-        <p className="text-sm text-slate-500">Pointage géolocalisé, calcul automatique des heures effectives, détection des anomalies (retards, oublis, pauses prolongées).</p>
+        <h1 className="text-2xl font-bold text-foreground">Présences & Pointage</h1>
+        <p className="text-sm text-muted-foreground">Pointage géolocalisé, calcul automatique des heures effectives, détection des anomalies (retards, oublis, pauses prolongées).</p>
       </div>
       <Tabs defaultValue="me">
         <TabsList>

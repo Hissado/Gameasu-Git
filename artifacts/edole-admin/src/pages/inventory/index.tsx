@@ -59,7 +59,7 @@ const STATUS_LABELS: Record<string, string> = {
   received: "Réceptionné", cancelled: "Annulé",
 };
 const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-700",
+  draft: "bg-muted text-foreground",
   sent: "bg-blue-100 text-blue-700",
   partial: "bg-amber-100 text-amber-700",
   received: "bg-emerald-100 text-emerald-700",
@@ -207,7 +207,7 @@ function OverviewTab() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base"><RefreshCw className="h-4 w-4 text-slate-600" />Derniers mouvements</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base"><RefreshCw className="h-4 w-4 text-muted-foreground" />Derniers mouvements</CardTitle>
               <Button size="sm" variant="ghost" onClick={() => setLocation("/stock/mouvements")}>Voir tout</Button>
             </div>
           </CardHeader>
@@ -1100,7 +1100,7 @@ function ReportsTab() {
                     </Pie>
                     <RTooltip formatter={(v: number) => formatFCFA(v)} />
                     <Legend verticalAlign="bottom" iconType="circle"
-                      formatter={(v) => <span className="text-xs text-slate-600">{v}</span>} />
+                      formatter={(v) => <span className="text-xs text-muted-foreground">{v}</span>} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
@@ -1149,7 +1149,7 @@ function ReportsTab() {
                   <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}
                     tickFormatter={(v) => `${(v / 1000).toLocaleString("fr-FR")}k`} />
                   <RTooltip formatter={(v: number) => formatFCFA(v)} />
-                  <Legend iconType="circle" formatter={(v) => <span className="text-xs text-slate-600">{v}</span>} />
+                  <Legend iconType="circle" formatter={(v) => <span className="text-xs text-muted-foreground">{v}</span>} />
                   <Bar dataKey="purchasesFcfa" name="Achats" fill="#0EA5E9" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="salesFcfa" name="Ventes" fill="#2563EB" radius={[4, 4, 0, 0]} />
                 </BarChart>

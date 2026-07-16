@@ -68,7 +68,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  faible: "bg-slate-100 text-slate-600",
+  faible: "bg-muted text-muted-foreground",
   normale: "bg-blue-50 text-blue-600",
   haute: "bg-orange-50 text-orange-700",
   critique: "bg-red-50 text-red-700",
@@ -87,7 +87,7 @@ function StatusIcon({ status }: { status: string }) {
     case "rejetee": return <XCircle className="w-3.5 h-3.5 text-red-500" />;
     case "en_developpement": return <Rocket className="w-3.5 h-3.5 text-orange-500" />;
     case "planifiee": return <PackageCheck className="w-3.5 h-3.5 text-purple-500" />;
-    default: return <Clock className="w-3.5 h-3.5 text-slate-400" />;
+    default: return <Clock className="w-3.5 h-3.5 text-muted-foreground/60" />;
   }
 }
 
@@ -290,7 +290,7 @@ export default function SuggestionsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
                           {CATEGORY_LABELS[s.category] ?? s.category}
                         </span>
                         {s.module && (
@@ -306,7 +306,7 @@ export default function SuggestionsPage() {
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${STATUS_COLORS[s.status] ?? "bg-slate-100 text-slate-600"}`}>
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${STATUS_COLORS[s.status] ?? "bg-muted text-muted-foreground"}`}>
                         <StatusIcon status={s.status} />
                         {STATUS_LABELS[s.status] ?? s.status}
                       </span>

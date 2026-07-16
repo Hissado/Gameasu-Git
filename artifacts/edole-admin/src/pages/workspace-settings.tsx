@@ -218,7 +218,7 @@ export default function WorkspaceSettingsPage() {
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Logo</Label>
             <div className="flex items-center gap-4 flex-wrap">
               {/* Prévisualisation */}
-              <div className="w-24 h-16 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div className="w-24 h-16 rounded-lg border border-dashed border bg-muted/50 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {branding.logoUrl ? (
                   <img
                     src={branding.logoUrl}
@@ -416,7 +416,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
       {/* Saisie + swatch natif */}
       <div className="flex items-center gap-2">
         <div
-          className="w-9 h-9 rounded-md border border-slate-300 flex-shrink-0 cursor-pointer overflow-hidden relative"
+          className="w-9 h-9 rounded-md border border flex-shrink-0 cursor-pointer overflow-hidden relative"
           title="Ouvrir le sélecteur de couleur"
         >
           <input

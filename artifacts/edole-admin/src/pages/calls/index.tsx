@@ -14,10 +14,10 @@ import { useCallCenter } from "@/components/CallCenter";
 const STATUS_META: Record<string, { label: string; cls: string; Icon: any }> = {
   active:    { label: "En cours",  cls: "text-emerald-600 bg-emerald-50 border-emerald-200", Icon: PhoneCall },
   ringing:   { label: "Sonnerie",  cls: "text-amber-700 bg-amber-50 border-amber-200",       Icon: PhoneCall },
-  completed: { label: "Terminé",   cls: "text-slate-600 bg-slate-50 border-slate-200",       Icon: PhoneCall },
+  completed: { label: "Terminé",   cls: "text-muted-foreground bg-muted/50 border",       Icon: PhoneCall },
   missed:    { label: "Manqué",    cls: "text-red-600 bg-red-50 border-red-200",             Icon: PhoneMissed },
   declined:  { label: "Refusé",    cls: "text-red-600 bg-red-50 border-red-200",             Icon: PhoneMissed },
-  ended:     { label: "Terminé",   cls: "text-slate-600 bg-slate-50 border-slate-200",       Icon: PhoneCall },
+  ended:     { label: "Terminé",   cls: "text-muted-foreground bg-muted/50 border",       Icon: PhoneCall },
 };
 
 function formatDuration(s?: number | null) {
@@ -76,20 +76,20 @@ export default function CallsList() {
         </div>
       </div>
 
-      <Card className="border-slate-200/60">
+      <Card className="border/60">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-12 text-center text-muted-foreground animate-pulse">Chargement…</div>
           ) : filtered.length === 0 ? (
             <div className="p-16 text-center">
-              <div className="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                <Phone className="w-6 h-6 text-slate-400" />
+              <div className="w-14 h-14 mx-auto rounded-full bg-muted flex items-center justify-center mb-4">
+                <Phone className="w-6 h-6 text-muted-foreground/60" />
               </div>
-              <div className="text-base font-medium text-slate-700">Aucun appel</div>
+              <div className="text-base font-medium text-foreground">Aucun appel</div>
               <div className="text-sm text-muted-foreground mt-1">Démarrez votre premier appel depuis une conversation.</div>
             </div>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-border">
               {filtered.map((call: any) => {
                 const st = STATUS_META[call.status] || STATUS_META.completed;
                 const isMine = call.initiatorId === user?.id;
@@ -98,24 +98,24 @@ export default function CallsList() {
                 const initials = (call.initiatorName || "??").split(" ").map((s: string) => s[0]).slice(0, 2).join("");
                 const date = new Date(call.createdAt);
                 return (
-                  <li key={call.id} className="px-4 sm:px-6 py-4 hover:bg-slate-50/70 transition-colors">
+                  <li key={call.id} className="px-4 sm:px-6 py-4 hover:bg-muted/70 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="relative shrink-0">
                         <Avatar className="w-11 h-11">
                           <AvatarImage src={call.initiatorAvatarUrl} />
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initials}</AvatarFallback>
                         </Avatar>
-                        <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center">
+                        <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-card border border flex items-center justify-center">
                           <Icon className={`w-3 h-3 ${colorIcon}`} />
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <div className="font-medium text-slate-900 truncate">{call.initiatorName || "—"}</div>
+                          <div className="font-medium text-foreground truncate">{call.initiatorName || "—"}</div>
                           <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${st.cls}`}>
                             {st.label}
                           </Badge>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 text-slate-600 bg-slate-50">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 text-muted-foreground bg-muted/50">
                             {call.type === "video" ? "Vidéo" : call.type === "conference" ? "Conférence" : "Audio"}
                           </Badge>
                         </div>
@@ -129,7 +129,7 @@ export default function CallsList() {
                       </div>
                       {call.conversationId && (
                         <Link href={`/messaging?c=${call.conversationId}`}>
-                          <Button variant="ghost" size="sm" className="text-slate-500 hover:text-primary shrink-0">
+                          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary shrink-0">
                             <MessageSquare className="w-4 h-4" />
                           </Button>
                         </Link>
@@ -186,7 +186,7 @@ function CallPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (b: b
             <Input placeholder="Rechercher une conversation…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
-        <ul className="max-h-[60vh] overflow-y-auto divide-y divide-slate-100">
+        <ul className="max-h-[60vh] overflow-y-auto divide-y divide-border">
           {convs.length === 0 ? (
             <li className="p-8 text-center text-sm text-muted-foreground">Aucune conversation.</li>
           ) : convs.map((c: any) => {
@@ -194,21 +194,21 @@ function CallPicker({ open, onOpenChange }: { open: boolean; onOpenChange: (b: b
             const name = other?.name || c.title || "Conversation";
             const initials = name.split(" ").map((s: string) => s[0]).slice(0, 2).join("");
             return (
-              <li key={c.id} className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50">
+              <li key={c.id} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/50">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={other?.avatarUrl} />
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm text-slate-900 truncate">{name}</div>
+                  <div className="font-medium text-sm text-foreground truncate">{name}</div>
                   <div className="text-xs text-muted-foreground truncate">
                     {c.type === "direct" ? "Conversation directe" : `${(c.participants || []).length} participants`}
                   </div>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => call(c, "audio")} className="text-slate-600 hover:text-primary">
+                <Button size="sm" variant="ghost" onClick={() => call(c, "audio")} className="text-muted-foreground hover:text-primary">
                   <Phone className="w-4 h-4" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => call(c, "video")} className="text-slate-600 hover:text-primary">
+                <Button size="sm" variant="ghost" onClick={() => call(c, "video")} className="text-muted-foreground hover:text-primary">
                   <Video className="w-4 h-4" />
                 </Button>
               </li>

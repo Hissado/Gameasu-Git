@@ -309,7 +309,7 @@ export default function ClientDocumentsPage() {
                 className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
                   filter === opt.value
                     ? "bg-primary text-white border-primary shadow-sm"
-                    : "bg-white text-slate-600 border-border hover:border-primary/40 hover:text-primary"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-primary"
                 }`}
               >
                 {opt.label}
@@ -340,8 +340,8 @@ export default function ClientDocumentsPage() {
           <CardContent className="py-16 flex flex-col items-center gap-3 text-center">
             {allRequests.length === 0 ? (
               <>
-                <Inbox className="w-12 h-12 text-slate-200" />
-                <p className="font-semibold text-slate-600">Aucune demande de document</p>
+                <Inbox className="w-12 h-12 text-muted-foreground/30" />
+                <p className="font-semibold text-muted-foreground">Aucune demande de document</p>
                 <p className="text-sm text-muted-foreground">
                   Votre cabinet comptable n'a pas encore demandé de documents.
                 </p>

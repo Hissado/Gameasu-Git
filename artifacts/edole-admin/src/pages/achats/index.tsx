@@ -81,7 +81,7 @@ function KpiCard({ icon: Icon, label, value, sub, color, href }: {
   const inner = (
     <Card className={href ? "hover:shadow-md transition-shadow cursor-pointer" : ""}>
       <CardContent className="p-5 flex items-start gap-4">
-        <div className={`rounded-lg p-2.5 ${color ?? "bg-slate-100"}`}>
+        <div className={`rounded-lg p-2.5 ${color ?? "bg-muted"}`}>
           <Icon className="w-5 h-5 text-inherit" />
         </div>
         <div className="flex-1 min-w-0">
@@ -89,7 +89,7 @@ function KpiCard({ icon: Icon, label, value, sub, color, href }: {
           <p className="text-xl font-bold tracking-tight leading-tight">{value}</p>
           {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
         </div>
-        {href && <ChevronRight className="w-4 h-4 text-slate-400 self-center flex-shrink-0" />}
+        {href && <ChevronRight className="w-4 h-4 text-muted-foreground/60 self-center flex-shrink-0" />}
       </CardContent>
     </Card>
   );
@@ -101,7 +101,7 @@ function KpiCard({ icon: Icon, label, value, sub, color, href }: {
 function FcfaTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border rounded-lg shadow-lg p-3 text-xs">
+    <div className="bg-card border rounded-lg shadow-lg p-3 text-xs">
       <p className="font-medium mb-1">{label}</p>
       {payload.map((p: any) => (
         <p key={p.dataKey} style={{ color: p.fill ?? p.color }}>{formatFCFA(p.value)}</p>
@@ -154,7 +154,7 @@ export default function AchatsOverview() {
               icon={Building2}
               label="Fournisseurs actifs"
               value={String(overview?.suppliersActive ?? 0)}
-              color="bg-slate-100 text-slate-600"
+              color="bg-muted text-muted-foreground"
               href="/achats/fournisseurs"
             />
             <KpiCard
@@ -247,8 +247,8 @@ export default function AchatsOverview() {
                 <div className="grid grid-cols-3 gap-1.5 mt-3">
                   {tunnel.filter(s => s.count > 0).map(s => (
                     <Link href="/achats/factures" key={s.status}
-                      className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs border hover:bg-slate-50 transition-colors">
-                      <span className="text-slate-600 truncate">{s.label}</span>
+                      className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs border hover:bg-muted/50 transition-colors">
+                      <span className="text-muted-foreground truncate">{s.label}</span>
                       <span className="font-bold ml-1 flex-shrink-0" style={{ color: TUNNEL_COLORS[s.status] ?? "#64748b" }}>{s.count}</span>
                     </Link>
                   ))}
@@ -270,7 +270,7 @@ export default function AchatsOverview() {
           </CardHeader>
           <CardContent>
             {byPeriod.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-slate-400 text-sm">Aucune donnée de paiement</div>
+              <div className="h-48 flex items-center justify-center text-muted-foreground/60 text-sm">Aucune donnée de paiement</div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={byPeriod.map(r => ({ name: periodLabel(r.period), total: r.total }))} margin={{ left: 8 }}>
@@ -304,21 +304,21 @@ export default function AchatsOverview() {
             {ovLoading ? (
               <div className="p-4 space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
             ) : urgent.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-sm">
+              <div className="py-8 text-center text-muted-foreground/60 text-sm">
                 <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-400" />
                 Aucune facture urgente
               </div>
             ) : (
               <div className="divide-y">
                 {urgent.slice(0, 5).map(inv => (
-                  <div key={inv.id} className={`flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 transition-colors ${inv.isOverdue ? "bg-red-50/30" : ""}`}>
+                  <div key={inv.id} className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 transition-colors ${inv.isOverdue ? "bg-red-50/30" : ""}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-slate-500">{inv.referenceNumber}</span>
+                        <span className="text-xs font-mono text-muted-foreground">{inv.referenceNumber}</span>
                         {inv.isOverdue && <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Échu</Badge>}
                       </div>
                       <p className="text-sm font-medium truncate">{inv.supplierName ?? "—"}</p>
-                      <p className="text-xs text-slate-400">Éch. {inv.dueDate ? formatDate(inv.dueDate) : "—"}</p>
+                      <p className="text-xs text-muted-foreground/60">Éch. {inv.dueDate ? formatDate(inv.dueDate) : "—"}</p>
                     </div>
                     <div className="text-right ml-3 flex-shrink-0">
                       <p className="font-bold text-sm text-[#2563EB]">{formatFCFA(inv.balance)}</p>
@@ -336,7 +336,7 @@ export default function AchatsOverview() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
               <span className="flex items-center gap-1.5">
-                <Building2 className="h-4 w-4 text-slate-500" />
+                <Building2 className="h-4 w-4 text-muted-foreground" />
                 Top fournisseurs
               </span>
               <Link href="/achats/fournisseurs" className="text-xs font-normal text-[#2563EB] flex items-center gap-1 hover:underline">
@@ -346,7 +346,7 @@ export default function AchatsOverview() {
           </CardHeader>
           <CardContent className="pt-0 pb-2">
             {bySupplier.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-6">Aucun fournisseur</p>
+              <p className="text-muted-foreground/60 text-sm text-center py-6">Aucun fournisseur</p>
             ) : (
               <ResponsiveContainer width="100%" height={bySupplier.slice(0, 5).length * 36 + 16}>
                 <BarChart
@@ -375,7 +375,7 @@ export default function AchatsOverview() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-slate-500" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
               Dernières activités
             </CardTitle>
           </CardHeader>
@@ -386,17 +386,17 @@ export default function AchatsOverview() {
                 const iconColor = a.type === "payment" ? "text-emerald-600" : a.type === "po_confirmed" ? "text-blue-600" : "text-amber-600";
                 const amtColor = a.type === "payment" ? "text-emerald-700" : a.type === "po_confirmed" ? "text-blue-700" : "text-amber-700";
                 return (
-                  <div key={a.id + a.type} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors">
+                  <div key={a.id + a.type} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors">
                     <div className={`rounded-full p-1.5 flex-shrink-0 ${iconBg}`}>
                       <CheckCircle2 className={`h-3.5 w-3.5 ${iconColor}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{a.label}</p>
-                      <p className="text-xs text-slate-500 truncate">{a.sublabel}</p>
+                      <p className="text-xs text-muted-foreground truncate">{a.sublabel}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className={`font-semibold text-sm ${amtColor}`}>{formatFCFA(a.amount)}</p>
-                      <p className="text-xs text-slate-400">{a.eventAt ? formatDate(a.eventAt) : "—"}</p>
+                      <p className="text-xs text-muted-foreground/60">{a.eventAt ? formatDate(a.eventAt) : "—"}</p>
                     </div>
                   </div>
                 );
@@ -419,10 +419,10 @@ export default function AchatsOverview() {
           { href: "/achats/factures",            label: "Voir impayées",      icon: Clock },
         ].map(({ href, label, icon: Icon }) => (
           <Link key={href + label} href={href}>
-            <div className="flex items-center gap-2 rounded-lg border bg-white p-3 hover:bg-slate-50 hover:border-[#2563EB] transition-colors cursor-pointer">
+            <div className="flex items-center gap-2 rounded-lg border bg-card p-3 hover:bg-muted/50 hover:border-[#2563EB] transition-colors cursor-pointer">
               <Icon className="h-4 w-4 text-[#2563EB]" />
-              <span className="text-sm font-medium text-slate-700">{label}</span>
-              <ChevronRight className="h-3.5 w-3.5 text-slate-400 ml-auto" />
+              <span className="text-sm font-medium text-foreground">{label}</span>
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 ml-auto" />
             </div>
           </Link>
         ))}

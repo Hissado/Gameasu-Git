@@ -28,7 +28,7 @@ const MOVEMENT_TYPES: Record<string, { label: string; color: string }> = {
   reclassification: { label: "Reclassification", color: "bg-orange-100 text-orange-700 border-orange-300" },
   departure: { label: "Départ", color: "bg-red-100 text-red-700 border-red-300" },
   retirement: { label: "Retraite", color: "bg-purple-100 text-purple-700 border-purple-300" },
-  disciplinary: { label: "Disciplinaire", color: "bg-slate-100 text-slate-700 border-slate-300" },
+  disciplinary: { label: "Disciplinaire", color: "bg-muted text-foreground border" },
 };
 
 export default function MovementsPage() {

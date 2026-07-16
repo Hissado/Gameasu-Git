@@ -105,7 +105,7 @@ export default function ChartOfAccounts() {
       <div data-tour="coa-header" className="flex items-center gap-3 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
         <BookOpen className="w-5 h-5 text-amber-600 shrink-0" />
         <div>
-          <p className="font-semibold text-sm text-slate-700">{fwLabel}</p>
+          <p className="font-semibold text-sm text-foreground">{fwLabel}</p>
           <p className="text-xs text-muted-foreground">{fwDesc}</p>
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function ChartOfAccounts() {
                   <Badge variant="secondary">{accs.length} comptes</Badge>
                 </div>
                 <table className="w-full text-sm">
-                  <thead className="text-xs uppercase text-muted-foreground bg-slate-50">
+                  <thead className="text-xs uppercase text-muted-foreground bg-muted/50">
                     <tr>
                       <th className="text-left px-5 py-2 w-32">Code</th>
                       <th className="text-left px-5 py-2">Libellé</th>
@@ -147,7 +147,7 @@ export default function ChartOfAccounts() {
                   </thead>
                   <tbody>
                     {accs.map((a) => (
-                      <tr key={a.id} className="border-t hover:bg-slate-50">
+                      <tr key={a.id} className="border-t hover:bg-muted/50">
                         <td className="px-5 py-2 font-mono font-semibold">{a.code}</td>
                         <td className="px-5 py-2">
                           {a.label}

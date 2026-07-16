@@ -254,7 +254,7 @@ export default function ExpertDashboard() {
             alerts.push({
               key: "nosub",
               color: "slate",
-              icon: <Clock className="w-4 h-4 text-slate-500 shrink-0" />,
+              icon: <Clock className="w-4 h-4 text-muted-foreground shrink-0" />,
               text: `${noSubscription} client${noSubscription > 1 ? "s" : ""} sans abonnement actif`,
               href: "/expert/clients",
             });
@@ -328,7 +328,7 @@ export default function ExpertDashboard() {
                     <p className="text-xs text-muted-foreground">{c.org.country} · {ACCESS_LABEL[c.accessLevel] ?? c.accessLevel}</p>
                   </div>
                   {c.subscription ? (
-                    <Badge className={`text-[10px] font-semibold border ${PLAN_COLOR[c.subscription.planCode] ?? "bg-slate-100 text-slate-600"}`} variant="outline">
+                    <Badge className={`text-[10px] font-semibold border ${PLAN_COLOR[c.subscription.planCode] ?? "bg-muted text-muted-foreground"}`} variant="outline">
                       {c.subscription.planName}
                     </Badge>
                   ) : (

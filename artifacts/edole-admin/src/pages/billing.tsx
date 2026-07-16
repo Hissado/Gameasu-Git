@@ -136,8 +136,8 @@ const TX_STATUS_CFG: Record<string, { label: string; cls: string; icon: React.Co
   pending:   { label: "En attente",  cls: "bg-amber-50 text-amber-700 border-amber-200",      icon: Clock },
   confirmed: { label: "Confirmé",    cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
   failed:    { label: "Échoué",      cls: "bg-red-50 text-red-700 border-red-200",             icon: XCircle },
-  cancelled: { label: "Annulé",      cls: "bg-slate-100 text-slate-600 border-slate-200",      icon: XCircle },
-  expired:   { label: "Expiré",      cls: "bg-slate-100 text-slate-500 border-slate-200",      icon: Clock },
+  cancelled: { label: "Annulé",      cls: "bg-muted text-muted-foreground border",      icon: XCircle },
+  expired:   { label: "Expiré",      cls: "bg-muted text-muted-foreground border",      icon: Clock },
   refunded:  { label: "Remboursé",   cls: "bg-purple-50 text-purple-700 border-purple-200",    icon: RefreshCw },
 };
 
@@ -238,11 +238,11 @@ function PlanChangeModal({
         ) : preview ? (
           <div className="space-y-4">
             {/* De → Vers */}
-            <div className="flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+            <div className="flex items-center gap-3 rounded-xl bg-muted/50 border border px-4 py-3">
               <div className="text-center flex-1">
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Actuelle</p>
-                <p className="font-bold text-slate-800">{preview.from.name}</p>
-                <p className="text-xs text-slate-600">{formatFCFA(preview.from.unitPriceTTC)} TTC / util</p>
+                <p className="font-bold text-foreground">{preview.from.name}</p>
+                <p className="text-xs text-muted-foreground">{formatFCFA(preview.from.unitPriceTTC)} TTC / util</p>
               </div>
               <ArrowRight className="w-5 h-5 text-muted-foreground shrink-0" />
               <div className={cn("text-center flex-1 rounded-xl px-2 py-1.5 border", isUpgrade
@@ -257,7 +257,7 @@ function PlanChangeModal({
             </div>
 
             {/* Récap financier */}
-            <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 text-sm overflow-hidden">
+            <div className="rounded-xl border border divide-y divide-border text-sm overflow-hidden">
               <div className="flex justify-between items-center px-4 py-2.5">
                 <span className="text-muted-foreground">Montant mensuel actuel ({preview.from.seats} util.)</span>
                 <span className="font-semibold tabular-nums">{formatFCFA(preview.from.monthlyTTC)} TTC</span>
@@ -918,7 +918,7 @@ function ReceiptModal({ txId, onClose }: { txId: string; onClose: () => void }) 
               ))}
             </div>
             {data.notes && (
-              <div className="rounded border border-slate-200 p-2 text-xs text-slate-600">
+              <div className="rounded border border p-2 text-xs text-muted-foreground">
                 <strong>Notes :</strong> {data.notes}
               </div>
             )}
@@ -937,7 +937,7 @@ function ReceiptModal({ txId, onClose }: { txId: string; onClose: () => void }) 
 // ─── TxBadge ─────────────────────────────────────────────────────
 
 function TxBadge({ status }: { status: string }) {
-  const cfg = TX_STATUS_CFG[status] ?? { label: status, cls: "bg-slate-100 text-slate-600 border-slate-200", icon: Clock };
+  const cfg = TX_STATUS_CFG[status] ?? { label: status, cls: "bg-muted text-muted-foreground border", icon: Clock };
   const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider rounded-full px-2 py-0.5 border ${cfg.cls}`}>
@@ -1013,8 +1013,8 @@ function AutopayPanel({
         <CardContent className="py-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${autopayEnabled ? "bg-emerald-100" : "bg-slate-100"}`}>
-                <Repeat className={`w-5 h-5 ${autopayEnabled ? "text-emerald-600" : "text-slate-400"}`} />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${autopayEnabled ? "bg-emerald-100" : "bg-muted"}`}>
+                <Repeat className={`w-5 h-5 ${autopayEnabled ? "text-emerald-600" : "text-muted-foreground/60"}`} />
               </div>
               <div>
                 <p className="font-semibold text-sm">Paiement automatique (autopay)</p>
@@ -1144,7 +1144,7 @@ function AutopayPanel({
                   <p className="font-medium text-xs">{event}</p>
                   <p className="text-[11px] text-muted-foreground">{desc}</p>
                 </div>
-                <span className={`text-[10px] font-semibold uppercase ${active ? "text-emerald-600" : "text-slate-400"}`}>
+                <span className={`text-[10px] font-semibold uppercase ${active ? "text-emerald-600" : "text-muted-foreground/60"}`}>
                   {active ? "actif" : "—"}
                 </span>
               </div>
@@ -1231,7 +1231,7 @@ function GatewayConfigPanel() {
                 size="sm" variant="ghost"
                 onClick={() => toggleMutation.mutate({ gateway: gw.gateway, isEnabled: !gw.isEnabled })}
                 disabled={toggleMutation.isPending}
-                className={gw.isEnabled ? "text-emerald-600" : "text-slate-400"}
+                className={gw.isEnabled ? "text-emerald-600" : "text-muted-foreground/60"}
               >
                 {gw.isEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
               </Button>
@@ -1499,7 +1499,7 @@ export default function BillingPage() {
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                           periodicity === p.value
                             ? "bg-amber-600 text-white border-amber-600 shadow-sm"
-                            : "bg-white text-slate-600 border-slate-200 hover:border-amber-300"
+                            : "bg-card text-muted-foreground border hover:border-amber-300"
                         }`}
                       >
                         {p.label}
@@ -1531,7 +1531,7 @@ export default function BillingPage() {
                   </div>
                 ) : (
                   /* Grille HT / TVA / TTC */
-                  <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+                  <div className="rounded-lg border border bg-card divide-y divide-border">
                     <div className="flex items-center justify-between px-4 py-3">
                       <span className="text-sm text-muted-foreground">
                         {userCount} utilisateur{userCount !== 1 ? "s" : ""} × {formatFCFA(pricing.priceTTCPerSeat ?? 0)} TTC / util
@@ -1605,7 +1605,7 @@ export default function BillingPage() {
 
                 {savedCard ? (
                   <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${
-                    autopayEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600"
+                    autopayEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border bg-muted/50 text-muted-foreground"
                   }`}>
                     <Repeat className="w-3.5 h-3.5 shrink-0" />
                     <span>
@@ -1677,10 +1677,10 @@ export default function BillingPage() {
                     : kind === "upgrade"
                     ? "border-emerald-200 bg-emerald-50/30 hover:border-emerald-400 transition-all"
                     : kind === "downgrade"
-                    ? "border-orange-200 bg-white hover:border-orange-300 transition-all"
+                    ? "border-orange-200 bg-card hover:border-orange-300 transition-all"
                     : plan.isFeatured
                     ? "border-blue-200 bg-blue-50/30"
-                    : "border-slate-200 bg-white";
+                    : "border bg-card";
 
                   // ── Libellé et style du bouton
                   type BtnCfg = { label: string; cls: string; disabled: boolean; href?: string };
@@ -1691,8 +1691,8 @@ export default function BillingPage() {
                     : kind === "downgrade"
                     ? { label: `Réduire vers ${plan.name}`, cls: "bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300", disabled: false }
                     : plan.isEnterprise
-                    ? { label: "Demander un devis", cls: "border border-slate-300 text-slate-700 hover:bg-slate-50", disabled: false, href: "mailto:sales@gameasutech.africa" }
-                    : { label: "Contacter l'équipe", cls: "border border-slate-300 text-slate-700 hover:bg-slate-50", disabled: false, href: "mailto:sales@gameasutech.africa" };
+                    ? { label: "Demander un devis", cls: "border border text-foreground hover:bg-muted/50", disabled: false, href: "mailto:sales@gameasutech.africa" }
+                    : { label: "Contacter l'équipe", cls: "border border text-foreground hover:bg-muted/50", disabled: false, href: "mailto:sales@gameasutech.africa" };
 
                   return (
                     <div key={plan.code} className={`relative rounded-xl border p-4 flex flex-col gap-3 ${cardCls}`}>
@@ -1711,7 +1711,7 @@ export default function BillingPage() {
 
                       {/* Nom et modules */}
                       <div className="mt-1">
-                        <p className="font-bold text-slate-900">{plan.name}</p>
+                        <p className="font-bold text-foreground">{plan.name}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {plan.moduleCount ? `${plan.moduleCount} modules` : "Tous les modules"}
                         </p>
@@ -1720,10 +1720,10 @@ export default function BillingPage() {
                       {/* Prix */}
                       <div>
                         {plan.isEnterprise ? (
-                          <p className="text-lg font-bold text-slate-600 italic">Sur devis</p>
+                          <p className="text-lg font-bold text-muted-foreground italic">Sur devis</p>
                         ) : (
                           <>
-                            <p className="text-2xl font-bold text-slate-900 tabular-nums">
+                            <p className="text-2xl font-bold text-foreground tabular-nums">
                               {formatFCFA(plan.monthlyPriceTTC)}
                             </p>
                             <p className="text-[11px] text-muted-foreground">TTC / util / mois</p>
@@ -1734,8 +1734,8 @@ export default function BillingPage() {
                       {/* Features */}
                       <ul className="space-y-1 flex-1">
                         {plan.features.map((f) => (
-                          <li key={f} className="flex items-start gap-1.5 text-xs text-slate-600">
-                            <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isCurrent ? "text-amber-500" : kind === "upgrade" ? "text-emerald-500" : "text-slate-400"}`} />
+                          <li key={f} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                            <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isCurrent ? "text-amber-500" : kind === "upgrade" ? "text-emerald-500" : "text-muted-foreground/60"}`} />
                             {f}
                           </li>
                         ))}
@@ -1805,7 +1805,7 @@ export default function BillingPage() {
         {/* ── Onglet Add-ons ── */}
         <TabsContent value="addons" className="space-y-6">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Add-ons & services complémentaires</h2>
+            <h2 className="text-base font-semibold text-foreground">Add-ons & services complémentaires</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Étendez les capacités de votre espace Gameasu avec des modules optionnels activables à la demande.
             </p>
@@ -1924,7 +1924,7 @@ export default function BillingPage() {
                               )}
                             </td>
                             <td className="px-4 py-3">
-                              <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${tx.method === "card" ? "text-blue-700" : isMobile ? "text-amber-700" : "text-slate-600"}`}>
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${tx.method === "card" ? "text-blue-700" : isMobile ? "text-amber-700" : "text-muted-foreground"}`}>
                                 <MethodIcon className={`w-3.5 h-3.5 ${tx.method === "card" ? "text-blue-500" : tx.method === "mixx" ? "text-emerald-500" : "text-orange-500"}`} />
                                 {tx.method === "card" ? (isStripeCard ? "Stripe" : "Carte (CinetPay)") : tx.method === "mixx" ? "Mixx" : tx.method === "flooz" ? "Flooz" : "Mobile Money"}
                               </span>
@@ -1951,7 +1951,7 @@ export default function BillingPage() {
                                       </Button>
                                       <Button
                                         size="sm" variant="ghost"
-                                        className="h-7 text-xs text-slate-500"
+                                        className="h-7 text-xs text-muted-foreground"
                                         onClick={() => cancelMutation.mutate(tx.id)}
                                         disabled={cancelMutation.isPending}
                                       >
@@ -2047,7 +2047,7 @@ export default function BillingPage() {
                             e.status === "paid" ? "bg-emerald-100 text-emerald-700" :
                             e.status === "pending" ? "bg-amber-100 text-amber-700" :
                             e.status === "failed" ? "bg-red-100 text-red-700" :
-                            "bg-slate-100 text-slate-600"
+                            "bg-muted text-muted-foreground"
                           }`}>
                             {e.status === "paid" ? "Payé" : e.status === "pending" ? "En attente" : e.status === "failed" ? "Échoué" : e.status}
                           </span>
@@ -2157,7 +2157,7 @@ const ADDON_CATEGORY_META: Record<string, { label: string; icon: React.Component
   email:   { label: "Email",   icon: MailOpen,        color: "text-blue-600",    bg: "bg-blue-50 border-blue-200"      },
   support: { label: "Support", icon: HeadphonesIcon,  color: "text-amber-600",   bg: "bg-amber-50 border-amber-200"    },
   fiscal:  { label: "Fiscal",  icon: Shield,          color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
-  general: { label: "Général", icon: Sparkles,        color: "text-slate-600",   bg: "bg-slate-50 border-slate-200"   },
+  general: { label: "Général", icon: Sparkles,        color: "text-muted-foreground",   bg: "bg-muted/50 border"   },
 };
 
 // ── Carte : achat de crédits (SMS / email) ───────────────────────
@@ -2183,7 +2183,7 @@ function CreditsCard({
   return (
     <Card className={cn(
       "transition-all duration-150 flex flex-col",
-      addon.isActive ? "border-primary/30 shadow-sm" : "border-slate-200",
+      addon.isActive ? "border-primary/30 shadow-sm" : "border",
     )}>
       <CardContent className="p-5 space-y-4 flex-1">
         {/* En-tête */}
@@ -2193,8 +2193,8 @@ function CreditsCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm text-slate-900">{addon.name}</span>
-              <Badge className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-1.5 py-0 h-4">
+              <span className="font-semibold text-sm text-foreground">{addon.name}</span>
+              <Badge className="bg-muted text-muted-foreground border border text-[10px] px-1.5 py-0 h-4">
                 À l'unité
               </Badge>
             </div>
@@ -2216,16 +2216,16 @@ function CreditsCard({
         )}
 
         {/* Prix unitaire */}
-        <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5 flex items-center justify-between">
+        <div className="rounded-lg border border bg-muted/60 px-3 py-2.5 flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Prix unitaire HT</span>
-          <span className="text-sm font-semibold text-slate-900">
+          <span className="text-sm font-semibold text-foreground">
             {formatFCFA(addon.priceHT)} <span className="font-normal text-muted-foreground text-xs">/ {addon.unit}</span>
           </span>
         </div>
 
         {/* Sélecteur de quantité */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-slate-700">
+          <label className="text-xs font-medium text-foreground">
             Quantité à acheter ({addon.unit})
           </label>
           <div className="flex items-center gap-2">
@@ -2256,7 +2256,7 @@ function CreditsCard({
         </div>
 
         {/* Récapitulatif */}
-        <div className="rounded-lg border border-slate-100 bg-slate-50/60 divide-y divide-slate-100 text-sm">
+        <div className="rounded-lg border border bg-muted/60 divide-y divide-border text-sm">
           <div className="flex justify-between px-3 py-2 text-muted-foreground">
             <span>{qty.toLocaleString("fr-FR")} × {formatFCFA(addon.priceHT)} HT</span>
             <span className="font-medium">{formatFCFA(priceHTTotal)}</span>
@@ -2265,7 +2265,7 @@ function CreditsCard({
             <span>TVA 18 %</span>
             <span>{formatFCFA(tvaTotal)}</span>
           </div>
-          <div className="flex justify-between px-3 py-2 font-semibold text-slate-900 bg-white rounded-b-lg">
+          <div className="flex justify-between px-3 py-2 font-semibold text-foreground bg-card rounded-b-lg">
             <span>Total TTC</span>
             <span className="text-primary">{formatFCFA(priceTTCTotal)}</span>
           </div>
@@ -2305,7 +2305,7 @@ function FiscalAddonCard({
       "transition-all duration-150 flex flex-col",
       isActive  ? "border-emerald-300 shadow-sm ring-1 ring-emerald-200"
       : isPending ? "border-amber-300 shadow-sm"
-      : "border-slate-200",
+      : "border",
     )}>
       <CardContent className="p-5 space-y-4 flex-1">
         {/* En-tête */}
@@ -2315,13 +2315,13 @@ function FiscalAddonCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm text-slate-900">{addon.name}</span>
+              <span className="font-semibold text-sm text-foreground">{addon.name}</span>
               {isActive ? (
                 <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] px-1.5 py-0 h-4">Activé</Badge>
               ) : isPending ? (
                 <Badge className="bg-amber-100 text-amber-700 border border-amber-200 text-[10px] px-1.5 py-0 h-4">Demande en cours</Badge>
               ) : (
-                <Badge className="bg-slate-100 text-slate-500 border border-slate-200 text-[10px] px-1.5 py-0 h-4">Add-on premium</Badge>
+                <Badge className="bg-muted text-muted-foreground border border text-[10px] px-1.5 py-0 h-4">Add-on premium</Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{addon.description}</p>
@@ -2339,7 +2339,7 @@ function FiscalAddonCard({
             "Export PDF / Excel",
             "Configuration par pays (SYSCOHADA)",
           ].map((f) => (
-            <div key={f} className="flex items-center gap-2 text-xs text-slate-600">
+            <div key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
               <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
               <span>{f}</span>
             </div>
@@ -2368,8 +2368,8 @@ function FiscalAddonCard({
 
         {/* Pas encore activé */}
         {!isActive && !isPending && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-            <p className="text-sm font-semibold text-slate-700">Tarif sur devis</p>
+          <div className="rounded-lg border border bg-muted/50 px-4 py-3 text-center">
+            <p className="text-sm font-semibold text-foreground">Tarif sur devis</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Adapté à votre pays, votre secteur et la complexité de vos déclarations
             </p>
@@ -2426,7 +2426,7 @@ function QuoteCard({
   return (
     <Card className={cn(
       "transition-all duration-150 flex flex-col",
-      isPending ? "border-amber-300 shadow-sm" : "border-slate-200",
+      isPending ? "border-amber-300 shadow-sm" : "border",
     )}>
       <CardContent className="p-5 space-y-4 flex-1">
         <div className="flex items-start gap-3">
@@ -2435,13 +2435,13 @@ function QuoteCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm text-slate-900">{addon.name}</span>
+              <span className="font-semibold text-sm text-foreground">{addon.name}</span>
               {isPending ? (
                 <Badge className="bg-amber-100 text-amber-700 border border-amber-200 text-[10px] px-1.5 py-0 h-4">
                   Devis en attente
                 </Badge>
               ) : (
-                <Badge className="bg-slate-100 text-slate-500 border border-slate-200 text-[10px] px-1.5 py-0 h-4">
+                <Badge className="bg-muted text-muted-foreground border border text-[10px] px-1.5 py-0 h-4">
                   Sur devis
                 </Badge>
               )}
@@ -2451,8 +2451,8 @@ function QuoteCard({
         </div>
 
         {/* Indicateur sur devis */}
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-          <p className="text-sm font-semibold text-slate-700">Prix sur devis</p>
+        <div className="rounded-lg border border bg-muted/50 px-4 py-3 text-center">
+          <p className="text-sm font-semibold text-foreground">Prix sur devis</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             Adapté à la taille de votre organisation et à la complexité du projet
           </p>
@@ -2588,7 +2588,7 @@ function AddonsPanel() {
             <div className="p-1.5 rounded-md border bg-violet-50 border-violet-200">
               <MessageSquare className="w-3.5 h-3.5 text-violet-600" />
             </div>
-            <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">Crédits de communication</h3>
+            <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider">Crédits de communication</h3>
             <Badge variant="outline" className="text-[10px] text-muted-foreground ml-1">À l'unité · sans expiration</Badge>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -2611,7 +2611,7 @@ function AddonsPanel() {
             <div className="p-1.5 rounded-md border bg-emerald-50 border-emerald-200">
               <Shield className="w-3.5 h-3.5 text-emerald-700" />
             </div>
-            <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">Contrôle fiscal préalable</h3>
+            <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider">Contrôle fiscal préalable</h3>
             <Badge variant="outline" className="text-[10px] text-muted-foreground ml-1">Add-on premium · sur devis</Badge>
           </div>
           <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-teal-50/40 p-4 mb-1">
@@ -2641,7 +2641,7 @@ function AddonsPanel() {
             <div className="p-1.5 rounded-md border bg-violet-50 border-violet-200">
               <Bot className="w-3.5 h-3.5 text-violet-600" />
             </div>
-            <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">Secrétaire virtuelle & Intelligence Artificielle</h3>
+            <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider">Secrétaire virtuelle & Intelligence Artificielle</h3>
             <Badge variant="outline" className="text-[10px] text-muted-foreground ml-1">Sur devis · selon la complexité</Badge>
           </div>
           <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50/60 to-amber-50/40 p-4 mb-1">
@@ -2670,7 +2670,7 @@ function AddonsPanel() {
             <div className="p-1.5 rounded-md border bg-amber-50 border-amber-200">
               <HeadphonesIcon className="w-3.5 h-3.5 text-amber-600" />
             </div>
-            <h3 className="font-semibold text-sm text-slate-700 uppercase tracking-wider">Services & accompagnement</h3>
+            <h3 className="font-semibold text-sm text-foreground uppercase tracking-wider">Services & accompagnement</h3>
             <Badge variant="outline" className="text-[10px] text-muted-foreground ml-1">Sur devis · selon votre organisation</Badge>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -2788,7 +2788,7 @@ function PartnerApplicationDialog({ onClose }: { onClose: () => void }) {
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
             </div>
             <div>
-              <p className="font-semibold text-slate-900 text-lg">Candidature envoyée !</p>
+              <p className="font-semibold text-foreground text-lg">Candidature envoyée !</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Notre équipe partenaires étudiera votre dossier et vous contactera à l'adresse <strong>{form.contactEmail}</strong>.
               </p>
@@ -2863,14 +2863,14 @@ function PartnerApplicationDialog({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* Acceptation des CGU */}
-            <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <label className="flex items-start gap-2.5 cursor-pointer rounded-lg border border bg-muted/50 px-3 py-2.5">
               <input
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
                 className="mt-0.5 accent-emerald-600 w-4 h-4 shrink-0"
               />
-              <span className="text-xs text-slate-700">
+              <span className="text-xs text-foreground">
                 J'accepte les{" "}
                 <a href="https://gameasu.com/conditions-partenaires" target="_blank" rel="noreferrer" className="text-emerald-700 underline">
                   conditions du programme partenaire Gameasu

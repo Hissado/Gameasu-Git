@@ -90,7 +90,7 @@ export default function MapPage() {
                   <Popup>
                     <div className="space-y-1">
                       <div className="font-bold">{p.name}</div>
-                      <div className="text-xs text-slate-600">Projet — {p.clientName || "Client interne"}</div>
+                      <div className="text-xs text-muted-foreground">Projet — {p.clientName || "Client interne"}</div>
                       <Badge variant="outline" className="text-[10px]">{p.status}</Badge>
                     </div>
                   </Popup>
@@ -106,8 +106,8 @@ export default function MapPage() {
                   <Popup>
                     <div className="space-y-1">
                       <div className="font-bold">{e.name}</div>
-                      <div className="text-xs font-mono text-slate-600">{e.code}</div>
-                      <div className="text-xs text-slate-600">📍 {e.location}</div>
+                      <div className="text-xs font-mono text-muted-foreground">{e.code}</div>
+                      <div className="text-xs text-muted-foreground">📍 {e.location}</div>
                       <Badge variant="outline" className="text-[10px]">{e.status}</Badge>
                     </div>
                   </Popup>
@@ -121,7 +121,7 @@ export default function MapPage() {
       {equipmentMarkers.length === 0 && projectMarkers.length === 0 && (
         <Card className="shadow-sm border-border">
           <CardContent className="py-12 text-center">
-            <MapPin className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+            <MapPin className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-sm text-muted-foreground">Aucun équipement ni projet n'a de localisation reconnaissable.</p>
             <p className="text-xs text-muted-foreground mt-1">Renseignez le champ « Localisation » avec une ville ivoirienne (Abidjan, Bouaké, Yamoussoukro…).</p>
           </CardContent>

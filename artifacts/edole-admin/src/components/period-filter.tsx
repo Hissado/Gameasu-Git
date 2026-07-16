@@ -438,14 +438,14 @@ export function PeriodFilter({
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
       {/* Sélecteur de période */}
       <Select value={preset} onValueChange={(v) => onPresetChange(v as PeriodPreset)}>
-        <SelectTrigger className="w-[240px] h-9 text-sm bg-white">
+        <SelectTrigger className="w-[240px] h-9 text-sm bg-card">
           <SelectValue>
             <span className="truncate">{displayLabel}</span>
           </SelectValue>
         </SelectTrigger>
         <SelectContent className="w-[260px] max-h-[480px] overflow-y-auto">
           <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider text-slate-400 py-1">Périodes en cours</SelectLabel>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60 py-1">Périodes en cours</SelectLabel>
             <SelectItem value="today">Aujourd'hui</SelectItem>
             <SelectItem value="week">Semaine en cours</SelectItem>
             <SelectItem value="month">Mois en cours</SelectItem>
@@ -454,13 +454,13 @@ export function PeriodFilter({
             <SelectItem value="year">Année en cours</SelectItem>
           </SelectGroup>
           <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider text-slate-400 py-1">À ce jour</SelectLabel>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60 py-1">À ce jour</SelectLabel>
             <SelectItem value="ytd">YTD — Depuis le 1er janvier</SelectItem>
             <SelectItem value="mtd">MTD — Depuis le 1er du mois</SelectItem>
             <SelectItem value="qtd">QTD — Depuis le 1er du trimestre</SelectItem>
           </SelectGroup>
           <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider text-slate-400 py-1">Périodes précédentes</SelectLabel>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60 py-1">Périodes précédentes</SelectLabel>
             <SelectItem value="prev-week">Semaine précédente</SelectItem>
             <SelectItem value="prev-month">Mois précédent</SelectItem>
             <SelectItem value="prev-quarter">Trimestre précédent</SelectItem>
@@ -468,27 +468,27 @@ export function PeriodFilter({
             <SelectItem value="prev-year">Année précédente</SelectItem>
           </SelectGroup>
           <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider text-slate-400 py-1">Exercices fiscaux</SelectLabel>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60 py-1">Exercices fiscaux</SelectLabel>
             <SelectItem value="fy-current">{fyLabel("fy-current")}</SelectItem>
             <SelectItem value="fy-prev-1">{fyLabel("fy-prev-1")}</SelectItem>
             <SelectItem value="fy-prev-2">{fyLabel("fy-prev-2")}</SelectItem>
             <SelectItem value="fy-prev-3">{fyLabel("fy-prev-3")}</SelectItem>
           </SelectGroup>
           <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider text-slate-400 py-1">Exercices fiscaux — historique (2015–2030)</SelectLabel>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60 py-1">Exercices fiscaux — historique (2015–2030)</SelectLabel>
             {FISCAL_YEAR_ABS.map((fy) => (
               <SelectItem key={fy} value={fy}>{PRESET_LABELS[fy]}</SelectItem>
             ))}
           </SelectGroup>
           <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider text-slate-400 py-1">Rolling</SelectLabel>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60 py-1">Rolling</SelectLabel>
             <SelectItem value="rolling-30">30 derniers jours</SelectItem>
             <SelectItem value="rolling-90">90 derniers jours</SelectItem>
             <SelectItem value="rolling-180">6 derniers mois glissants</SelectItem>
             <SelectItem value="rolling-365">12 derniers mois glissants</SelectItem>
           </SelectGroup>
           <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider text-slate-400 py-1">Personnalisée</SelectLabel>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/60 py-1">Personnalisée</SelectLabel>
             <SelectItem value="custom">Période personnalisée…</SelectItem>
           </SelectGroup>
         </SelectContent>
@@ -502,7 +502,7 @@ export function PeriodFilter({
             onChange={(e) => onCustomFromChange(e.target.value)}
             className="h-9 w-[140px] text-sm"
           />
-          <span className="text-slate-400 text-sm">→</span>
+          <span className="text-muted-foreground/60 text-sm">→</span>
           <Input
             type="date" value={customTo}
             onChange={(e) => onCustomToChange(e.target.value)}
@@ -534,7 +534,7 @@ export function PeriodFilter({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[300px] p-2 space-y-1" align="end">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 pt-1 pb-0.5">Mode de comparaison</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-2 pt-1 pb-0.5">Mode de comparaison</p>
             {(Object.keys(COMPARE_LABELS) as CompareMode[]).map((mode) => (
               <button
                 key={mode}
@@ -542,7 +542,7 @@ export function PeriodFilter({
                 className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
                   compareMode === mode
                     ? "bg-blue-50 text-blue-700 font-semibold"
-                    : "hover:bg-slate-50 text-slate-700"
+                    : "hover:bg-muted/50 text-foreground"
                 }`}
               >
                 {COMPARE_LABELS[mode]}
@@ -551,7 +551,7 @@ export function PeriodFilter({
 
             {compareMode === "custom" && onCustomCompareFromChange && onCustomCompareToChange && (
               <div className="pt-2 space-y-1.5 border-t mt-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">Période de comparaison</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-2">Période de comparaison</p>
                 <div className="flex gap-1 px-1">
                   <Input
                     type="date" value={customCompareFrom}

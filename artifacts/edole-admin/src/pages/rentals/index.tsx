@@ -35,7 +35,7 @@ function StatusBadge({ status }: { status: string }) {
     case "active":    return <Badge className="bg-green-100 text-green-800 border-green-200">En cours</Badge>;
     case "pending":   return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">En attente</Badge>;
     case "confirmed": return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">Confirmé</Badge>;
-    case "returned":  return <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300">Retourné</Badge>;
+    case "returned":  return <Badge variant="outline" className="bg-muted text-muted-foreground border">Retourné</Badge>;
     case "cancelled": return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Annulé</Badge>;
     default:          return <Badge variant="outline">Inconnu</Badge>;
   }
@@ -149,7 +149,7 @@ function CreateRentalDialog({ open, onClose }: { open: boolean; onClose: () => v
               <div className="border border-border rounded-md divide-y divide-border/60 mb-2">
                 {items.map((item, idx) => (
                   <div key={item.equipmentId} className="flex items-center gap-2 px-3 py-2">
-                    <span className="flex-1 text-sm font-medium text-slate-700 truncate">{item.equipmentName}</span>
+                    <span className="flex-1 text-sm font-medium text-foreground truncate">{item.equipmentName}</span>
                     <div className="flex items-center gap-1.5">
                       <Label className="text-xs text-muted-foreground">Qté</Label>
                       <Input
@@ -274,7 +274,7 @@ export default function RentalsList() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Réf. contrat, client…"
-                className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+                className="pl-9 bg-muted/50 focus-visible:ring-primary h-9"
               />
             </div>
           </div>
@@ -284,15 +284,15 @@ export default function RentalsList() {
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
             <Table data-tour="rental-table">
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Référence</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Client</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Période</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600 text-center">Équipements</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Coût Total</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Référence</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Client</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Statut</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Période</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-muted-foreground text-center">Équipements</TableHead>
+                  <TableHead className="text-right font-semibold text-muted-foreground">Coût Total</TableHead>
+                  <TableHead className="text-right font-semibold text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -310,18 +310,18 @@ export default function RentalsList() {
                   </TableRow>
                 ) : (
                   rentals.map((rental: any) => (
-                    <TableRow key={rental.id} className="hover:bg-slate-50/50">
+                    <TableRow key={rental.id} className="hover:bg-muted/50">
                       <TableCell className="font-mono text-sm font-bold text-primary">
                         <Link href={`/locations/${rental.id}`} className="hover:underline flex items-center gap-1.5">
                           <FileText className="w-4 h-4" /> {rental.referenceNumber}
                         </Link>
                       </TableCell>
-                      <TableCell className="font-bold text-slate-700">{rental.clientName || "—"}</TableCell>
+                      <TableCell className="font-bold text-foreground">{rental.clientName || "—"}</TableCell>
                       <TableCell><StatusBadge status={rental.status} /></TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-100 w-fit px-2 py-1 rounded">
+                        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-muted/50 border border w-fit px-2 py-1 rounded">
                           <span>{formatDate(rental.startDate)}</span>
-                          <ArrowRight className="w-3 h-3 text-slate-400" />
+                          <ArrowRight className="w-3 h-3 text-muted-foreground/60" />
                           <span>{formatDate(rental.endDate)}</span>
                         </div>
                       </TableCell>
@@ -330,8 +330,8 @@ export default function RentalsList() {
                           {rental.items?.length || 0} engin{rental.items?.length !== 1 ? "s" : ""}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-bold text-slate-800">
-                        {rental.totalCost ? formatFCFA(rental.totalCost) : <span className="text-slate-400 italic text-xs">—</span>}
+                      <TableCell className="text-right font-bold text-foreground">
+                        {rental.totalCost ? formatFCFA(rental.totalCost) : <span className="text-muted-foreground/60 italic text-xs">—</span>}
                       </TableCell>
                       <TableCell className="text-right">
                         <Link href={`/locations/${rental.id}`}>

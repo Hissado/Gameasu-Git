@@ -48,7 +48,7 @@ export default function ClientsList() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active": return <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-200">Actif</Badge>;
-      case "inactive": return <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">Inactif</Badge>;
+      case "inactive": return <Badge variant="outline" className="bg-muted/50 text-muted-foreground border">Inactif</Badge>;
       case "prospect": return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">Prospect</Badge>;
       default: return <Badge variant="outline">Inconnu</Badge>;
     }
@@ -74,7 +74,7 @@ export default function ClientsList() {
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Rechercher une entreprise..." className="pl-9 bg-slate-50 focus-visible:ring-primary h-9" />
+                <Input type="search" placeholder="Rechercher une entreprise..." className="pl-9 bg-muted/50 focus-visible:ring-primary h-9" />
               </div>
               <Button variant="outline" size="sm" className="h-9">
                 <Filter className="w-4 h-4 mr-2" />
@@ -90,13 +90,13 @@ export default function ClientsList() {
             </div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Nom du Client</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Secteur / Industrie</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Coordonnées</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Nom du Client</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Secteur / Industrie</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-muted-foreground">Coordonnées</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Statut</TableHead>
+                  <TableHead className="text-right font-semibold text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -114,23 +114,23 @@ export default function ClientsList() {
                   </TableRow>
                 ) : (
                   data.data.map((client) => (
-                    <TableRow key={client.id} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="font-bold text-slate-800">
+                    <TableRow key={client.id} className="hover:bg-muted/50 transition-colors">
+                      <TableCell className="font-bold text-foreground">
                         <Link href={`/crm/clients/${client.id}`} className="hover:text-primary transition-colors flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-xs text-slate-500 font-bold">
+                          <div className="w-8 h-8 rounded-md bg-muted border border flex items-center justify-center text-xs text-muted-foreground font-bold">
                             {client.name.substring(0, 2).toUpperCase()}
                           </div>
                           {client.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm font-medium text-slate-600">{client.industry || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm font-medium text-muted-foreground">{client.industry || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell">
                         <div className="text-sm space-y-1">
-                          <div className="flex items-center gap-1.5 text-slate-700">
-                            <Mail className="w-3.5 h-3.5 text-slate-400" /> {client.email || "—"}
+                          <div className="flex items-center gap-1.5 text-foreground">
+                            <Mail className="w-3.5 h-3.5 text-muted-foreground/60" /> {client.email || "—"}
                           </div>
-                          <div className="flex items-center gap-1.5 text-slate-700">
-                            <Phone className="w-3.5 h-3.5 text-slate-400" /> {client.phone || "—"}
+                          <div className="flex items-center gap-1.5 text-foreground">
+                            <Phone className="w-3.5 h-3.5 text-muted-foreground/60" /> {client.phone || "—"}
                           </div>
                         </div>
                       </TableCell>
@@ -138,7 +138,7 @@ export default function ClientsList() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

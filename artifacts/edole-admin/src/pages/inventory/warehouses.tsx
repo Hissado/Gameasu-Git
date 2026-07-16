@@ -203,7 +203,7 @@ export function InternalRequestsTab() {
   };
   const PRIORITY_LABELS: Record<string, string> = { low: "Bas", normal: "Normal", high: "Élevé", urgent: "Urgent" };
   const PRIORITY_COLORS: Record<string, string> = {
-    low: "text-slate-500", normal: "text-blue-600", high: "text-orange-600", urgent: "text-red-600 font-semibold",
+    low: "text-muted-foreground", normal: "text-blue-600", high: "text-orange-600", urgent: "text-red-600 font-semibold",
   };
 
   return (

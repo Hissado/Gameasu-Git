@@ -164,7 +164,7 @@ export default function TimesheetsPage() {
             { label: "Anomalies", value: stats.flaggedCount, icon: AlertTriangle, color: "text-orange-500" },
           ].map(({ label, value, icon: Icon, color }) => (
             <Card key={label}><CardContent className="p-3 flex items-center gap-2">
-              <Icon className={`w-4 h-4 shrink-0 text-slate-400 ${color}`} />
+              <Icon className={`w-4 h-4 shrink-0 text-muted-foreground/60 ${color}`} />
               <div><p className="text-xs text-muted-foreground">{label}</p><p className={`text-lg font-bold ${color}`}>{value}</p></div>
             </CardContent></Card>
           ))}

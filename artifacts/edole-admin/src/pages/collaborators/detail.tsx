@@ -153,14 +153,14 @@ function formatPeriod(period: string) {
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    active: "bg-emerald-100 text-emerald-700", completed: "bg-slate-200 text-slate-700",
-    cancelled: "bg-red-100 text-red-700", terminated: "bg-slate-200 text-slate-700",
+    active: "bg-emerald-100 text-emerald-700", completed: "bg-slate-200 text-foreground",
+    cancelled: "bg-red-100 text-red-700", terminated: "bg-slate-200 text-foreground",
     expired: "bg-red-100 text-red-700", suspended: "bg-amber-100 text-amber-700",
     draft: "bg-blue-100 text-blue-700", available: "bg-emerald-100 text-emerald-700",
     in_use: "bg-amber-100 text-amber-700", maintenance: "bg-red-100 text-red-700",
     planning: "bg-blue-100 text-blue-700", in_progress: "bg-amber-100 text-amber-700",
-    on_hold: "bg-slate-200 text-slate-700", done: "bg-emerald-100 text-emerald-700",
-    todo: "bg-slate-200 text-slate-700",
+    on_hold: "bg-slate-200 text-foreground", done: "bg-emerald-100 text-emerald-700",
+    todo: "bg-slate-200 text-foreground",
   };
   return <Badge className={`${map[s] || "bg-muted"} border-0`}>{s}</Badge>;
 };
@@ -555,7 +555,7 @@ function EditCollaboratorDialog({
                   <div className="flex gap-1">
                     {[0, 18.4, 25].map(v => (
                       <button key={v} type="button"
-                        className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${parseFloat(form.employerChargeRate) === v ? "bg-purple-600 text-white border-purple-600" : "border-slate-200 hover:border-slate-400"}`}
+                        className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${parseFloat(form.employerChargeRate) === v ? "bg-purple-600 text-white border-purple-600" : "border hover:border"}`}
                         onClick={() => set("employerChargeRate", String(v))}>
                         {`${v}%`}
                       </button>
@@ -604,7 +604,7 @@ function EditCollaboratorDialog({
                 {parseFloat(form.baseSalary || "0") > 0 && (
                   <div className="bg-purple-50 border border-purple-100 rounded-lg px-4 py-3 text-xs">
                     <p className="font-semibold text-purple-800 mb-2 flex items-center gap-1"><HardHat className="w-3.5 h-3.5" /> Coût employeur calculé</p>
-                    <div className="grid grid-cols-2 gap-2 text-slate-700">
+                    <div className="grid grid-cols-2 gap-2 text-foreground">
                       {(() => {
                         const salary = parseFloat(form.baseSalary || "0");
                         const rate = parseFloat(form.employerChargeRate || "18.4");
@@ -767,16 +767,16 @@ function BankRequestPanel({ collaboratorId, onApproved }: { collaboratorId: stri
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
           <div className="text-xs space-y-1">
             {pendingRequest.bankName && (
-              <p className="text-slate-700">
-                <span className="text-slate-500">Banque : </span>
+              <p className="text-foreground">
+                <span className="text-muted-foreground">Banque : </span>
                 <span className="font-medium">{pendingRequest.bankName}
-                  {pendingRequest.bankCode && <span className="text-slate-400 ml-1">(code {pendingRequest.bankCode})</span>}
+                  {pendingRequest.bankCode && <span className="text-muted-foreground/60 ml-1">(code {pendingRequest.bankCode})</span>}
                 </span>
               </p>
             )}
             {pendingRequest.bankAccountNumber && (
-              <p className="text-slate-700">
-                <span className="text-slate-500">Compte : </span>
+              <p className="text-foreground">
+                <span className="text-muted-foreground">Compte : </span>
                 <span className="font-mono font-medium">{pendingRequest.bankAccountNumber}</span>
               </p>
             )}
@@ -1762,10 +1762,10 @@ export default function CollaboratorDetail() {
               {isManagerOrAbove && (
                 <button
                   onClick={() => setEditOpen(true)}
-                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white shadow flex items-center justify-center hover:bg-slate-100 transition-colors"
+                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card shadow flex items-center justify-center hover:bg-muted transition-colors"
                   title="Modifier la photo"
                 >
-                  <Camera className="w-2.5 h-2.5 text-slate-600" />
+                  <Camera className="w-2.5 h-2.5 text-muted-foreground" />
                 </button>
               )}
             </div>
@@ -1811,7 +1811,7 @@ export default function CollaboratorDetail() {
             )}
             {isManagerOrAbove && (
               <Button size="sm" onClick={() => setEditOpen(true)}
-                className="h-7 text-xs gap-1 bg-white/10 hover:bg-white/20 text-white border border-white/20 mt-0.5">
+                className="h-7 text-xs gap-1 bg-card/10 hover:bg-card/20 text-white border border-white/20 mt-0.5">
                 <Pencil className="w-3 h-3" />
                 Éditer le profil
               </Button>
@@ -2037,7 +2037,7 @@ export default function CollaboratorDetail() {
                 <>
                   {/* QR code + infos */}
                   <div className="flex gap-4 items-start">
-                    <div className={`p-2.5 bg-white border rounded-xl shadow-sm flex-shrink-0 ${qrTokenQuery.data.status !== "active" ? "opacity-40 grayscale" : ""}`}>
+                    <div className={`p-2.5 bg-card border rounded-xl shadow-sm flex-shrink-0 ${qrTokenQuery.data.status !== "active" ? "opacity-40 grayscale" : ""}`}>
                       <QRCodeSVG value={qrTokenQuery.data.token} size={110} level="M" />
                     </div>
                     <div className="flex-1 min-w-0 space-y-2">
@@ -2422,7 +2422,7 @@ export default function CollaboratorDetail() {
                         onClick={() => linkUserMutation.mutate(u.id)}
                         disabled={linkUserMutation.isPending}
                       >
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
                           {(u.firstName?.[0] ?? "") + (u.lastName?.[0] ?? "")}
                         </div>
                         <div className="flex-1 min-w-0">

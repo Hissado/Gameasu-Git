@@ -1,3 +1,4 @@
+import { logger } from "../lib/logger";
 import { Router } from "express";
 import {
   db,
@@ -693,7 +694,7 @@ router.post("/marketing/automations/:id/run", requireManagerOrAbove, async (req,
     runsCount: sql`${marketingAutomationsTable.runsCount} + 1`,
     lastRunAt: new Date(),
   }).where(eq(marketingAutomationsTable.id, a.id));
-  console.log(`[MARKETING] Automation "${a.name}" exécutée manuellement — ${steps.length} étape(s) (simulation)`);
+  logger.info(`[MARKETING] Automation "${a.name}" exécutée manuellement — ${steps.length} étape(s) (simulation)`);
   return res.json({ ok: true, stepsExecuted: steps.length });
 });
 

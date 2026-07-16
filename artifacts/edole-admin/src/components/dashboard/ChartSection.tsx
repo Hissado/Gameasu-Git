@@ -25,7 +25,7 @@ const tt = {
 export function ChartSection({ revenueData, loading, kpis, monthlyRevenue, pipeline, collectionRate }: Props) {
   return (
     <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Card className="lg:col-span-2 shadow-sm border-slate-200">
+      <Card className="lg:col-span-2 shadow-sm border">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div>
@@ -44,7 +44,7 @@ export function ChartSection({ revenueData, loading, kpis, monthlyRevenue, pipel
           ) : revenueData.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Aucune donnée disponible.</div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
               <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">

@@ -76,8 +76,8 @@ function KPI({ label, value, sub, icon: Icon, accent = "default" }: {
   label: string; value: string; sub?: string; icon: any;
   accent?: "success" | "danger" | "warning" | "default" | "info";
 }) {
-  const bg = { success: "bg-emerald-50", danger: "bg-red-50", warning: "bg-amber-50", info: "bg-blue-50", default: "bg-slate-50" }[accent];
-  const ic = { success: "text-emerald-600", danger: "text-red-600", warning: "text-amber-600", info: "text-blue-600", default: "text-slate-600" }[accent];
+  const bg = { success: "bg-emerald-50", danger: "bg-red-50", warning: "bg-amber-50", info: "bg-blue-50", default: "bg-muted/50" }[accent];
+  const ic = { success: "text-emerald-600", danger: "text-red-600", warning: "text-amber-600", info: "text-blue-600", default: "text-muted-foreground" }[accent];
   return (
     <Card className={`${bg} border-0`}>
       <CardContent className="pt-4 pb-3">
@@ -87,7 +87,7 @@ function KPI({ label, value, sub, icon: Icon, accent = "default" }: {
             <p className="text-xl font-bold truncate">{value}</p>
             {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
           </div>
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${ic} bg-white shadow-sm`}>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${ic} bg-card shadow-sm`}>
             <Icon className="w-4.5 h-4.5" />
           </div>
         </div>
@@ -782,7 +782,7 @@ function AllocationRulesTab() {
                         {r.allocations.map((a, i) => {
                           const cc = costCenters.find((c: any) => c.id === a.costCenterId);
                           return (
-                            <div key={i} className="flex items-center gap-1 text-xs bg-slate-50 rounded px-2 py-0.5">
+                            <div key={i} className="flex items-center gap-1 text-xs bg-muted/50 rounded px-2 py-0.5">
                               <span className="font-medium">{cc?.code ?? a.label}</span>
                               <span className="text-muted-foreground">{a.percentage}%</span>
                             </div>
@@ -1102,7 +1102,7 @@ export default function AnalyticalPage() {
       subtitle="Pilotage des coûts, marges et rentabilité par axe analytique"
     >
       {/* Barre de filtres globale */}
-      <div className="flex flex-wrap items-center gap-3 mb-6 p-3 bg-slate-50 rounded-xl border">
+      <div className="flex flex-wrap items-center gap-3 mb-6 p-3 bg-muted/50 rounded-xl border">
         <div className="flex items-center gap-2">
           <Label className="text-xs font-semibold text-muted-foreground">Période</Label>
           <Input type="date" className="w-36 h-8 text-xs" value={from} onChange={e => setFrom(e.target.value)} />

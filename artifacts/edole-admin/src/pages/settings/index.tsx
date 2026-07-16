@@ -78,7 +78,7 @@ function AttendanceSettingsTab() {
   const currentSettings = draft ?? settingsData?.settings;
 
   if (isLoading || !currentSettings) {
-    return <div className="flex items-center gap-2 text-slate-400 py-8"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>;
+    return <div className="flex items-center gap-2 text-muted-foreground/60 py-8"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>;
   }
 
   const isDirty = draft && JSON.stringify(draft) !== JSON.stringify(settingsData?.settings);
@@ -224,7 +224,7 @@ const ROLES = [
   { key: "financier",    label: "Resp. Financier",       color: "bg-green-100 text-green-800 border-green-300" },
   { key: "commercial",   label: "Commercial",            color: "bg-emerald-100 text-emerald-800 border-emerald-300" },
   { key: "logistique",   label: "Logistique",            color: "bg-orange-100 text-orange-800 border-orange-300" },
-  { key: "auditeur",     label: "Auditeur",              color: "bg-slate-100 text-slate-600 border-slate-300" },
+  { key: "auditeur",     label: "Auditeur",              color: "bg-muted text-muted-foreground border" },
   { key: "collaborator", label: "Collaborateur",         color: "bg-gray-100 text-gray-700 border-gray-300" },
 ];
 
@@ -465,7 +465,7 @@ function eventKindMeta(kind: string): { label: string; icon: React.ReactNode; co
     case "cancellation":
       return { label: "Résiliation", icon: <X className="w-3.5 h-3.5" />, color: "bg-red-50 text-red-700 border-red-200" };
     default:
-      return { label: kind, icon: <FileText className="w-3.5 h-3.5" />, color: "bg-slate-50 text-slate-600 border-slate-200" };
+      return { label: kind, icon: <FileText className="w-3.5 h-3.5" />, color: "bg-muted/50 text-muted-foreground border" };
   }
 }
 
@@ -560,14 +560,14 @@ function SubscriptionTab() {
   const sub = subData?.subscription;
 
   const PLAN_COLOR: Record<string, string> = {
-    STARTER: "bg-slate-100 text-slate-700 border-slate-200",
+    STARTER: "bg-muted text-foreground border",
     GROWTH: "bg-violet-50 text-violet-700 border-violet-200",
     PROFESSIONAL: "bg-purple-50 text-purple-700 border-purple-200",
     ENTERPRISE: "bg-blue-50 text-blue-700 border-blue-200",
   };
 
   if (subLoading || evLoading) {
-    return <div className="flex items-center gap-2 text-slate-400 py-8"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>;
+    return <div className="flex items-center gap-2 text-muted-foreground/60 py-8"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>;
   }
 
   return (
@@ -589,7 +589,7 @@ function SubscriptionTab() {
           {plan ? (
             <div className="space-y-4">
               <div className="flex items-center gap-3 flex-wrap">
-                <Badge variant="outline" className={`text-sm font-semibold px-3 py-1 ${PLAN_COLOR[plan.code] ?? "bg-slate-100 text-slate-700"}`}>
+                <Badge variant="outline" className={`text-sm font-semibold px-3 py-1 ${PLAN_COLOR[plan.code] ?? "bg-muted text-foreground"}`}>
                   {plan.name}
                 </Badge>
                 {sub && (
@@ -1150,21 +1150,21 @@ export default function Settings() {
                   <Label className="text-base">Alertes par e-mail</Label>
                   <p className="text-sm text-muted-foreground">Recevez un récapitulatif quotidien de l'activité.</p>
                 </div>
-                <div className="h-6 w-11 bg-primary rounded-full relative"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div></div>
+                <div className="h-6 w-11 bg-primary rounded-full relative"><div className="absolute right-1 top-1 w-4 h-4 bg-card rounded-full"></div></div>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-border">
                 <div className="space-y-0.5">
                   <Label className="text-base">Notifications SMS</Label>
                   <p className="text-sm text-muted-foreground">Soyez alerté par SMS en cas d'incident urgent.</p>
                 </div>
-                <div className="h-6 w-11 bg-muted rounded-full relative"><div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full"></div></div>
+                <div className="h-6 w-11 bg-muted rounded-full relative"><div className="absolute left-1 top-1 w-4 h-4 bg-card rounded-full"></div></div>
               </div>
               <div className="flex items-center justify-between py-2">
                 <div className="space-y-0.5">
                   <Label className="text-base">Notifications navigateur</Label>
                   <p className="text-sm text-muted-foreground">Affichez les alertes en temps réel dans l'application.</p>
                 </div>
-                <div className="h-6 w-11 bg-primary rounded-full relative"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div></div>
+                <div className="h-6 w-11 bg-primary rounded-full relative"><div className="absolute right-1 top-1 w-4 h-4 bg-card rounded-full"></div></div>
               </div>
             </CardContent>
           </Card>

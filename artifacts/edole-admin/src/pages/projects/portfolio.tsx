@@ -49,9 +49,9 @@ const RAG_CONFIG: Record<RAGStatus, { label: string; icon: React.ReactNode; cls:
   on_track:  { label: "En bonne voie",  icon: <CheckCircle2 className="w-3.5 h-3.5" />, cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
   at_risk:   { label: "À risque",       icon: <AlertTriangle className="w-3.5 h-3.5" />, cls: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500" },
   off_track: { label: "En retard",      icon: <AlertTriangle className="w-3.5 h-3.5" />, cls: "bg-red-50 text-red-700 border-red-200", dot: "bg-red-500" },
-  completed: { label: "Terminé",        icon: <CheckCircle2 className="w-3.5 h-3.5" />, cls: "bg-slate-100 text-slate-600 border-slate-200", dot: "bg-slate-400" },
+  completed: { label: "Terminé",        icon: <CheckCircle2 className="w-3.5 h-3.5" />, cls: "bg-muted text-muted-foreground border", dot: "bg-slate-400" },
   pending:   { label: "En attente",     icon: <Clock className="w-3.5 h-3.5" />, cls: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-400" },
-  unknown:   { label: "Inconnu",        icon: <CircleDot className="w-3.5 h-3.5" />, cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-300" },
+  unknown:   { label: "Inconnu",        icon: <CircleDot className="w-3.5 h-3.5" />, cls: "bg-muted/50 text-muted-foreground border", dot: "bg-slate-300" },
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -98,7 +98,7 @@ function ProjectCard({ project }: { project: any }) {
                 {progress}%
               </span>
             </div>
-            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
                   rag === "off_track" ? "bg-red-500" :
@@ -249,16 +249,16 @@ export default function PortfolioPage() {
             </div>
             <div>
               <div className="text-2xl font-bold">{formatFCFA(kpis.totalBudget)}</div>
-              <div className="text-slate-400 text-sm">Budget total du portefeuille</div>
+              <div className="text-muted-foreground/60 text-sm">Budget total du portefeuille</div>
             </div>
           </div>
           <div className="text-right hidden sm:block">
             <div className="text-2xl font-bold">{kpis.active}</div>
-            <div className="text-slate-400 text-sm">Projets actifs</div>
+            <div className="text-muted-foreground/60 text-sm">Projets actifs</div>
           </div>
           <div className="text-right hidden md:block">
             <div className="text-2xl font-bold">{kpis.completed}</div>
-            <div className="text-slate-400 text-sm">Terminés</div>
+            <div className="text-muted-foreground/60 text-sm">Terminés</div>
           </div>
         </CardContent>
       </Card>
@@ -273,7 +273,7 @@ export default function PortfolioPage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Rechercher par nom, client, responsable…"
-                className="pl-9 h-9 bg-slate-50"
+                className="pl-9 h-9 bg-muted/50"
               />
             </div>
             <Select value={filterRAG} onValueChange={setFilterRAG}>
@@ -325,8 +325,8 @@ export default function PortfolioPage() {
             </div>
           ) : projects.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
-              <FolderKanban className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-              <p className="font-semibold text-slate-600 text-lg">Aucun projet trouvé</p>
+              <FolderKanban className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
+              <p className="font-semibold text-muted-foreground text-lg">Aucun projet trouvé</p>
               <p className="text-sm mt-1">Modifiez les filtres ou créez un nouveau projet.</p>
             </div>
           ) : (

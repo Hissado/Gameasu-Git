@@ -33,7 +33,7 @@ function InspectionPanel({ title, data, color }: { title: string; data: Inspecti
     return (
       <Card className={`border-2 border-dashed ${color}`}>
         <CardContent className="py-12 text-center">
-          <Camera className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+          <Camera className="w-10 h-10 mx-auto text-muted-foreground/40 mb-2" />
           <p className="text-sm text-muted-foreground">{title} — Non encore réalisée</p>
         </CardContent>
       </Card>
@@ -55,16 +55,16 @@ function InspectionPanel({ title, data, color }: { title: string; data: Inspecti
       <CardContent className="pt-5 space-y-4">
         {data.notes && (
           <div>
-            <div className="text-xs font-bold uppercase text-slate-500 mb-1">Observations</div>
+            <div className="text-xs font-bold uppercase text-muted-foreground mb-1">Observations</div>
             <p className="text-sm">{data.notes}</p>
           </div>
         )}
         <div>
-          <div className="text-xs font-bold uppercase text-slate-500 mb-2">Photos ({data.photos?.length || 0})</div>
+          <div className="text-xs font-bold uppercase text-muted-foreground mb-2">Photos ({data.photos?.length || 0})</div>
           {data.photos && data.photos.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
               {data.photos.map((url, i) => (
-                <a key={i} href={mediaUrl(url)} target="_blank" rel="noreferrer" className="block aspect-square border border-border rounded overflow-hidden bg-slate-50">
+                <a key={i} href={mediaUrl(url)} target="_blank" rel="noreferrer" className="block aspect-square border border-border rounded overflow-hidden bg-muted/50">
                   <img src={mediaUrl(url)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition" />
                 </a>
               ))}

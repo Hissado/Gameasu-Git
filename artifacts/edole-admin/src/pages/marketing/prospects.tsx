@@ -17,7 +17,7 @@ const STATUS_COLOR: Record<string, string> = {
   contacted: "bg-amber-100 text-amber-700",
   qualified: "bg-violet-100 text-violet-700",
   converted: "bg-emerald-100 text-emerald-700",
-  lost: "bg-slate-200 text-slate-600",
+  lost: "bg-slate-200 text-muted-foreground",
 };
 const STATUS_LABEL: Record<string, string> = {
   new: "Nouveau",

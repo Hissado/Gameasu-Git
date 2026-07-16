@@ -217,7 +217,7 @@ export function LineItemsEditor({ lines, onChange, disabled = false, defaultTaxR
                     {disabled
                       ? <span className="px-1 py-0.5 block">{line.description}</span>
                       : <Input value={line.description} onChange={e => updateLine(idx, "description", e.target.value)}
-                          className="h-7 text-xs bg-transparent border-transparent hover:border-input focus:border-input focus:bg-white" placeholder="Description…" />
+                          className="h-7 text-xs bg-transparent border-transparent hover:border-input focus:border-input focus:bg-card" placeholder="Description…" />
                     }
                   </td>
                   <td className="px-1 py-1">
@@ -225,7 +225,7 @@ export function LineItemsEditor({ lines, onChange, disabled = false, defaultTaxR
                       ? <span className="text-right block px-1">{line.quantity}</span>
                       : <Input type="number" min="0.001" step="any" value={line.quantity}
                           onChange={e => updateLine(idx, "quantity", Number(e.target.value))}
-                          className="h-7 text-xs text-right bg-transparent border-transparent hover:border-input focus:border-input focus:bg-white" />
+                          className="h-7 text-xs text-right bg-transparent border-transparent hover:border-input focus:border-input focus:bg-card" />
                     }
                   </td>
                   <td className="px-1 py-1">
@@ -233,7 +233,7 @@ export function LineItemsEditor({ lines, onChange, disabled = false, defaultTaxR
                       ? <span className="text-right block px-1">{formatFCFA(line.unitPriceFcfa)}</span>
                       : <Input type="number" min="0" step="1" value={line.unitPriceFcfa}
                           onChange={e => updateLine(idx, "unitPriceFcfa", Number(e.target.value))}
-                          className="h-7 text-xs text-right bg-transparent border-transparent hover:border-input focus:border-input focus:bg-white" />
+                          className="h-7 text-xs text-right bg-transparent border-transparent hover:border-input focus:border-input focus:bg-card" />
                     }
                   </td>
                   <td className="px-1 py-1">
@@ -241,7 +241,7 @@ export function LineItemsEditor({ lines, onChange, disabled = false, defaultTaxR
                       ? <span className="text-right block px-1">{line.discountPct}%</span>
                       : <Input type="number" min="0" max="100" step="0.5" value={line.discountPct}
                           onChange={e => updateLine(idx, "discountPct", Number(e.target.value))}
-                          className="h-7 text-xs text-right bg-transparent border-transparent hover:border-input focus:border-input focus:bg-white" />
+                          className="h-7 text-xs text-right bg-transparent border-transparent hover:border-input focus:border-input focus:bg-card" />
                     }
                   </td>
                   <td className="px-1 py-1">
@@ -249,7 +249,7 @@ export function LineItemsEditor({ lines, onChange, disabled = false, defaultTaxR
                       ? <span className="text-right block px-1">{line.taxRatePct}%</span>
                       : <Input type="number" min="0" max="100" step="0.5" value={line.taxRatePct}
                           onChange={e => updateLine(idx, "taxRatePct", Number(e.target.value))}
-                          className="h-7 text-xs text-right bg-transparent border-transparent hover:border-input focus:border-input focus:bg-white" />
+                          className="h-7 text-xs text-right bg-transparent border-transparent hover:border-input focus:border-input focus:bg-card" />
                     }
                   </td>
                   <td className="px-2 py-1 text-right font-semibold tabular-nums">

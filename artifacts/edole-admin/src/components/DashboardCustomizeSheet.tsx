@@ -102,13 +102,13 @@ export function DashboardCustomizeSheet({ open, onClose, widgets, onSave, onRese
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDrop={handleDrop}
                 className={cn(
-                  "flex items-center gap-3 p-3 rounded-xl border bg-white transition-all cursor-grab active:cursor-grabbing select-none",
+                  "flex items-center gap-3 p-3 rounded-xl border bg-card transition-all cursor-grab active:cursor-grabbing select-none",
                   widget.enabled
-                    ? "border-slate-200 hover:border-primary/30 hover:shadow-sm"
-                    : "border-slate-100 bg-slate-50 opacity-60",
+                    ? "border hover:border-primary/30 hover:shadow-sm"
+                    : "border bg-muted/50 opacity-60",
                 )}
               >
-                <GripVertical className="w-4 h-4 text-slate-300 shrink-0" />
+                <GripVertical className="w-4 h-4 text-muted-foreground/40 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className={cn("text-sm font-semibold leading-tight", !widget.enabled && "text-muted-foreground")}>
                     {meta?.label ?? widget.id}
@@ -122,14 +122,14 @@ export function DashboardCustomizeSheet({ open, onClose, widgets, onSave, onRese
                     type="button"
                     onClick={() => moveUp(index)}
                     disabled={index === 0}
-                    className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 disabled:opacity-20 text-xs"
+                    className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground/60 hover:text-foreground disabled:opacity-20 text-xs"
                     aria-label="Monter"
                   >▲</button>
                   <button
                     type="button"
                     onClick={() => moveDown(index)}
                     disabled={index === local.length - 1}
-                    className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 disabled:opacity-20 text-xs"
+                    className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground/60 hover:text-foreground disabled:opacity-20 text-xs"
                     aria-label="Descendre"
                   >▼</button>
                   <Switch

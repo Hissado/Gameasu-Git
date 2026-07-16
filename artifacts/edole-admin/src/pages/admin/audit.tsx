@@ -27,9 +27,9 @@ const ACTION_COLORS: Record<string, string> = {
   create: "bg-emerald-100 text-emerald-700",
   update: "bg-blue-100 text-blue-700",
   delete: "bg-red-100 text-red-700",
-  login: "bg-slate-100 text-slate-700",
+  login: "bg-muted text-foreground",
   login_failed: "bg-amber-100 text-amber-700",
-  login_2fa_sent: "bg-slate-100 text-slate-600",
+  login_2fa_sent: "bg-muted text-muted-foreground",
   login_2fa_success: "bg-emerald-100 text-emerald-700",
   login_2fa_failed: "bg-red-100 text-red-700",
   invite: "bg-purple-100 text-purple-700",
@@ -46,7 +46,7 @@ const ACTION_COLORS: Record<string, string> = {
   kiosk_delete: "bg-red-100 text-red-700",
   kiosk_token_generate: "bg-cyan-100 text-cyan-800",
   kiosk_token_revoke: "bg-orange-100 text-orange-700",
-  kiosk_token_access: "bg-slate-100 text-slate-600",
+  kiosk_token_access: "bg-muted text-muted-foreground",
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -167,7 +167,7 @@ export default function AdminAuditPage() {
             {logs.map(l => (
               <div key={l.id} className="flex items-start gap-3 border rounded-md p-2.5 hover:bg-muted/30">
                 <div className="text-xs text-muted-foreground w-36 shrink-0 mt-0.5">{new Date(l.createdAt).toLocaleString("fr-FR")}</div>
-                <Badge className={`shrink-0 ${ACTION_COLORS[l.action] || "bg-slate-100"}`}>{ACTION_LABELS[l.action] ?? l.action}</Badge>
+                <Badge className={`shrink-0 ${ACTION_COLORS[l.action] || "bg-muted"}`}>{ACTION_LABELS[l.action] ?? l.action}</Badge>
                 <div className="flex-1 min-w-0 text-sm">
                   <div>
                     <span className="font-medium">{l.userEmail || "(système)"}</span>

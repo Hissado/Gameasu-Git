@@ -38,7 +38,7 @@ const PROVIDERS: Record<string, { label: string; fields: string[] }[]> = {
 const STATUS_BADGE = (s: string) => {
   if (s === "ok") return <Badge className="bg-emerald-100 text-emerald-700 border-0 gap-1"><CheckCircle2 className="w-3 h-3" /> Opérationnel</Badge>;
   if (s === "error") return <Badge className="bg-rose-100 text-rose-700 border-0 gap-1"><AlertTriangle className="w-3 h-3" /> En erreur</Badge>;
-  return <Badge className="bg-slate-100 text-slate-700 border-0 gap-1"><Circle className="w-3 h-3" /> Non configuré</Badge>;
+  return <Badge className="bg-muted text-foreground border-0 gap-1"><Circle className="w-3 h-3" /> Non configuré</Badge>;
 };
 
 const channelIcon = (c: string) => c === "email" ? <Mail className="w-5 h-5" /> : c === "sms" ? <MessageSquare className="w-5 h-5" /> : c === "whatsapp" ? <Phone className="w-5 h-5" /> : <Cable className="w-5 h-5" />;

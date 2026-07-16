@@ -437,7 +437,7 @@ export default function ExpertClientsPage() {
                       </td>
                       <td className="px-4 py-3">
                         {c.subscription ? (
-                          <Badge className={`text-[10px] font-semibold border ${PLAN_COLOR[c.subscription.planCode] ?? "bg-slate-100 text-slate-600"}`} variant="outline">
+                          <Badge className={`text-[10px] font-semibold border ${PLAN_COLOR[c.subscription.planCode] ?? "bg-muted text-muted-foreground"}`} variant="outline">
                             {c.subscription.planName}
                           </Badge>
                         ) : (

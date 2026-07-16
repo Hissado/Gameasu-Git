@@ -21,7 +21,7 @@ async function fetchJSON(url: string, opts?: RequestInit) {
 }
 
 const PIPELINE_STAGES = [
-  { key: "new", label: "Nouveau", color: "bg-slate-100 border-slate-300 text-slate-700" },
+  { key: "new", label: "Nouveau", color: "bg-muted border text-foreground" },
   { key: "screening", label: "Présélection", color: "bg-blue-50 border-blue-300 text-blue-700" },
   { key: "interview", label: "Entretien", color: "bg-primary/5 border-orange-300 text-primary" },
   { key: "offer", label: "Offre", color: "bg-purple-50 border-purple-300 text-purple-700" },

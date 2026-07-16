@@ -26,7 +26,7 @@ export default function RentalDetail() {
       case "active": return <Badge className="bg-green-100 text-green-800 border-green-200 px-3 py-1 text-sm">En cours</Badge>;
       case "pending": return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200 px-3 py-1 text-sm">En attente</Badge>;
       case "confirmed": return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 px-3 py-1 text-sm">Confirmé</Badge>;
-      case "returned": return <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300 px-3 py-1 text-sm">Retourné</Badge>;
+      case "returned": return <Badge variant="outline" className="bg-muted text-muted-foreground border px-3 py-1 text-sm">Retourné</Badge>;
       case "cancelled": return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 px-3 py-1 text-sm">Annulé</Badge>;
       default: return <Badge variant="outline">Inconnu</Badge>;
     }
@@ -84,27 +84,27 @@ export default function RentalDetail() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="col-span-1 md:col-span-2 shadow-sm border-border">
-          <CardHeader className="bg-slate-50/50 border-b border-border/50 pb-4">
+          <CardHeader className="bg-muted/50 border-b border-border/50 pb-4">
             <CardTitle className="text-lg">Équipements Loués</CardTitle>
             <CardDescription>Détail de la flotte engagée sur ce contrat</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {rental.items && rental.items.length > 0 ? (
               <Table>
-                <TableHeader className="bg-slate-50/50">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead className="font-semibold text-slate-600">Désignation Matériel</TableHead>
-                    <TableHead className="text-center font-semibold text-slate-600">Qté</TableHead>
-                    <TableHead className="text-right font-semibold text-slate-600">Tarif Journalier</TableHead>
-                    <TableHead className="text-right font-semibold text-slate-600">Sous-total</TableHead>
+                    <TableHead className="font-semibold text-muted-foreground">Désignation Matériel</TableHead>
+                    <TableHead className="text-center font-semibold text-muted-foreground">Qté</TableHead>
+                    <TableHead className="text-right font-semibold text-muted-foreground">Tarif Journalier</TableHead>
+                    <TableHead className="text-right font-semibold text-muted-foreground">Sous-total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rental.items.map((item) => (
-                    <TableRow key={item.equipmentId} className="hover:bg-slate-50/30">
-                      <TableCell className="font-bold text-slate-800">{item.equipmentName}</TableCell>
-                      <TableCell className="text-center font-medium bg-slate-50 border-x border-border/30">{item.quantity}</TableCell>
-                      <TableCell className="text-right text-slate-600">{formatFCFA(item.dailyRate)}</TableCell>
+                    <TableRow key={item.equipmentId} className="hover:bg-muted/30">
+                      <TableCell className="font-bold text-foreground">{item.equipmentName}</TableCell>
+                      <TableCell className="text-center font-medium bg-muted/50 border-x border-border/30">{item.quantity}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatFCFA(item.dailyRate)}</TableCell>
                       <TableCell className="text-right font-bold text-primary bg-primary/5">{formatFCFA(item.subtotal)}</TableCell>
                     </TableRow>
                   ))}
@@ -117,23 +117,23 @@ export default function RentalDetail() {
         </Card>
 
         <Card className="col-span-1 shadow-sm border-border h-fit">
-          <CardHeader className="bg-slate-50/50 border-b border-border/50 pb-4">
+          <CardHeader className="bg-muted/50 border-b border-border/50 pb-4">
             <CardTitle className="text-lg">Synthèse Financière</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
-            <div className="flex gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
-               <Calendar className="w-5 h-5 text-slate-400 shrink-0" />
+            <div className="flex gap-4 p-4 bg-muted/50 rounded-lg border border">
+               <Calendar className="w-5 h-5 text-muted-foreground/60 shrink-0" />
                <div className="w-full">
                  <div className="flex justify-between items-center mb-2">
-                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Début</span>
+                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Début</span>
                    <span className="font-bold text-sm">{formatDate(rental.startDate)}</span>
                  </div>
-                 <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fin</span>
+                 <div className="flex justify-between items-center pb-2 border-b border">
+                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Fin</span>
                    <span className="font-bold text-sm">{formatDate(rental.endDate)}</span>
                  </div>
-                 <div className="mt-2 text-right text-xs font-medium text-slate-500">
-                   Durée totale: <span className="text-slate-800 font-bold ml-1">
+                 <div className="mt-2 text-right text-xs font-medium text-muted-foreground">
+                   Durée totale: <span className="text-foreground font-bold ml-1">
                      {Math.max(1, Math.ceil((new Date(rental.endDate).getTime() - new Date(rental.startDate).getTime()) / (1000 * 60 * 60 * 24)))} jours
                    </span>
                  </div>
@@ -141,14 +141,14 @@ export default function RentalDetail() {
             </div>
             
             <div className="pt-4 border-t border-border">
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Coût Total Estimé</div>
+              <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Coût Total Estimé</div>
               <div className="text-3xl font-bold text-primary tracking-tight">{formatFCFA(rental.totalCost)}</div>
             </div>
             
             {rental.notes && (
               <div className="pt-4 border-t border-border">
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Notes Opérationnelles</div>
-                <div className="text-sm text-slate-700 bg-yellow-50 p-3 rounded-lg border border-yellow-100 italic">{rental.notes}</div>
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Notes Opérationnelles</div>
+                <div className="text-sm text-foreground bg-yellow-50 p-3 rounded-lg border border-yellow-100 italic">{rental.notes}</div>
               </div>
             )}
           </CardContent>

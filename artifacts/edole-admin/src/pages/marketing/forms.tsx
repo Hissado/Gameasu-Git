@@ -91,7 +91,7 @@ function FieldRow({ field, index, total, onChange, onRemove, onMove }: {
 
 function FormPreview({ fields, confirmationMessage }: { fields: FormField[]; confirmationMessage?: string }) {
   return (
-    <div className="bg-white rounded-lg border p-6 space-y-4 max-w-md mx-auto">
+    <div className="bg-card rounded-lg border p-6 space-y-4 max-w-md mx-auto">
       {fields.map((f, i) => (
         <div key={i}>
           <label className="block text-sm font-medium mb-1">
@@ -225,7 +225,7 @@ export default function FormsPage() {
                     <div className="font-semibold">{f.name}</div>
                     {f.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{f.description}</div>}
                   </div>
-                  <Badge className={f.isActive ? "bg-emerald-100 text-emerald-700 border-0" : "bg-slate-100 text-slate-600 border-0"}>
+                  <Badge className={f.isActive ? "bg-emerald-100 text-emerald-700 border-0" : "bg-muted text-muted-foreground border-0"}>
                     {f.isActive ? "Actif" : "Inactif"}
                   </Badge>
                 </div>

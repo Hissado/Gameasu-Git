@@ -37,7 +37,7 @@ const NOTIF_ICON: Record<NotifType, { icon: React.ReactNode; bg: string; text: s
   message:  { icon: <MessageSquare className="w-4 h-4" />,  bg: "bg-violet-100",  text: "text-violet-700" },
   hr:       { icon: <UserCheck className="w-4 h-4" />,      bg: "bg-sky-100",     text: "text-sky-700" },
   alert:    { icon: <AlertTriangle className="w-4 h-4" />,  bg: "bg-red-100",     text: "text-red-600" },
-  info:     { icon: <Info className="w-4 h-4" />,           bg: "bg-slate-100",   text: "text-slate-600" },
+  info:     { icon: <Info className="w-4 h-4" />,           bg: "bg-muted",   text: "text-muted-foreground" },
 };
 
 function getActionLink(n: any): string | null {
@@ -105,7 +105,7 @@ function NotificationItem({
   const actionLink = getActionLink(notification);
 
   return (
-    <div className={`px-4 py-3.5 flex gap-3.5 transition-colors group ${unread ? "bg-primary/[0.03] hover:bg-primary/[0.06]" : "hover:bg-slate-50/50"}`}>
+    <div className={`px-4 py-3.5 flex gap-3.5 transition-colors group ${unread ? "bg-primary/[0.03] hover:bg-primary/[0.06]" : "hover:bg-muted/50"}`}>
       {/* Icon */}
       <div className={`mt-0.5 rounded-lg p-2 h-9 w-9 flex items-center justify-center shrink-0 ${
         unread ? `${iconCfg.bg} ${iconCfg.text}` : "bg-muted text-muted-foreground"
@@ -295,7 +295,7 @@ export default function NotificationsList() {
               className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
                 filter === opt.value
                   ? "bg-primary text-white border-primary shadow-sm"
-                  : "bg-white text-slate-600 border-border hover:border-primary/40 hover:text-primary"
+                  : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-primary"
               }`}
             >
               {opt.label}
@@ -327,8 +327,8 @@ export default function NotificationsList() {
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="p-16 text-center text-muted-foreground">
-            <Inbox className="w-12 h-12 mx-auto mb-4 text-slate-200" />
-            <p className="font-semibold text-slate-600">Aucune notification</p>
+            <Inbox className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+            <p className="font-semibold text-muted-foreground">Aucune notification</p>
             <p className="text-sm mt-1">
               {filter !== "all" ? "Aucune notification pour ce filtre." : "Les alertes opérationnelles s'afficheront ici."}
             </p>

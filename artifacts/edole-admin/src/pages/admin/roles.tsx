@@ -38,7 +38,7 @@ type ModuleDef = {
 const MODULE_DEFS: ModuleDef[] = [
   {
     id: "dashboard", label: "Tableau de bord", description: "Indicateurs de performance et KPI",
-    icon: LayoutDashboard, color: "text-slate-700", bg: "bg-slate-50", border: "border-slate-200",
+    icon: LayoutDashboard, color: "text-foreground", bg: "bg-muted/50", border: "border",
     groups: [
       { label: "Consultation", icon: Eye, perms: [
         { code: "dashboard.view_financial_kpis", label: "Voir les KPI financiers" },

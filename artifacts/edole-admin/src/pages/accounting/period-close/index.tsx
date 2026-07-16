@@ -107,17 +107,17 @@ function fullMonthLabel(m: string) {
 }
 
 const STATUS_CFG: Record<MonthStatus, { label: string; cls: string; icon: React.ReactNode; pill: string }> = {
-  open:   { label: "Ouvert",   cls: "text-slate-500",  icon: <CircleDot className="w-4 h-4" />, pill: "bg-slate-100 text-slate-600 border-slate-200" },
+  open:   { label: "Ouvert",   cls: "text-muted-foreground",  icon: <CircleDot className="w-4 h-4" />, pill: "bg-muted text-muted-foreground border" },
   review: { label: "En revue", cls: "text-amber-600",  icon: <BookOpen className="w-4 h-4" />, pill: "bg-amber-50 text-amber-700 border-amber-200" },
   closed: { label: "Clôturé",  cls: "text-blue-600",   icon: <CheckCircle2 className="w-4 h-4" />, pill: "bg-blue-50 text-blue-700 border-blue-200" },
   locked: { label: "Verrouillé", cls: "text-emerald-600", icon: <Lock className="w-4 h-4" />, pill: "bg-emerald-50 text-emerald-700 border-emerald-200" },
 };
 
 const ITEM_STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  pending:     { label: "À faire",     cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  pending:     { label: "À faire",     cls: "bg-muted text-muted-foreground border" },
   in_progress: { label: "En cours",   cls: "bg-amber-50 text-amber-700 border-amber-200" },
   done:        { label: "Fait",        cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  na:          { label: "N/A",         cls: "bg-slate-50 text-slate-400 border-slate-100" },
+  na:          { label: "N/A",         cls: "bg-muted/50 text-muted-foreground/60 border" },
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -260,7 +260,7 @@ export default function PeriodClosePage() {
         {[
           { label: "Mois clôturés", value: `${monthsData?.summary.closed ?? 0} / 12`, icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" /> },
           { label: "Exercice", value: monthsData?.fiscalPeriod?.name ?? `Exercice ${selectedYear}`, icon: <Layers className="w-5 h-5 text-indigo-500" /> },
-          { label: "Statut exercice", value: monthsData?.fiscalPeriod?.status === "closed" ? "Clôturé" : "Ouvert", icon: monthsData?.fiscalPeriod?.status === "closed" ? <Lock className="w-5 h-5 text-blue-500" /> : <LockOpen className="w-5 h-5 text-slate-400" /> },
+          { label: "Statut exercice", value: monthsData?.fiscalPeriod?.status === "closed" ? "Clôturé" : "Ouvert", icon: monthsData?.fiscalPeriod?.status === "closed" ? <Lock className="w-5 h-5 text-blue-500" /> : <LockOpen className="w-5 h-5 text-muted-foreground/60" /> },
           { label: "Mois sélectionné", value: selectedMonth ? fullMonthLabel(selectedMonth) : "—", icon: <Clock className="w-5 h-5 text-amber-500" /> },
         ].map(k => (
           <Card key={k.label} className="border shadow-sm">
@@ -477,7 +477,7 @@ export default function PeriodClosePage() {
                                     </Button>
                                   )}
                                   {item.status === "pending" && (
-                                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-slate-400"
+                                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground/60"
                                       onClick={() => updateChecklist.mutate({ id: item.id, status: "na" })}>
                                       N/A
                                     </Button>
@@ -520,7 +520,7 @@ export default function PeriodClosePage() {
                       <p className="font-semibold">{y.name}</p>
                       <p className="text-xs text-muted-foreground">{y.startDate} → {y.endDate}</p>
                     </div>
-                    <Badge className={y.status === "closed" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-slate-100 text-slate-600 border-slate-200"}>
+                    <Badge className={y.status === "closed" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-muted text-muted-foreground border"}>
                       {y.status === "closed" ? "Clôturé" : "Ouvert"}
                     </Badge>
                     <div className="flex items-center gap-2 flex-1 max-w-xs">
@@ -574,7 +574,7 @@ export default function PeriodClosePage() {
                         <Badge className={
                           log.action.includes("closed") || log.action.includes("approved") ? "bg-blue-50 text-blue-700 border-blue-200" :
                           log.action.includes("reopened") ? "bg-amber-50 text-amber-700 border-amber-200" :
-                          log.action.includes("opened") ? "bg-slate-100 text-slate-600 border-slate-200" :
+                          log.action.includes("opened") ? "bg-muted text-muted-foreground border" :
                           "bg-emerald-50 text-emerald-700 border-emerald-200"
                         }>
                           {ACTION_LABELS[log.action] ?? log.action}

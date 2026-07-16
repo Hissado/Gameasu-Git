@@ -42,12 +42,12 @@ type Invoice = {
 };
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  draft:          { label: "Brouillon",    cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  draft:          { label: "Brouillon",    cls: "bg-muted text-muted-foreground border" },
   pending:        { label: "En attente",   cls: "bg-blue-50 text-blue-700 border-blue-200" },
   partially_paid: { label: "Part. payée", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   paid:           { label: "Payée",        cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   overdue:        { label: "En retard",    cls: "bg-red-50 text-red-700 border-red-200 font-bold border-2" },
-  cancelled:      { label: "Annulée",      cls: "bg-slate-50 text-slate-400 border-slate-200" },
+  cancelled:      { label: "Annulée",      cls: "bg-muted/50 text-muted-foreground/60 border" },
 };
 
 const EDIT_ALLOWED: Record<string, string[]> = {
@@ -535,7 +535,7 @@ export default function InvoicesList() {
             </div>
           ) : (
             <Table data-tour="inv-table">
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
                   <TableHead>Réf. Facture</TableHead>
                   <TableHead>Client</TableHead>
@@ -564,14 +564,14 @@ export default function InvoicesList() {
                   const isOverdue = inv.status === "overdue";
                   const isCancelled = inv.status === "cancelled";
                   const remaining = (inv.totalAmount ?? 0) - (inv.paidAmount ?? 0);
-                  const st = STATUS_MAP[inv.status] ?? { label: inv.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                  const st = STATUS_MAP[inv.status] ?? { label: inv.status, cls: "bg-muted text-muted-foreground border" };
                   const canPay = !perms.isReadOnly && !["paid", "cancelled"].includes(inv.status);
                   const canEditDoc = !perms.isReadOnly && !!EDIT_ALLOWED[inv.status];
                   const canCancelDoc = !perms.isReadOnly && CANCEL_RULES[inv.status]?.allowed === true;
                   const isCancelBlocked = !CANCEL_RULES[inv.status]?.allowed && !isCancelled;
 
                   return (
-                    <TableRow key={inv.id} className={`hover:bg-slate-50/50 ${isOverdue ? "bg-red-50/20" : ""} ${isCancelled ? "opacity-60" : ""}`}>
+                    <TableRow key={inv.id} className={`hover:bg-muted/50 ${isOverdue ? "bg-red-50/20" : ""} ${isCancelled ? "opacity-60" : ""}`}>
                       <TableCell className="font-mono text-sm font-bold">
                         {inv.clientId
                           ? <Link href={`/clients/${inv.clientId}`}><span className="hover:text-[#2563EB] hover:underline cursor-pointer">{inv.referenceNumber}</span></Link>
@@ -579,7 +579,7 @@ export default function InvoicesList() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <Building className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
                           {inv.clientId
                             ? <Link href={`/clients/${inv.clientId}`}><span className="font-medium text-sm hover:text-[#2563EB] hover:underline cursor-pointer">{inv.clientName || "—"}</span></Link>
                             : <span className="font-medium text-sm">{inv.clientName || "—"}</span>}
@@ -587,8 +587,8 @@ export default function InvoicesList() {
                       </TableCell>
                       <TableCell className="text-sm">{inv.issuedAt ? formatDate(inv.issuedAt) : "—"}</TableCell>
                       <TableCell>
-                        <div className={`flex items-center gap-1 text-sm ${isOverdue ? "text-red-600 font-bold" : "text-slate-600"}`}>
-                          {isOverdue ? <AlertCircle className="w-3.5 h-3.5" /> : <Calendar className="w-3.5 h-3.5 text-slate-400" />}
+                        <div className={`flex items-center gap-1 text-sm ${isOverdue ? "text-red-600 font-bold" : "text-muted-foreground"}`}>
+                          {isOverdue ? <AlertCircle className="w-3.5 h-3.5" /> : <Calendar className="w-3.5 h-3.5 text-muted-foreground/60" />}
                           {inv.dueDate ? formatDate(inv.dueDate) : "—"}
                         </div>
                       </TableCell>
@@ -599,7 +599,7 @@ export default function InvoicesList() {
                       <TableCell className="text-right">
                         {inv.status === "paid"
                           ? <span className="text-emerald-600 font-semibold text-xs">Soldé</span>
-                          : isCancelled ? <span className="text-slate-400 text-xs">—</span>
+                          : isCancelled ? <span className="text-muted-foreground/60 text-xs">—</span>
                           : <span className={remaining > 0 ? "font-semibold text-amber-600" : ""}>{formatFCFA(remaining)}</span>}
                       </TableCell>
                       <TableCell>
@@ -619,7 +619,7 @@ export default function InvoicesList() {
                             )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-slate-500 border-slate-200">
+                                <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-muted-foreground border">
                                   <MoreHorizontal className="w-3.5 h-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -627,7 +627,7 @@ export default function InvoicesList() {
                                 <DropdownMenuItem
                                   className="text-xs gap-2 cursor-pointer"
                                   onClick={() => window.open(`/documents/invoice/${inv.id}/print`, "_blank")}>
-                                  <Printer className="w-3.5 h-3.5 text-slate-500" /> Télécharger PDF
+                                  <Printer className="w-3.5 h-3.5 text-muted-foreground" /> Télécharger PDF
                                 </DropdownMenuItem>
                                 {!perms.isReadOnly && (
                                   <DropdownMenuItem
@@ -659,7 +659,7 @@ export default function InvoicesList() {
                                     <DropdownMenuItem
                                       className="text-xs gap-2 cursor-pointer"
                                       onClick={() => setEditTarget(inv)}>
-                                      <Pencil className="w-3.5 h-3.5 text-slate-500" /> Modifier
+                                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" /> Modifier
                                     </DropdownMenuItem>
                                   </>
                                 )}

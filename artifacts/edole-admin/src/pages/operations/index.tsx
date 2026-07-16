@@ -43,11 +43,11 @@ const INCIDENT_LABELS: Record<string, string> = {
   accident: "Accident", non_conformity: "Non-conformité", site_blocked: "Blocage terrain", other: "Autre",
 };
 const SEVERITY_COLORS: Record<string, string> = {
-  low: "bg-slate-100 text-slate-700", medium: "bg-amber-100 text-amber-800",
+  low: "bg-muted text-foreground", medium: "bg-amber-100 text-amber-800",
   high: "bg-orange-100 text-orange-800", critical: "bg-red-100 text-red-800",
 };
 const STATUS_COLORS: Record<string, string> = {
-  planned: "bg-slate-100 text-slate-700", assigned: "bg-blue-100 text-blue-700",
+  planned: "bg-muted text-foreground", assigned: "bg-blue-100 text-blue-700",
   awaiting_departure: "bg-amber-100 text-amber-800", en_route: "bg-indigo-100 text-indigo-700",
   on_site: "bg-teal-100 text-teal-700", in_progress: "bg-violet-100 text-violet-700",
   completed: "bg-green-100 text-green-700", blocked: "bg-red-100 text-red-700",
@@ -239,7 +239,7 @@ function KpiCard({ icon, label, value, tone }: { icon: React.ReactNode; label: s
   const toneCls = {
     primary: "bg-primary/10 text-primary", info: "bg-blue-100 text-blue-600",
     success: "bg-green-100 text-green-600", warning: "bg-orange-100 text-orange-600",
-    muted: "bg-slate-100 text-slate-500",
+    muted: "bg-muted text-muted-foreground",
   }[tone];
   return (
     <Card>
@@ -554,8 +554,8 @@ function MapTab({ data }: { data: any }) {
     <Card>
       <CardHeader><CardTitle className="flex items-center gap-2"><MapIcon className="w-5 h-5 text-primary" />Carte opérationnelle</CardTitle></CardHeader>
       <CardContent>
-        <div className="rounded-lg border-2 border-dashed bg-slate-50 p-12 text-center mb-4">
-          <MapIcon className="w-12 h-12 mx-auto text-slate-300 mb-2" />
+        <div className="rounded-lg border-2 border-dashed bg-muted/50 p-12 text-center mb-4">
+          <MapIcon className="w-12 h-12 mx-auto text-muted-foreground/40 mb-2" />
           <p className="text-sm text-muted-foreground">
             Carte interactive — {points.length} point(s) géolocalisé(s). Intégration carto à brancher selon votre fournisseur (Leaflet/Mapbox).
           </p>

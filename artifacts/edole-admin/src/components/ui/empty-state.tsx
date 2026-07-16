@@ -26,10 +26,10 @@ export function EmptyState({
   const ActionIcon = actionIcon === undefined ? Plus : actionIcon;
   return (
     <div className={cn("flex flex-col items-center justify-center py-14 px-6 text-center", className)}>
-      <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-4 shadow-sm">
-        <Icon className="w-7 h-7 text-slate-400" />
+      <div className="w-14 h-14 rounded-2xl bg-muted border border flex items-center justify-center mb-4 shadow-sm">
+        <Icon className="w-7 h-7 text-muted-foreground/60" />
       </div>
-      <h3 className="text-base font-semibold text-slate-700 mb-1">{title}</h3>
+      <h3 className="text-base font-semibold text-foreground mb-1">{title}</h3>
       {description && (
         <p className="text-sm text-muted-foreground max-w-xs">{description}</p>
       )}

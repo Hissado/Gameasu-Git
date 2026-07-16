@@ -236,7 +236,7 @@ function InvoiceLineEditor({ lines, onChange }: { lines: InvoiceLine[]; onChange
     <div className="space-y-0">
       <div className="border rounded-lg overflow-hidden">
         <table className="w-full text-xs">
-          <thead className="bg-slate-50 border-b">
+          <thead className="bg-muted/50 border-b">
             <tr>
               <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-6">#</th>
               <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-36">CATÉGORIE</th>
@@ -253,7 +253,7 @@ function InvoiceLineEditor({ lines, onChange }: { lines: InvoiceLine[]; onChange
               <tr><td colSpan={8} className="p-4 text-center text-muted-foreground text-xs italic">Aucune ligne — cliquez sur "Ajouter des lignes"</td></tr>
             )}
             {lines.map((l, i) => (
-              <tr key={i} className="border-t hover:bg-slate-50/50">
+              <tr key={i} className="border-t hover:bg-muted/50">
                 <td className="px-2 py-1 text-muted-foreground">{i + 1}</td>
                 <td className="px-1 py-1">
                   <Select value={l.category || "_none"} onValueChange={(v) => update(i, { category: v === "_none" ? "" : v })}>
@@ -275,7 +275,7 @@ function InvoiceLineEditor({ lines, onChange }: { lines: InvoiceLine[]; onChange
             ))}
           </tbody>
           {lines.length > 0 && (
-            <tfoot className="bg-slate-50 border-t">
+            <tfoot className="bg-muted/50 border-t">
               <tr>
                 <td colSpan={6} className="px-3 py-1.5 text-right text-xs text-muted-foreground">Total HT</td>
                 <td className="px-3 py-1.5 text-right text-xs font-semibold tabular-nums">{formatFCFA(totalHt)}</td><td />
@@ -452,7 +452,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
           <div className="flex items-center gap-2 font-semibold text-sm">{modeIcon}{modeLabel}</div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground uppercase tracking-wide">Solde dû</div>
-            <div className={`text-xl font-bold tabular-nums ${mode === "credit_note" ? "text-emerald-600" : "text-slate-900"}`}>
+            <div className={`text-xl font-bold tabular-nums ${mode === "credit_note" ? "text-emerald-600" : "text-foreground"}`}>
               {formatFCFA(Math.abs(balanceDue))}
             </div>
           </div>
@@ -462,7 +462,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* ── Left: autofill panel ── */}
           {withUpload && (
-            <div className="w-52 shrink-0 border-r bg-slate-50 flex flex-col p-4 gap-4">
+            <div className="w-52 shrink-0 border-r bg-muted/50 flex flex-col p-4 gap-4">
               <div className="flex items-center gap-1.5 text-sm font-semibold">
                 <Upload className="w-4 h-4 text-[#2563EB]" />
                 Remplissage auto
@@ -477,18 +477,18 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
-                className={`flex-1 min-h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer ${isDragging ? "border-[#2563EB] bg-orange-50" : "border-slate-300 bg-white"}`}
+                className={`flex-1 min-h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer ${isDragging ? "border-[#2563EB] bg-orange-50" : "border bg-card"}`}
                 onClick={() => fileInputRef.current?.click()}
               >
                 {uploadFiles.length === 0 ? (
                   <>
-                    <Image className="w-8 h-8 text-slate-300" />
+                    <Image className="w-8 h-8 text-muted-foreground/40" />
                     <span className="text-xs text-muted-foreground text-center">Glissez ici</span>
                   </>
                 ) : (
                   <div className="w-full px-2 space-y-1">
                     {uploadFiles.map((f, i) => (
-                      <div key={i} className="flex items-center gap-1 text-xs bg-white border rounded px-2 py-1">
+                      <div key={i} className="flex items-center gap-1 text-xs bg-card border rounded px-2 py-1">
                         <FileText className="w-3 h-3 shrink-0 text-[#2563EB]" />
                         <span className="truncate flex-1">{f.name}</span>
                         <button onClick={(e) => { e.stopPropagation(); setUploadFiles(prev => prev.filter((_, j) => j !== i)); }} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
@@ -500,12 +500,12 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
               <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.heic" multiple hidden onChange={(e) => { if (e.target.files) setUploadFiles(prev => [...prev, ...Array.from(e.target.files!)]); }} />
 
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-1.5 p-2 border rounded-lg bg-white hover:bg-slate-50 text-xs text-center transition-colors">
-                  <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"><Upload className="w-3.5 h-3.5 text-slate-500" /></div>
+                <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-1.5 p-2 border rounded-lg bg-card hover:bg-muted/50 text-xs text-center transition-colors">
+                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center"><Upload className="w-3.5 h-3.5 text-muted-foreground" /></div>
                   Sélectionner
                 </button>
-                <button className="flex flex-col items-center gap-1.5 p-2 border rounded-lg bg-white hover:bg-slate-50 text-xs text-center transition-colors">
-                  <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"><Image className="w-3.5 h-3.5 text-slate-500" /></div>
+                <button className="flex flex-col items-center gap-1.5 p-2 border rounded-lg bg-card hover:bg-muted/50 text-xs text-center transition-colors">
+                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center"><Image className="w-3.5 h-3.5 text-muted-foreground" /></div>
                   Photo
                 </button>
               </div>
@@ -621,7 +621,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Pièces jointes</Label>
                 <div
-                  className="border-2 border-dashed rounded-lg p-3 min-h-[80px] flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                  className="border-2 border-dashed rounded-lg p-3 min-h-[80px] flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => attachInputRef.current?.click()}
                 >
                   {attachments.length === 0 ? (
@@ -633,8 +633,8 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
                   ) : (
                     <div className="w-full space-y-1">
                       {attachments.map((f, i) => (
-                        <div key={i} className="flex items-center gap-1.5 text-xs bg-white border rounded px-2 py-1">
-                          <Paperclip className="w-3 h-3 text-slate-400 shrink-0" />
+                        <div key={i} className="flex items-center gap-1.5 text-xs bg-card border rounded px-2 py-1">
+                          <Paperclip className="w-3 h-3 text-muted-foreground/60 shrink-0" />
                           <span className="truncate flex-1">{f.name}</span>
                           <button onClick={(e) => { e.stopPropagation(); setAttachments(prev => prev.filter((_, j) => j !== i)); }} className="text-red-400 hover:text-red-600"><X className="w-3 h-3" /></button>
                         </div>
@@ -664,7 +664,7 @@ function CreateBillDialog({ mode = "bill", withUpload = false, prefill, onClose,
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-3 border-t bg-white shrink-0 gap-3">
+        <div className="flex items-center justify-between px-5 py-3 border-t bg-card shrink-0 gap-3">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>Annuler</Button>
             <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => toast.info("Impression non disponible en aperçu")} disabled={saving}>
@@ -750,12 +750,12 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
                 {inv.status === "approved" && <Button size="sm" variant="outline" onClick={() => updateStatus("pending")} disabled={updating} className="text-xs">Marquer À payer</Button>}
                 {canPay && <Button size="sm" onClick={() => setPayOpen(true)} className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white gap-1 text-xs"><Wallet className="w-3.5 h-3.5" />Payer</Button>}
                 {canReject && <Button size="sm" variant="outline" onClick={() => updateStatus("rejected")} disabled={updating} className="text-red-600 border-red-200 hover:bg-red-50 gap-1 text-xs"><ThumbsDown className="w-3.5 h-3.5" />Refuser</Button>}
-                {canCancel && <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")} disabled={updating} className="text-slate-600 border-slate-200 hover:bg-slate-50 gap-1 text-xs"><XCircle className="w-3.5 h-3.5" />Annuler</Button>}
+                {canCancel && <Button size="sm" variant="outline" onClick={() => updateStatus("cancelled")} disabled={updating} className="text-muted-foreground border hover:bg-muted/50 gap-1 text-xs"><XCircle className="w-3.5 h-3.5" />Annuler</Button>}
               </div>
             </div>
 
             {/* Info grid */}
-            <div className="grid grid-cols-2 gap-3 bg-slate-50 rounded-lg p-4">
+            <div className="grid grid-cols-2 gap-3 bg-muted/50 rounded-lg p-4">
               <div><p className="text-xs text-muted-foreground">Fournisseur</p><p className="font-medium text-sm">{inv.supplierName ?? "—"}</p><p className="text-xs text-muted-foreground">{inv.supplierEmail ?? ""}</p></div>
               <div><p className="text-xs text-muted-foreground">Date facture</p><p className="font-medium text-sm">{formatDate(inv.invoiceDate)}</p></div>
               <div><p className="text-xs text-muted-foreground">Échéance</p><p className={`font-medium text-sm ${inv.isOverdue ? "text-red-600" : ""}`}>{inv.dueDate ? formatDate(inv.dueDate) : "—"}</p></div>
@@ -767,7 +767,7 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
               {inv.purchaseOrderId && <div className="col-span-2"><p className="text-xs text-muted-foreground">BC lié</p><p className="text-xs font-mono text-blue-600 flex items-center gap-1"><Link2 className="w-3 h-3" />{inv.purchaseOrderReference ?? inv.purchaseOrderId}</p></div>}
             </div>
 
-            {inv.notes && <p className="text-sm text-muted-foreground italic bg-slate-50 rounded p-3">{inv.notes}</p>}
+            {inv.notes && <p className="text-sm text-muted-foreground italic bg-muted/50 rounded p-3">{inv.notes}</p>}
 
             {/* Invoice lines */}
             {lines.length > 0 && (
@@ -775,7 +775,7 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
                 <h3 className="text-sm font-semibold mb-2">Lignes ({lines.length})</h3>
                 <div className="border rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50"><tr>
+                    <thead className="bg-muted/50"><tr>
                       <th className="text-left p-2 text-xs font-medium text-muted-foreground">Description</th>
                       <th className="text-right p-2 text-xs font-medium text-muted-foreground">Qté</th>
                       <th className="text-right p-2 text-xs font-medium text-muted-foreground">P.U.</th>
@@ -817,10 +817,10 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
                         target="_blank"
                         rel="noopener noreferrer"
                         download={att.name}
-                        className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 transition-colors group"
+                        className="flex items-center gap-3 bg-muted/50 hover:bg-muted border border rounded-lg px-3 py-2 transition-colors group"
                       >
                         <span className="shrink-0">
-                          {isImage ? <Image className="w-4 h-4 text-blue-500" /> : isPdf ? <FileText className="w-4 h-4 text-red-500" /> : <Paperclip className="w-4 h-4 text-slate-400" />}
+                          {isImage ? <Image className="w-4 h-4 text-blue-500" /> : isPdf ? <FileText className="w-4 h-4 text-red-500" /> : <Paperclip className="w-4 h-4 text-muted-foreground/60" />}
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm font-medium truncate">{att.name}</span>
@@ -844,7 +844,7 @@ function InvoiceDetailSheet({ invoiceId, onClose, onRefresh }: { invoiceId: stri
               {inv.payments.length === 0 && <p className="text-sm text-muted-foreground italic">Aucun paiement enregistré.</p>}
               <div className="space-y-2">
                 {inv.payments.map(p => (
-                  <div key={p.id} className="flex items-center justify-between bg-slate-50 rounded p-3 text-sm">
+                  <div key={p.id} className="flex items-center justify-between bg-muted/50 rounded p-3 text-sm">
                     <div>
                       <span className="font-medium">{formatFCFA(Number(p.amount))}</span>
                       <span className="text-muted-foreground ml-2">· {PAYMENT_METHODS[p.method] ?? p.method}</span>
@@ -968,16 +968,16 @@ function ImportCsvDialog({ onClose, onSuccess }: { onClose: () => void; onSucces
         </DialogHeader>
         <div className="space-y-4 py-2">
           {/* Format hint */}
-          <div className="bg-slate-50 rounded-lg p-3 space-y-1">
-            <p className="text-xs font-medium text-slate-700">Colonnes attendues :</p>
+          <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+            <p className="text-xs font-medium text-foreground">Colonnes attendues :</p>
             <div className="flex flex-wrap gap-1">
-              {EXPECTED.map(col => <code key={col} className="text-xs bg-white border rounded px-1.5 py-0.5 font-mono">{col}</code>)}
+              {EXPECTED.map(col => <code key={col} className="text-xs bg-card border rounded px-1.5 py-0.5 font-mono">{col}</code>)}
             </div>
           </div>
 
           {/* File picker */}
           <div
-            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${file ? "border-[#2563EB] bg-orange-50" : "border-slate-300 hover:border-slate-400"}`}
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${file ? "border-[#2563EB] bg-orange-50" : "border hover:border"}`}
             onClick={() => inputRef.current?.click()}
           >
             {file ? (
@@ -988,7 +988,7 @@ function ImportCsvDialog({ onClose, onSuccess }: { onClose: () => void; onSucces
               </div>
             ) : (
               <div className="space-y-2">
-                <Upload className="w-8 h-8 text-slate-300 mx-auto" />
+                <Upload className="w-8 h-8 text-muted-foreground/40 mx-auto" />
                 <p className="text-sm text-muted-foreground">Cliquez pour sélectionner un fichier CSV</p>
               </div>
             )}
@@ -999,7 +999,7 @@ function ImportCsvDialog({ onClose, onSuccess }: { onClose: () => void; onSucces
           {rows.length > 0 && (
             <div className="overflow-x-auto border rounded-lg">
               <table className="w-full text-xs">
-                <thead className="bg-slate-50 border-b">
+                <thead className="bg-muted/50 border-b">
                   <tr>{Object.keys(rows[0]).map(h => <th key={h} className="px-2 py-1.5 text-left font-medium text-muted-foreground whitespace-nowrap">{h}</th>)}</tr>
                 </thead>
                 <tbody>
@@ -1010,7 +1010,7 @@ function ImportCsvDialog({ onClose, onSuccess }: { onClose: () => void; onSucces
                   ))}
                 </tbody>
               </table>
-              <p className="text-xs text-muted-foreground px-2 py-1.5 bg-slate-50 border-t">Aperçu limité aux 5 premières lignes</p>
+              <p className="text-xs text-muted-foreground px-2 py-1.5 bg-muted/50 border-t">Aperçu limité aux 5 premières lignes</p>
             </div>
           )}
         </div>
@@ -1257,7 +1257,7 @@ export default function AchatsFactures() {
                 <TableRow><TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Aucune facture trouvée.</TableCell></TableRow>
               )}
               {invoices.map(inv => (
-                <TableRow key={inv.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedId(inv.id)}>
+                <TableRow key={inv.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedId(inv.id)}>
                   <TableCell className="font-mono text-sm font-medium">{inv.referenceNumber}</TableCell>
                   <TableCell className="text-sm">{inv.supplierName ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDate(inv.invoiceDate)}</TableCell>

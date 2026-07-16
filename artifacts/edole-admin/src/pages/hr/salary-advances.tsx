@@ -75,13 +75,13 @@ interface Collaborator {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; color: string }> = {
-  draft:            { label: "Brouillon",       variant: "secondary", color: "text-slate-400" },
+  draft:            { label: "Brouillon",       variant: "secondary", color: "text-muted-foreground/60" },
   pending_approval: { label: "En attente",      variant: "default",   color: "text-amber-400" },
   approved:         { label: "Approuvée",       variant: "default",   color: "text-emerald-400" },
   rejected:         { label: "Rejetée",         variant: "destructive", color: "text-red-400" },
   disbursed:        { label: "Décaissée",       variant: "default",   color: "text-blue-400" },
-  closed:           { label: "Soldée",          variant: "outline",   color: "text-slate-500" },
-  cancelled:        { label: "Annulée",         variant: "destructive", color: "text-slate-500" },
+  closed:           { label: "Soldée",          variant: "outline",   color: "text-muted-foreground" },
+  cancelled:        { label: "Annulée",         variant: "destructive", color: "text-muted-foreground" },
 };
 
 function StatusBadge({ status }: { status: string }) {

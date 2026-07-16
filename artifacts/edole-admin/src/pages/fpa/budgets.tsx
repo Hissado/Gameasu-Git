@@ -42,7 +42,7 @@ const SCOPE_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: "Brouillon", color: "bg-gray-100 text-gray-700" },
   active: { label: "Actif", color: "bg-emerald-100 text-emerald-700" },
-  archived: { label: "Archivé", color: "bg-slate-100 text-slate-600" },
+  archived: { label: "Archivé", color: "bg-muted text-muted-foreground" },
 };
 
 export default function BudgetsListPage() {

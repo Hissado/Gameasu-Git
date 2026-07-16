@@ -234,7 +234,7 @@ export default function FiscalEnginePage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="bg-white/[0.04] border border-white/[0.07]">
+        <TabsList className="bg-card/[0.04] border border-white/[0.07]">
           <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
           <TabsTrigger value="obligations">Obligations</TabsTrigger>
           <TabsTrigger value="taux">Taux configurés</TabsTrigger>
@@ -264,7 +264,7 @@ export default function FiscalEnginePage() {
                 <p className="text-xs text-emerald-300/50 mt-0.5">{formatFCFA(dashboard?.summary.totalPaid ?? 0)}</p>
               </CardContent>
             </Card>
-            <Card className="bg-white/[0.03] border-white/[0.07]">
+            <Card className="bg-card/[0.03] border-white/[0.07]">
               <CardContent className="p-4">
                 <p className="text-xs text-white/50">Total obligations</p>
                 <p className="text-2xl font-bold text-white mt-1">{dashboard?.summary.total ?? 0}</p>
@@ -304,7 +304,7 @@ export default function FiscalEnginePage() {
 
           {/* À venir */}
           {(dashboard?.upcomingObligations?.length ?? 0) > 0 && (
-            <Card className="bg-white/[0.03] border-white/[0.07]">
+            <Card className="bg-card/[0.03] border-white/[0.07]">
               <CardHeader className="pb-2 pt-4 px-4">
                 <CardTitle className="text-sm font-semibold text-white/70 flex items-center gap-1.5">
                   <Clock className="w-4 h-4" /> Prochaines échéances (30 jours)
@@ -340,7 +340,7 @@ export default function FiscalEnginePage() {
         <TabsContent value="obligations" className="mt-4">
           <div className="rounded-lg border border-white/[0.07] overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-white/[0.03] border-b border-white/[0.07]">
+              <thead className="bg-card/[0.03] border-b border-white/[0.07]">
                 <tr>
                   <th className="text-left px-4 py-3 text-white/50 font-medium">Impôt / Taxe</th>
                   <th className="text-left px-4 py-3 text-white/50 font-medium">Période</th>
@@ -360,7 +360,7 @@ export default function FiscalEnginePage() {
                 ) : obligations.map((o) => {
                   const cfg = STATUS_CONFIG[o.status] ?? STATUS_CONFIG.upcoming;
                   return (
-                    <tr key={o.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                    <tr key={o.id} className="border-b border-white/[0.04] hover:bg-card/[0.02]">
                       <td className="px-4 py-3 font-medium text-white">{o.taxLabel}</td>
                       <td className="px-4 py-3 text-white/60">{formatPeriod(o.period)}</td>
                       <td className="px-4 py-3 text-right text-white">{o.declaredAmount ? formatFCFA(o.declaredAmount) : "—"}</td>
@@ -407,7 +407,7 @@ export default function FiscalEnginePage() {
           ) : (
             <div className="rounded-lg border border-white/[0.07] overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-white/[0.03] border-b border-white/[0.07]">
+                <thead className="bg-card/[0.03] border-b border-white/[0.07]">
                   <tr>
                     <th className="text-left px-4 py-3 text-white/50 font-medium">Code</th>
                     <th className="text-left px-4 py-3 text-white/50 font-medium">Libellé</th>
@@ -419,7 +419,7 @@ export default function FiscalEnginePage() {
                 </thead>
                 <tbody>
                   {rates.map((r) => (
-                    <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                    <tr key={r.id} className="border-b border-white/[0.04] hover:bg-card/[0.02]">
                       <td className="px-4 py-3">
                         <Badge variant="outline" className="font-mono text-xs">{r.taxCode}</Badge>
                       </td>
@@ -484,32 +484,32 @@ export default function FiscalEnginePage() {
           </div>
 
           {simResult && (
-            <div className="mt-2 rounded-lg border border-white/[0.07] p-4 bg-white/[0.02] space-y-3">
+            <div className="mt-2 rounded-lg border border-white/[0.07] p-4 bg-card/[0.02] space-y-3">
               <p className="text-sm font-semibold text-white/80 mb-2">Résultats de la simulation</p>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-white/[0.04] rounded p-3">
+                <div className="bg-card/[0.04] rounded p-3">
                   <p className="text-xs text-white/40 mb-1">TVA nette à verser</p>
                   <p className="font-semibold text-white">{formatFCFA(simResult.tva.net)}</p>
                   <p className="text-xs text-white/30">Collectée {formatFCFA(simResult.tva.collected)} − Déductible {formatFCFA(simResult.tva.deductible)}</p>
                 </div>
-                <div className="bg-white/[0.04] rounded p-3">
+                <div className="bg-card/[0.04] rounded p-3">
                   <p className="text-xs text-white/40 mb-1">IS / IMF (le plus élevé)</p>
                   <p className="font-semibold text-white">{formatFCFA(simResult.is.payable)}</p>
                   <p className="text-xs text-white/30">IS 27% : {formatFCFA(simResult.is.calculated)} | IMF 1% : {formatFCFA(simResult.is.imf)}</p>
                 </div>
-                <div className="bg-white/[0.04] rounded p-3">
+                <div className="bg-card/[0.04] rounded p-3">
                   <p className="text-xs text-white/40 mb-1">Patente ({simResult.patente.sector})</p>
                   <p className="font-semibold text-white">{formatFCFA(simResult.patente.amount)}</p>
                 </div>
-                <div className="bg-white/[0.04] rounded p-3">
+                <div className="bg-card/[0.04] rounded p-3">
                   <p className="text-xs text-white/40 mb-1">CNSS patronal</p>
                   <p className="font-semibold text-white">{formatFCFA(simResult.cnss.employerShare)}</p>
                 </div>
-                <div className="bg-white/[0.04] rounded p-3">
+                <div className="bg-card/[0.04] rounded p-3">
                   <p className="text-xs text-white/40 mb-1">IRPP estimé (salarial)</p>
                   <p className="font-semibold text-white">{formatFCFA(simResult.irpp.estimated)}</p>
                 </div>
-                <div className="bg-white/[0.04] rounded p-3">
+                <div className="bg-card/[0.04] rounded p-3">
                   <p className="text-xs text-white/40 mb-1">IPTS</p>
                   <p className="font-semibold text-white">{formatFCFA(simResult.ipts.total)}</p>
                 </div>
@@ -623,7 +623,7 @@ export default function FiscalEnginePage() {
           </DialogHeader>
           {showPayDialog && (
             <div className="space-y-3 py-2">
-              <div className="rounded bg-white/[0.04] p-3 text-sm">
+              <div className="rounded bg-card/[0.04] p-3 text-sm">
                 <p className="font-medium text-white">{showPayDialog.taxLabel}</p>
                 <p className="text-white/50 text-xs">{formatPeriod(showPayDialog.period)} · Solde : {formatFCFA(showPayDialog.balance ?? 0)}</p>
               </div>

@@ -255,7 +255,7 @@ const CATEGORIES: Record<CostCategory, { label: string; icon: React.FC<any>; col
   labor:       { label: "Main-d'œuvre",           icon: Users,      color: "#8B5CF6", bg: "bg-purple-50" },
   operational: { label: "Charges opérat.",        icon: Wrench,     color: "#0EA5E9", bg: "bg-sky-50" },
   depreciation:{ label: "Amortissements",         icon: HardHat,    color: "#84CC16", bg: "bg-lime-50" },
-  admin:       { label: "Admin & structure",      icon: Building2,  color: "#64748B", bg: "bg-slate-50" },
+  admin:       { label: "Admin & structure",      icon: Building2,  color: "#64748B", bg: "bg-muted/50" },
   commercial:  { label: "Frais commerciaux",      icon: Megaphone,  color: "#A855F7", bg: "bg-purple-50" },
   financial:   { label: "Frais financiers",       icon: Banknote,   color: "#EF4444", bg: "bg-red-50" },
   risk:        { label: "Provisions & risques",   icon: Shield,     color: "#F97316", bg: "bg-orange-50" },
@@ -773,7 +773,7 @@ function CostItemRow({
             className="h-8 text-xs text-right pr-6"
             placeholder="0"
           />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium pointer-events-none">%</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/60 font-medium pointer-events-none">%</span>
         </div>
       ) : (
         <Input
@@ -799,7 +799,7 @@ function CostItemRow({
           {formatFCFA(Math.round(computed))}
         </div>
       )}
-      <button onClick={onRemove} className="h-8 w-7 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
+      <button onClick={onRemove} className="h-8 w-7 flex items-center justify-center text-muted-foreground/60 hover:text-red-500 transition-colors">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
       {item.alloc === "per_unit" && (
@@ -920,14 +920,14 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
   };
 
   return (
-    <div className="border border-lime-100 rounded-lg bg-white p-3 space-y-3">
+    <div className="border border-lime-100 rounded-lg bg-card p-3 space-y-3">
 
       {/* Header */}
       <div className="flex items-center gap-2">
         <Input value={item.label} onChange={e => onUpdate({ label: e.target.value })}
           placeholder="Nom de l'équipement…" className="h-8 text-xs flex-1" />
         {total > 0 && <span className="text-xs font-bold text-lime-700 bg-lime-100 px-2 py-0.5 rounded shrink-0">{formatFCFA(Math.round(total))}</span>}
-        <button onClick={onRemove} className="h-8 w-7 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
+        <button onClick={onRemove} className="h-8 w-7 flex items-center justify-center text-muted-foreground/60 hover:text-red-500 transition-colors">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -989,13 +989,13 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
       )}
 
       {/* Mode toggle */}
-      <div className="flex rounded-lg border border-slate-200 overflow-hidden text-[11px] font-medium">
+      <div className="flex rounded-lg border border overflow-hidden text-[11px] font-medium">
         <button onClick={() => setMode("rental")}
-          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "rental" ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "rental" ? "bg-blue-600 text-white" : "bg-card text-muted-foreground hover:bg-muted/50"}`}>
           <Truck className="w-3 h-3" /> Vous le louez
         </button>
         <button onClick={() => setMode("owned")}
-          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "owned" ? "bg-lime-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${mode === "owned" ? "bg-lime-600 text-white" : "bg-card text-muted-foreground hover:bg-muted/50"}`}>
           <HardHat className="w-3 h-3" /> Vous le possédez
         </button>
       </div>
@@ -1019,7 +1019,7 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
             <div>
               <p className="text-[10px] text-muted-foreground mb-1">Sous-total location</p>
               <div className="h-8 flex items-center justify-end px-2.5 text-sm font-bold text-blue-700 bg-blue-50 rounded-md border border-blue-100">
-                {baseTotal > 0 ? formatFCFA(Math.round(baseTotal)) : <span className="text-slate-300 text-xs font-normal">—</span>}
+                {baseTotal > 0 ? formatFCFA(Math.round(baseTotal)) : <span className="text-muted-foreground/40 text-xs font-normal">—</span>}
               </div>
             </div>
           </div>
@@ -1027,7 +1027,7 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
           {/* Frais annexes */}
           <div>
             <button onClick={() => setShowExtras(!showExtras)}
-              className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-slate-700 transition-colors">
+              className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
               {showExtras ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               {showExtras ? "Masquer les frais annexes" : "+ Frais annexes (transport, installation, caution…)"}
             </button>
@@ -1103,7 +1103,7 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
           <div className="flex gap-1">
             {[1, 2, 5, 10, 20].map(y => (
               <button key={y} onClick={() => { setLifespanYears(y); persist({ lifespanYears: y }); }}
-                className={`flex-1 text-[9px] py-0.5 rounded border transition-colors ${lifespanYears === y ? "bg-lime-600 text-white border-lime-600" : "border-slate-200 text-slate-500 hover:border-lime-300 hover:text-lime-700"}`}>
+                className={`flex-1 text-[9px] py-0.5 rounded border transition-colors ${lifespanYears === y ? "bg-lime-600 text-white border-lime-600" : "border text-muted-foreground hover:border-lime-300 hover:text-lime-700"}`}>
                 {y} an{y > 1 ? "s" : ""}
               </button>
             ))}
@@ -1139,7 +1139,7 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
           {/* Frais récurrents */}
           <div>
             <button onClick={() => setShowExtras(!showExtras)}
-              className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-slate-700 transition-colors">
+              className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
               {showExtras ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               {showExtras ? "Masquer les frais récurrents" : "+ Frais récurrents (maintenance, assurance…)"}
             </button>
@@ -1172,7 +1172,7 @@ function DepreciationItemRow({ item, onUpdate, onRemove }: {
             <div>
               <p className="text-[10px] text-muted-foreground mb-1">Coût total imputé</p>
               <div className="h-8 flex items-center justify-end px-2.5 text-sm font-bold text-lime-700 bg-lime-50 rounded-md border border-lime-100">
-                {total > 0 ? formatFCFA(Math.round(total)) : <span className="text-slate-300 text-xs font-normal">—</span>}
+                {total > 0 ? formatFCFA(Math.round(total)) : <span className="text-muted-foreground/40 text-xs font-normal">—</span>}
               </div>
             </div>
           </div>
@@ -1225,10 +1225,10 @@ function LaborLineRow({ line, onUpdate, onRemove }: {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-purple-700">{formatFCFA(Math.round(totalCost))}</span>
-          <button onClick={() => setOpen(!open)} className="text-slate-400 hover:text-slate-600">
+          <button onClick={() => setOpen(!open)} className="text-muted-foreground/60 hover:text-muted-foreground">
             {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
-          <button onClick={onRemove} className="text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+          <button onClick={onRemove} className="text-muted-foreground/60 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       </div>
       {open && (
@@ -1332,12 +1332,12 @@ function LoadFromHRDialog({ open, onClose, onSelect, laborSettings }: {
             const other    = parseFloat(c.otherBenefitsMonthly ?? "0") || 0;
             const totalBenefits = transport + housing + meal + other;
             return (
-              <div key={c.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sel ? "border-purple-300 bg-purple-50" : "border-slate-200 hover:bg-slate-50"}`} onClick={() => toggle(c.id)}>
+              <div key={c.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sel ? "border-purple-300 bg-purple-50" : "border hover:bg-muted/50"}`} onClick={() => toggle(c.id)}>
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm">{c.firstName} {c.lastName}</div>
                     <div className="text-xs text-muted-foreground">{c.position ?? "—"} · {c.department ?? "—"}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       Salaire brut : <span className="font-semibold">{salary > 0 ? formatFCFA(salary) : "non renseigné"}</span> /mois
                     </div>
                     {totalBenefits > 0 && (
@@ -1346,7 +1346,7 @@ function LoadFromHRDialog({ open, onClose, onSelect, laborSettings }: {
                         {housing  > 0 && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">Log. {formatFCFA(housing)}</span>}
                         {meal     > 0 && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Repas {formatFCFA(meal)}</span>}
                         {other    > 0 && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">Autres {formatFCFA(other)}</span>}
-                        <span className="text-[10px] text-slate-500">= {formatFCFA(totalBenefits)} avantages</span>
+                        <span className="text-[10px] text-muted-foreground">= {formatFCFA(totalBenefits)} avantages</span>
                       </div>
                     )}
                   </div>
@@ -1414,8 +1414,8 @@ function LoadFromEquipmentDialog({ open, onClose, onSelect }: {
         <div className="space-y-2">
           {equipment.length === 0 && (
             <div className="text-center py-8 space-y-2">
-              <HardHat className="w-8 h-8 mx-auto text-slate-300" />
-              <p className="text-sm font-medium text-slate-600">Aucun équipement dans le catalogue</p>
+              <HardHat className="w-8 h-8 mx-auto text-muted-foreground/40" />
+              <p className="text-sm font-medium text-muted-foreground">Aucun équipement dans le catalogue</p>
               <p className="text-xs text-muted-foreground">Ajoutez d'abord vos équipements dans le module <strong>Équipements</strong>, puis revenez ici pour les importer.</p>
               <a href="/equipements" target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-lime-700 font-medium hover:underline mt-1">
@@ -1426,12 +1426,12 @@ function LoadFromEquipmentDialog({ open, onClose, onSelect }: {
           {equipment.map(e => {
             const sel = selected.has(e.id);
             return (
-              <div key={e.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sel ? "border-lime-300 bg-lime-50" : "border-slate-200 hover:bg-slate-50"}`} onClick={() => toggle(e.id)}>
+              <div key={e.id} className={`border rounded-lg p-3 cursor-pointer transition-colors ${sel ? "border-lime-300 bg-lime-50" : "border hover:bg-muted/50"}`} onClick={() => toggle(e.id)}>
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-semibold text-sm">{e.name}</div>
                     <div className="text-xs text-muted-foreground">{e.code} · {e.categoryName ?? "—"}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">Tarif journalier : {formatFCFA(e.dailyRate ?? 0)}/j</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Tarif journalier : {formatFCFA(e.dailyRate ?? 0)}/j</div>
                   </div>
                   <input type="checkbox" checked={sel} readOnly className="w-4 h-4" />
                 </div>
@@ -1549,7 +1549,7 @@ function LoadFromInventoryDialog({ open, onClose, onSelect }: {
             <input
               value={q} onChange={e => setQ(e.target.value)}
               placeholder="Rechercher par nom ou SKU…"
-              className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full pl-9 pr-4 py-2 text-sm border border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
           </div>
         </div>
@@ -1573,7 +1573,7 @@ function LoadFromInventoryDialog({ open, onClose, onSelect }: {
             const purchasePrice = parseFloat(p.purchasePriceFcfa) || 0;
             return (
               <div key={p.id}
-                className={`border rounded-xl p-3 cursor-pointer transition-all ${isSel ? "border-emerald-400 bg-emerald-50 shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"}`}
+                className={`border rounded-xl p-3 cursor-pointer transition-all ${isSel ? "border-emerald-400 bg-emerald-50 shadow-sm" : "border hover:border hover:bg-muted/50"}`}
                 onClick={() => toggle(p)}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
@@ -1581,7 +1581,7 @@ function LoadFromInventoryDialog({ open, onClose, onSelect }: {
                     <div className="min-w-0">
                       <div className="font-semibold text-sm truncate">{p.name}</div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{p.sku}</span>
+                        <span className="text-[10px] font-mono bg-muted text-muted-foreground px-1.5 py-0.5 rounded">{p.sku}</span>
                         <span className="text-xs text-muted-foreground">Unité : {p.unit}</span>
                         {p.isLowStock && (
                           <span className="text-[10px] font-semibold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
@@ -1589,7 +1589,7 @@ function LoadFromInventoryDialog({ open, onClose, onSelect }: {
                           </span>
                         )}
                         {!p.isLowStock && p.stockOnHand > 0 && (
-                          <span className="text-[10px] text-slate-500">Stock : {p.stockOnHand} {p.unit}</span>
+                          <span className="text-[10px] text-muted-foreground">Stock : {p.stockOnHand} {p.unit}</span>
                         )}
                       </div>
                     </div>
@@ -1620,7 +1620,7 @@ function LoadFromInventoryDialog({ open, onClose, onSelect }: {
                         className="h-8 text-sm"
                       />
                     </div>
-                    <div className="col-span-2 bg-white rounded-lg border border-emerald-200 px-3 py-1.5 flex justify-between text-xs">
+                    <div className="col-span-2 bg-card rounded-lg border border-emerald-200 px-3 py-1.5 flex justify-between text-xs">
                       <span className="text-muted-foreground">Coût total pour ce produit</span>
                       <span className="font-bold text-emerald-700">{formatFCFA(Math.round(sel!.price * sel!.qty))}</span>
                     </div>
@@ -1632,7 +1632,7 @@ function LoadFromInventoryDialog({ open, onClose, onSelect }: {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t bg-slate-50 shrink-0">
+        <div className="px-6 py-4 border-t bg-muted/50 shrink-0">
           {totalSel > 0 && (
             <div className="flex items-center justify-between mb-3 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm">
               <span className="text-emerald-800 font-medium">{totalSel} produit{totalSel > 1 ? "s" : ""} sélectionné{totalSel > 1 ? "s" : ""}</span>
@@ -1729,10 +1729,10 @@ function SendToDocDialog({ open, onClose, result, scenario, docType }: {
           <DialogDescription>Les données du calculateur seront reportées dans le document.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="bg-slate-50 rounded-lg p-3 space-y-1 text-sm">
+          <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
             <div className="font-semibold">{scenario.productName || "Prestation non nommée"}</div>
             {result.discountAmount > 0 && (
-              <div className="flex justify-between text-slate-500 line-through text-xs">
+              <div className="flex justify-between text-muted-foreground line-through text-xs">
                 <span>Prix catalogue HT :</span><span>{formatFCFA(Math.round(result.priceHTBrut))}</span>
               </div>
             )}
@@ -1818,11 +1818,11 @@ function CostSection({
   return (
     <div className="space-y-2">
       {children}
-      <div className="text-[11px] text-slate-500 grid font-medium mb-1" style={{ gridTemplateColumns: "1fr 100px 80px 80px 28px" }}>
+      <div className="text-[11px] text-muted-foreground grid font-medium mb-1" style={{ gridTemplateColumns: "1fr 100px 80px 80px 28px" }}>
         <span>Libellé</span><span>Méthode</span><span className="text-right">Montant</span><span className="text-right">Qté / Total</span><span />
       </div>
       {items.length === 0 ? (
-        <div className="text-center py-5 text-muted-foreground text-xs border border-dashed border-slate-200 rounded-lg">
+        <div className="text-center py-5 text-muted-foreground text-xs border border-dashed border rounded-lg">
           <Icon className="w-6 h-6 mx-auto mb-1.5 opacity-30" />
           Aucun poste — cliquez « Ajouter »
         </div>
@@ -1836,7 +1836,7 @@ function CostSection({
               baseCost={baseCost} baseHT={baseHT}
             />
           ))}
-          <div className="flex justify-between text-xs border-t border-slate-100 pt-2 mt-1" style={{ paddingRight: "36px" }}>
+          <div className="flex justify-between text-xs border-t border pt-2 mt-1" style={{ paddingRight: "36px" }}>
             <span className="text-muted-foreground font-medium flex items-center gap-1"><Calculator className="w-3 h-3" />Total {title}</span>
             <span className="font-bold" style={{ color }}>{formatFCFA(Math.round(total))}</span>
           </div>
@@ -2001,10 +2001,10 @@ function UnifiedStructurePanel({
       ) : null}
 
       {/* Shared allocation parameters */}
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
+      <div className="bg-muted/50 border border rounded-xl p-4 space-y-4">
         <div className="flex items-center gap-2">
-          <Settings2 className="w-4 h-4 text-slate-500" />
-          <span className="text-sm font-semibold text-slate-700">Paramètres d'allocation</span>
+          <Settings2 className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-semibold text-foreground">Paramètres d'allocation</span>
           <span className="text-[10px] text-muted-foreground">(communs à toutes les sections)</span>
         </div>
 
@@ -2017,11 +2017,11 @@ function UnifiedStructurePanel({
                 placeholder={durationUnit === "heures" ? "ex. 40" : durationUnit === "jours" ? "ex. 5" : durationUnit === "semaines" ? "ex. 4" : "ex. 1"}
                 onChange={e => onUpdate({ dealDurationMonths: parseFloat(e.target.value) || 1 })}
                 className="h-9 text-sm flex-1 min-w-0" />
-              <div className="flex rounded-lg overflow-hidden border border-slate-200 shrink-0">
+              <div className="flex rounded-lg overflow-hidden border border shrink-0">
                 {(["heures","jours","semaines","mois"] as DealDurationUnit[]).map(u => (
                   <button key={u}
                     onClick={() => onUpdate({ dealDurationUnit: u })}
-                    className={`h-9 px-1.5 text-[10px] font-medium border-l border-slate-200 first:border-l-0 transition-colors ${durationUnit === u ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                    className={`h-9 px-1.5 text-[10px] font-medium border-l border first:border-l-0 transition-colors ${durationUnit === u ? "bg-slate-800 text-white" : "bg-card text-muted-foreground hover:bg-muted/50"}`}>
                     {DEAL_DURATION_UNIT_META[u].short}
                   </button>
                 ))}
@@ -2037,11 +2037,11 @@ function UnifiedStructurePanel({
             <Label className="text-xs font-medium mb-1.5 block">Mode d'allocation</Label>
             <div className="flex gap-1.5">
               <button onClick={() => onUpdate({ allocationMode: "pct" })}
-                className={`flex-1 h-9 rounded-lg text-xs font-medium border transition-all ${config.allocationMode === "pct" ? "bg-slate-800 text-white border-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
+                className={`flex-1 h-9 rounded-lg text-xs font-medium border transition-all ${config.allocationMode === "pct" ? "bg-slate-800 text-white border" : "border text-muted-foreground hover:bg-muted"}`}>
                 <Percent className="w-3 h-3 inline mr-0.5" />% direct
               </button>
               <button onClick={() => onUpdate({ allocationMode: "capacity" })}
-                className={`flex-1 h-9 rounded-lg text-xs font-medium border transition-all ${config.allocationMode === "capacity" ? "bg-slate-800 text-white border-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
+                className={`flex-1 h-9 rounded-lg text-xs font-medium border transition-all ${config.allocationMode === "capacity" ? "bg-slate-800 text-white border" : "border text-muted-foreground hover:bg-muted"}`}>
                 <Target className="w-3 h-3 inline mr-0.5" />Capacité
               </button>
             </div>
@@ -2049,11 +2049,11 @@ function UnifiedStructurePanel({
         </div>
 
         {/* Auto-allocation toggle */}
-        <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors ${config.autoAllocation ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"}`}>
+        <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors ${config.autoAllocation ? "border-emerald-300 bg-emerald-50" : "border bg-card"}`}>
           <div className="flex items-center gap-2">
-            <Calculator className={`w-3.5 h-3.5 ${config.autoAllocation ? "text-emerald-600" : "text-slate-400"}`} />
+            <Calculator className={`w-3.5 h-3.5 ${config.autoAllocation ? "text-emerald-600" : "text-muted-foreground/60"}`} />
             <div>
-              <div className={`text-xs font-semibold ${config.autoAllocation ? "text-emerald-800" : "text-slate-600"}`}>
+              <div className={`text-xs font-semibold ${config.autoAllocation ? "text-emerald-800" : "text-muted-foreground"}`}>
                 Allocation automatique depuis les coûts directs
               </div>
               <div className="text-[10px] text-muted-foreground">
@@ -2077,7 +2077,7 @@ function UnifiedStructurePanel({
               <div className="space-y-3">
                 {/* Sélecteur de période burn rate */}
                 <div className="flex items-center gap-2">
-                  <Label className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">Période burn rate :</Label>
+                  <Label className="text-[10px] text-muted-foreground shrink-0 whitespace-nowrap">Période burn rate :</Label>
                   <Select
                     value={config.burnRatePeriod ?? "ytd"}
                     onValueChange={v => onUpdate({ burnRatePeriod: v as BurnRatePeriod })}
@@ -2120,7 +2120,7 @@ function UnifiedStructurePanel({
                       Aucune écriture comptable sur cette période. Saisissez le burn rate manuellement :
                     </div>
                     <div className="flex items-center gap-2">
-                      <Label className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">Burn rate mensuel (FCFA) :</Label>
+                      <Label className="text-[10px] text-muted-foreground shrink-0 whitespace-nowrap">Burn rate mensuel (FCFA) :</Label>
                       <Input type="number" min="1"
                         value={config.monthlyCapacity || ""}
                         placeholder="ex. 50000000"
@@ -2129,10 +2129,10 @@ function UnifiedStructurePanel({
                     </div>
                     {config.monthlyCapacity > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
-                        <div className="h-9 px-3 flex items-center bg-slate-50 border border-slate-300 rounded-md text-sm font-bold text-slate-800 w-32">
+                        <div className="h-9 px-3 flex items-center bg-muted/50 border border rounded-md text-sm font-bold text-foreground w-32">
                           {autoEffectivePct.toFixed(1)}%
                         </div>
-                        <span className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded-lg font-semibold">
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-lg font-semibold">
                           {formatFCFA(Math.round(directCostsAmount))} ÷ {formatFCFA(Math.round(config.monthlyCapacity))} = {autoEffectivePct.toFixed(1)}% × {config.dealDurationMonths} {durationUnitMeta.short}{durationUnit !== "mois" ? ` (≈ ${effectiveDurationMonths.toFixed(2)} mois)` : ""}
                         </span>
                       </div>
@@ -2148,7 +2148,7 @@ function UnifiedStructurePanel({
                   onChange={e => onUpdate({ dealAllocationPct: parseFloat(e.target.value) || 0 })}
                   className="h-9 text-sm w-32" />
                 {config.dealAllocationPct > 0 && (
-                  <span className="text-xs font-bold text-slate-700 bg-slate-200 px-2 py-1 rounded-lg">
+                  <span className="text-xs font-bold text-foreground bg-slate-200 px-2 py-1 rounded-lg">
                     {config.dealAllocationPct.toFixed(1)}% × {config.dealDurationMonths} {durationUnitMeta.short}{durationUnit !== "mois" ? ` (≈ ${effectiveDurationMonths.toFixed(2)} mois)` : ""}
                   </span>
                 )}
@@ -2182,7 +2182,7 @@ function UnifiedStructurePanel({
             {/* Sélecteur période burn rate — mode capacity + auto ON */}
             {config.autoAllocation && (
               <div className="flex items-center gap-2">
-                <Label className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">Période burn rate :</Label>
+                <Label className="text-[10px] text-muted-foreground shrink-0 whitespace-nowrap">Période burn rate :</Label>
                 <Select
                   value={config.burnRatePeriod ?? "ytd"}
                   onValueChange={v => onUpdate({ burnRatePeriod: v as BurnRatePeriod })}
@@ -2236,10 +2236,10 @@ function UnifiedStructurePanel({
               </div>
             </div>
             {config.monthlyCapacity > 0 && (config.autoAllocation ? directCostsAmount : config.dealConsumption) > 0 && (
-              <div className={`border rounded-lg px-3 py-2 text-xs flex items-center gap-2 ${config.autoAllocation ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-200"}`}>
+              <div className={`border rounded-lg px-3 py-2 text-xs flex items-center gap-2 ${config.autoAllocation ? "bg-emerald-50 border-emerald-200" : "bg-card border"}`}>
                 <ArrowRight className={`w-3 h-3 shrink-0 ${config.autoAllocation ? "text-emerald-500" : "text-muted-foreground"}`} />
                 <span className={config.autoAllocation ? "text-emerald-700" : "text-muted-foreground"}>
-                  {config.autoAllocation ? formatFCFA(Math.round(directCostsAmount)) : formatFCFA(config.dealConsumption)} / {config.monthlyCapacity} {config.capacityUnit || "h"} = <strong className={config.autoAllocation ? "text-emerald-900" : "text-slate-800"}>
+                  {config.autoAllocation ? formatFCFA(Math.round(directCostsAmount)) : formatFCFA(config.dealConsumption)} / {config.monthlyCapacity} {config.capacityUnit || "h"} = <strong className={config.autoAllocation ? "text-emerald-900" : "text-foreground"}>
                     {Math.min(100, ((config.autoAllocation ? directCostsAmount : config.dealConsumption) / config.monthlyCapacity) * 100).toFixed(1)}%
                   </strong> de la capacité mensuelle
                   {config.autoAllocation && <span className="ml-1 text-[10px] font-semibold bg-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded-full">AUTO</span>}
@@ -2251,8 +2251,8 @@ function UnifiedStructurePanel({
       </div>
 
       {/* Per-section budget rows */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden">
-        <div className="bg-slate-100 px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-slate-600">
+      <div className="border border rounded-xl overflow-hidden">
+        <div className="bg-muted px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-muted-foreground">
           <span>Burn rates mensuels par section</span>
           <div className="flex items-center gap-3">
             {hasRealData && (
@@ -2261,7 +2261,7 @@ function UnifiedStructurePanel({
               </span>
             )}
             {totalMonthly > 0 && (
-              <span className="text-slate-700 font-bold">Total : {formatFCFA(totalMonthly)}/mois</span>
+              <span className="text-foreground font-bold">Total : {formatFCFA(totalMonthly)}/mois</span>
             )}
           </div>
         </div>
@@ -2273,14 +2273,14 @@ function UnifiedStructurePanel({
           const diff = monthly > 0 && realMonthly > 0 ? monthly - realMonthly : 0;
           const diffPct = realMonthly > 0 && diff !== 0 ? (diff / realMonthly) * 100 : 0;
           return (
-            <div key={sec.key} className={`px-4 py-3.5 bg-white ${i > 0 ? "border-t border-slate-100" : ""}`}>
+            <div key={sec.key} className={`px-4 py-3.5 bg-card ${i > 0 ? "border-t border" : ""}`}>
               <div className="flex items-start gap-3">
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: sec.color + "18" }}>
                   <sec.icon className="w-3.5 h-3.5" style={{ color: sec.color }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold text-slate-700">{sec.label}</span>
+                    <span className="text-xs font-semibold text-foreground">{sec.label}</span>
                     {realMonthly > 0 && (
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                         Réel : {formatFCFA(realMonthly)}/m
@@ -2295,7 +2295,7 @@ function UnifiedStructurePanel({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button onClick={() => syncSection(sec.key)}
-                          className={`h-8 w-8 rounded-lg flex items-center justify-center border transition-colors ${monthly === realMonthly ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-slate-600"}`}>
+                          className={`h-8 w-8 rounded-lg flex items-center justify-center border transition-colors ${monthly === realMonthly ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "border hover:bg-muted/50 text-muted-foreground/60 hover:text-muted-foreground"}`}>
                           <RefreshCw className="w-3 h-3" />
                         </button>
                       </TooltipTrigger>
@@ -2340,7 +2340,7 @@ function UnifiedStructurePanel({
 
         {sc.total > 0 && (
           <div className="bg-slate-800 px-4 py-3 flex items-center justify-between">
-            <div className="text-xs text-slate-300">
+            <div className="text-xs text-muted-foreground/40">
               Quote-part totale ({sc.effectivePct.toFixed(1)}% × {config.dealDurationMonths} {durationUnitMeta.short}{durationUnit !== "mois" ? `, ≈ ${effectiveDurationMonths.toFixed(2)} mois` : ""})
             </div>
             <div className="text-sm font-black text-white">{formatFCFA(Math.round(sc.total))}</div>
@@ -2745,7 +2745,7 @@ export default function PricingCalculator() {
               <Calculator className="w-5 h-5 text-[#2563EB]" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Calculateur tarifaire</h1>
+              <h1 className="text-xl font-bold text-foreground">Calculateur tarifaire</h1>
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 Pricing stratégique · coût complet · impact IS
                 {savedId && !isDirty && (
@@ -2933,14 +2933,14 @@ export default function PricingCalculator() {
 
             {/* ── Composantes du deal (mixte mode) ── */}
             {scenario.dealType === "mixte" && (
-              <Card className="shadow-sm border-slate-200">
+              <Card className="shadow-sm border">
                 <CardHeader className="pb-3 border-b">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Layers className="w-4 h-4 text-[#2563EB]" />
                       <CardTitle className="text-sm">Composantes du deal</CardTitle>
                       {(scenario.dealComponents ?? []).length > 0 && (
-                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
+                        <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
                           {(scenario.dealComponents ?? []).length} composante{(scenario.dealComponents ?? []).length > 1 ? "s" : ""}
                         </span>
                       )}
@@ -2968,17 +2968,17 @@ export default function PricingCalculator() {
                         const compResult = result.byComponentResult?.find(r => r.id === comp.id);
                         const compRawTotal = (comp.costItems ?? []).reduce((s, i) => s + computeItemCost(i, 0, 0), 0);
                         return (
-                          <div key={comp.id} className={`border-b border-slate-100 last:border-b-0 ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"}`}>
+                          <div key={comp.id} className={`border-b border last:border-b-0 ${idx % 2 === 0 ? "bg-card" : "bg-muted/40"}`}>
                             {/* Component header row */}
                             <div className="flex items-center gap-2 px-3 py-2.5">
-                              <button onClick={() => toggleComponent(comp.id)} className="text-slate-400 hover:text-slate-600 shrink-0 w-5">
+                              <button onClick={() => toggleComponent(comp.id)} className="text-muted-foreground/60 hover:text-muted-foreground shrink-0 w-5">
                                 {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                               </button>
                               <span className="text-base shrink-0">{DEAL_TYPE_META[comp.dealType].icon}</span>
                               <Input
                                 value={comp.label}
                                 onChange={e => updateDealComponent(comp.id, { label: e.target.value })}
-                                className="h-7 text-xs font-semibold flex-1 min-w-0 border-transparent bg-transparent hover:border-slate-200 focus:border-slate-300 px-1"
+                                className="h-7 text-xs font-semibold flex-1 min-w-0 border-transparent bg-transparent hover:border focus:border px-1"
                                 placeholder="Nom de la composante…"
                               />
                               <Select value={comp.dealType} onValueChange={v => {
@@ -2997,20 +2997,20 @@ export default function PricingCalculator() {
                                   value={comp.durationValue}
                                   onChange={e => updateDealComponent(comp.id, { durationValue: parseFloat(e.target.value) || 1 })}
                                   className="h-7 w-14 text-xs text-center" />
-                                <div className="flex rounded overflow-hidden border border-slate-200">
+                                <div className="flex rounded overflow-hidden border border">
                                   {(["heures","jours","semaines","mois"] as DealDurationUnit[]).map(u => (
                                     <button key={u}
                                       onClick={() => updateDealComponent(comp.id, { durationUnit: u })}
-                                      className={`h-7 px-1.5 text-[9px] font-medium border-l border-slate-200 first:border-l-0 transition-colors ${comp.durationUnit === u ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                                      className={`h-7 px-1.5 text-[9px] font-medium border-l border first:border-l-0 transition-colors ${comp.durationUnit === u ? "bg-slate-800 text-white" : "bg-card text-muted-foreground hover:bg-muted/50"}`}>
                                       {DEAL_DURATION_UNIT_META[u].short}
                                     </button>
                                   ))}
                                 </div>
                               </div>
-                              <div className="text-xs font-semibold text-slate-700 w-24 text-right shrink-0">
+                              <div className="text-xs font-semibold text-foreground w-24 text-right shrink-0">
                                 {formatFCFA(Math.round(compResult?.total ?? compRawTotal))}
                               </div>
-                              <button onClick={() => removeDealComponent(comp.id)} className="text-slate-300 hover:text-red-400 transition-colors shrink-0">
+                              <button onClick={() => removeDealComponent(comp.id)} className="text-muted-foreground/40 hover:text-red-400 transition-colors shrink-0">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -3025,11 +3025,11 @@ export default function PricingCalculator() {
                                       <Input value={item.label}
                                         onChange={e => updateComponentItem(comp.id, item.id, { label: e.target.value })}
                                         className="h-7 text-xs flex-1 min-w-0" placeholder="Description du coût…" />
-                                      <div className="flex rounded overflow-hidden border border-slate-200 shrink-0">
+                                      <div className="flex rounded overflow-hidden border border shrink-0">
                                         {([{ mode: "fixed" as const, label: "FCFA" }, { mode: "per_unit" as const, label: "/u" }]).map(m => (
                                           <button key={m.mode}
                                             onClick={() => updateComponentItem(comp.id, item.id, { alloc: m.mode })}
-                                            className={`h-7 px-2 text-[10px] border-l border-slate-200 first:border-l-0 transition-colors ${item.alloc === m.mode ? "bg-slate-800 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                                            className={`h-7 px-2 text-[10px] border-l border first:border-l-0 transition-colors ${item.alloc === m.mode ? "bg-slate-800 text-white" : "bg-card text-muted-foreground hover:bg-muted/50"}`}>
                                             {m.label}
                                           </button>
                                         ))}
@@ -3042,23 +3042,23 @@ export default function PricingCalculator() {
                                       <Input type="number" min="0" value={item.amount}
                                         onChange={e => updateComponentItem(comp.id, item.id, { amount: parseFloat(e.target.value) || 0 })}
                                         className="h-7 w-28 text-xs text-right shrink-0" placeholder="Montant FCFA" />
-                                      <button onClick={() => removeComponentItem(comp.id, item.id)} className="text-slate-300 hover:text-red-400 transition-colors shrink-0">
+                                      <button onClick={() => removeComponentItem(comp.id, item.id)} className="text-muted-foreground/40 hover:text-red-400 transition-colors shrink-0">
                                         <X className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   ))}
                                 </div>
                                 <button onClick={() => addComponentCostItem(comp.id)}
-                                  className="mt-2 flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600 border border-dashed border-slate-200 rounded px-2 py-1 hover:bg-slate-50 transition-colors">
+                                  className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-muted-foreground border border-dashed border rounded px-2 py-1 hover:bg-muted/50 transition-colors">
                                   <Plus className="w-3 h-3" />Ajouter un poste de coût
                                 </button>
                                 {compResult && (compResult.directCosts > 0 || compResult.structureCost > 0) && (
-                                  <div className="mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-4 text-[10px] text-muted-foreground">
-                                    <span>Directs : <strong className="text-slate-700">{formatFCFA(Math.round(compResult.directCosts))}</strong></span>
+                                  <div className="mt-2 pt-2 border-t border flex flex-wrap gap-4 text-[10px] text-muted-foreground">
+                                    <span>Directs : <strong className="text-foreground">{formatFCFA(Math.round(compResult.directCosts))}</strong></span>
                                     {compResult.structureCost > 0 && (
-                                      <span>Structure allouée : <strong className="text-slate-700">{formatFCFA(Math.round(compResult.structureCost))}</strong></span>
+                                      <span>Structure allouée : <strong className="text-foreground">{formatFCFA(Math.round(compResult.structureCost))}</strong></span>
                                     )}
-                                    <span className="font-semibold text-slate-800">= {formatFCFA(Math.round(compResult.total))}</span>
+                                    <span className="font-semibold text-foreground">= {formatFCFA(Math.round(compResult.total))}</span>
                                   </div>
                                 )}
                               </div>
@@ -3069,7 +3069,7 @@ export default function PricingCalculator() {
                       {/* Consolidated footer */}
                       {(scenario.dealComponents ?? []).length > 0 && (
                         <div className="bg-slate-800 px-4 py-2.5 flex items-center justify-between">
-                          <span className="text-xs text-slate-300">
+                          <span className="text-xs text-muted-foreground/40">
                             {(scenario.dealComponents ?? []).length} composante{(scenario.dealComponents ?? []).length > 1 ? "s" : ""} · coût de revient consolidé
                           </span>
                           <span className="text-sm font-bold text-white">
@@ -3093,7 +3093,7 @@ export default function PricingCalculator() {
                       label: { directs: "Coûts directs", achats: "Achats & Approvisionnement", labor: "Main-d'œuvre", operations: "Opérations", generaux: "Frais de structure" }[v],
                     })).map(t => (
                       <button key={t.value} onClick={() => setActiveTab(t.value)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${activeTab === t.value ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${activeTab === t.value ? "bg-slate-900 text-white border" : "border text-muted-foreground hover:bg-muted/50"}`}>
                         {t.label}
                       </button>
                     ))}
@@ -3157,7 +3157,7 @@ export default function PricingCalculator() {
                       <strong>Méthode de calcul :</strong> Coût RH = (Salaire brut × (1 + charges patronales%) + avantages) / heures mensuelles × heures affectées
                     </div>
                     {(scenario.laborLines ?? []).length === 0 ? (
-                      <div className="text-center py-8 border border-dashed border-slate-200 rounded-lg text-muted-foreground text-xs">
+                      <div className="text-center py-8 border border-dashed border rounded-lg text-muted-foreground text-xs">
                         <Users className="w-8 h-8 mx-auto mb-2 opacity-20" />
                         Aucune ligne RH — ajoutez manuellement ou importez depuis les collaborateurs
                       </div>
@@ -3172,7 +3172,7 @@ export default function PricingCalculator() {
                         </div>
                       </div>
                     )}
-                    <div className="border-t border-slate-100 pt-3">
+                    <div className="border-t border pt-3">
                       <Label className="text-xs text-muted-foreground">Paramètres par défaut (nouveaux collaborateurs)</Label>
                       <div className="grid grid-cols-2 gap-2 mt-1.5">
                         <div>
@@ -3246,13 +3246,13 @@ export default function PricingCalculator() {
                   <TabsContent value="generaux" className="mt-0 space-y-4">
 
                     {/* Mode toggle */}
-                    <div className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all ${(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled ? "border-slate-700 bg-slate-50" : "border-slate-200 bg-white"}`}>
+                    <div className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all ${(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled ? "border bg-muted/50" : "border bg-card"}`}>
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled ? "bg-slate-800" : "bg-slate-100"}`}>
-                          <Calculator className={`w-4 h-4 ${(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled ? "text-white" : "text-slate-400"}`} />
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled ? "bg-slate-800" : "bg-muted"}`}>
+                          <Calculator className={`w-4 h-4 ${(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled ? "text-white" : "text-muted-foreground/60"}`} />
                         </div>
                         <div>
-                          <div className="text-sm font-semibold text-slate-800">Calcul unifié depuis les données réelles</div>
+                          <div className="text-sm font-semibold text-foreground">Calcul unifié depuis les données réelles</div>
                           <div className="text-[10px] text-muted-foreground">
                             {(scenario.structureCosts ?? DEFAULT_STRUCTURE_COSTS).enabled
                               ? "Actif — quote-part calculée automatiquement depuis vos budgets mensuels"
@@ -3310,11 +3310,11 @@ export default function PricingCalculator() {
                         </div>
 
                         {/* Admin */}
-                        <div className="border-t border-slate-100 pt-4">
+                        <div className="border-t border pt-4">
                           <div className="flex items-center gap-2 mb-2">
-                            <Building2 className="w-4 h-4 text-slate-500" />
-                            <span className="font-semibold text-sm text-slate-700">Admin & structure</span>
-                            {result.byCategory.admin > 0 && <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">{formatFCFA(Math.round(result.byCategory.admin))}</span>}
+                            <Building2 className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-semibold text-sm text-foreground">Admin & structure</span>
+                            {result.byCategory.admin > 0 && <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{formatFCFA(Math.round(result.byCategory.admin))}</span>}
                           </div>
                           <CostSection title="admin" icon={Building2} color="#64748B"
                             items={scenario.adminItems} baseCost={result.totalCost} baseHT={result.priceHT}
@@ -3329,7 +3329,7 @@ export default function PricingCalculator() {
                                 { label: "Montant fixe", item: { label: "Loyer mensuel", category: "admin" as CostCategory, alloc: "fixed" as AllocMethod, amount: 0 } },
                               ].map((t, i) => (
                                 <button key={i} onClick={() => updateScenario({ adminItems: [...(scenario.adminItems ?? []), { id: uid(), ...t.item }] })}
-                                  className="text-[10px] px-2 py-1 border border-dashed border-slate-300 rounded text-slate-600 hover:bg-slate-50">
+                                  className="text-[10px] px-2 py-1 border border-dashed border rounded text-muted-foreground hover:bg-muted/50">
                                   <Plus className="w-3 h-3 inline mr-0.5" />{t.label}
                                 </button>
                               ))}
@@ -3338,7 +3338,7 @@ export default function PricingCalculator() {
                         </div>
 
                         {/* Commercial */}
-                        <div className="border-t border-slate-100 pt-4">
+                        <div className="border-t border pt-4">
                           <div className="flex items-center gap-2 mb-2">
                             <Megaphone className="w-4 h-4 text-purple-500" />
                             <span className="font-semibold text-sm text-purple-700">Commercial & marketing</span>
@@ -3366,7 +3366,7 @@ export default function PricingCalculator() {
                         </div>
 
                         {/* Financial */}
-                        <div className="border-t border-slate-100 pt-4">
+                        <div className="border-t border pt-4">
                           <div className="flex items-center gap-2 mb-2">
                             <Banknote className="w-4 h-4 text-red-500" />
                             <span className="font-semibold text-sm text-red-700">Frais financiers</span>
@@ -3383,7 +3383,7 @@ export default function PricingCalculator() {
                     )}
 
                     {/* Risk — toujours visible, spécifique au deal */}
-                    <div className="border-t border-slate-100 pt-4">
+                    <div className="border-t border pt-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Shield className="w-4 h-4 text-orange-500" />
                         <span className="font-semibold text-sm text-orange-700">Provisions & risques</span>
@@ -3465,7 +3465,7 @@ export default function PricingCalculator() {
                   </div>
 
                   {/* Remise commerciale */}
-                  <div className="col-span-2 border-t border-slate-100 pt-3">
+                  <div className="col-span-2 border-t border pt-3">
                     <div className="flex items-center justify-between mb-1.5">
                       <Label className="text-xs flex items-center gap-1.5">
                         <Tag className="w-3 h-3 text-red-500" />
@@ -3497,8 +3497,8 @@ export default function PricingCalculator() {
                       ))}
                     </div>
                     {(scenario.discountPct ?? 0) > 0 && result.priceHTBrut > 0 && (
-                      <div className="mt-2 text-[10px] text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
-                        Prix catalogue : <strong>{formatFCFA(Math.round(result.priceHTBrut))}</strong> → remise {(scenario.discountPct ?? 0)}% → Prix HT facturé : <strong className="text-slate-800">{formatFCFA(Math.round(result.priceHT))}</strong>
+                      <div className="mt-2 text-[10px] text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                        Prix catalogue : <strong>{formatFCFA(Math.round(result.priceHTBrut))}</strong> → remise {(scenario.discountPct ?? 0)}% → Prix HT facturé : <strong className="text-foreground">{formatFCFA(Math.round(result.priceHT))}</strong>
                       </div>
                     )}
                   </div>
@@ -3518,7 +3518,7 @@ export default function PricingCalculator() {
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     {loadingYtd ? <span className="text-xs text-muted-foreground">Chargement…</span> :
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${fiscalConfig.enabled ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-500"}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${fiscalConfig.enabled ? "bg-orange-100 text-orange-700" : "bg-muted text-muted-foreground"}`}>
                         {fiscalConfig.enabled ? "Activé" : "Désactivé"}
                       </span>}
                     <a href="/comptabilite/taxes" className="text-xs text-orange-600 underline hover:text-orange-800">Configurer →</a>
@@ -3527,25 +3527,25 @@ export default function PricingCalculator() {
               </CardHeader>
               <CardContent className="pt-4 space-y-3">
                 <div className="space-y-1.5">
-                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
+                  <div className="bg-muted/50 border border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">A — Résultat net YTD actuel (comptabilité)</span>
+                      <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">A — Résultat net YTD actuel (comptabilité)</span>
                       {ytdData?.period?.from && <span className="text-[10px] text-muted-foreground">depuis {ytdData.period.from}</span>}
                     </div>
                     {loadingYtd ? <div className="text-xs text-muted-foreground">Calcul…</div> : (
                       <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div><div className="text-muted-foreground mb-0.5">Résultat brut</div><div className={`font-bold text-sm ${fiscalConfig.ytdProfitBeforeTax < 0 ? "text-red-600" : "text-slate-800"}`}>{formatFCFA(Math.round(fiscalConfig.ytdProfitBeforeTax))}</div></div>
-                        <div><div className="text-muted-foreground mb-0.5">IS actuel estimé</div><div className="font-bold text-sm text-orange-600">{fiscalConfig.enabled ? `− ${formatFCFA(Math.round(fiscalConfig.ytdEstimatedTax))}` : <span className="text-slate-400">—</span>}</div></div>
+                        <div><div className="text-muted-foreground mb-0.5">Résultat brut</div><div className={`font-bold text-sm ${fiscalConfig.ytdProfitBeforeTax < 0 ? "text-red-600" : "text-foreground"}`}>{formatFCFA(Math.round(fiscalConfig.ytdProfitBeforeTax))}</div></div>
+                        <div><div className="text-muted-foreground mb-0.5">IS actuel estimé</div><div className="font-bold text-sm text-orange-600">{fiscalConfig.enabled ? `− ${formatFCFA(Math.round(fiscalConfig.ytdEstimatedTax))}` : <span className="text-muted-foreground/60">—</span>}</div></div>
                         <div><div className="text-muted-foreground mb-0.5">Résultat net</div><div className={`font-bold text-sm ${fiscalConfig.ytdNetProfit < 0 ? "text-red-600" : "text-emerald-700"}`}>{formatFCFA(Math.round(fiscalConfig.ytdNetProfit))}</div></div>
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 px-1"><div className="h-px flex-1 bg-slate-100"/><span className="text-slate-400 font-bold text-sm">+</span><div className="h-px flex-1 bg-slate-100"/></div>
+                  <div className="flex items-center gap-2 px-1"><div className="h-px flex-1 bg-muted"/><span className="text-muted-foreground/60 font-bold text-sm">+</span><div className="h-px flex-1 bg-muted"/></div>
                   <div className={`border rounded-lg p-3 ${result.netProfit < 0 ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
-                    <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-2">B — Résultat net deal simulé</div>
+                    <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-2">B — Résultat net deal simulé</div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div><div className="text-muted-foreground mb-0.5">Marge brute</div><div className={`font-bold text-sm ${result.grossMargin < 0 ? "text-red-600" : "text-slate-700"}`}>{result.totalCost > 0 ? formatFCFA(Math.round(result.grossMargin)) : "—"}</div></div>
-                      <div><div className="text-muted-foreground mb-0.5">IS incrémental</div><div className="font-bold text-sm text-orange-600">{fiscalConfig.enabled && result.corporateTax > 0 ? `− ${formatFCFA(Math.round(result.corporateTax))}` : <span className="text-slate-400">—</span>}</div></div>
+                      <div><div className="text-muted-foreground mb-0.5">Marge brute</div><div className={`font-bold text-sm ${result.grossMargin < 0 ? "text-red-600" : "text-foreground"}`}>{result.totalCost > 0 ? formatFCFA(Math.round(result.grossMargin)) : "—"}</div></div>
+                      <div><div className="text-muted-foreground mb-0.5">IS incrémental</div><div className="font-bold text-sm text-orange-600">{fiscalConfig.enabled && result.corporateTax > 0 ? `− ${formatFCFA(Math.round(result.corporateTax))}` : <span className="text-muted-foreground/60">—</span>}</div></div>
                       <div><div className="text-muted-foreground mb-0.5">Résultat net</div><div className={`font-bold text-sm ${result.netProfit < 0 ? "text-red-600" : "text-blue-700"}`}>{result.totalCost > 0 ? formatFCFA(Math.round(result.netProfit)) : "—"}</div></div>
                     </div>
                     {fiscalConfig.enabled && result.corporateTax > 0 && (
@@ -3555,15 +3555,15 @@ export default function PricingCalculator() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 px-1"><div className="h-px flex-1 bg-slate-100"/><span className="text-slate-400 font-bold text-sm">=</span><div className="h-px flex-1 bg-slate-100"/></div>
+                  <div className="flex items-center gap-2 px-1"><div className="h-px flex-1 bg-muted"/><span className="text-muted-foreground/60 font-bold text-sm">=</span><div className="h-px flex-1 bg-muted"/></div>
                   {(() => {
                     const proj = fiscalConfig.ytdNetProfit + result.netProfit;
                     const pos = proj >= 0;
                     return (
                       <div className={`rounded-lg p-3 border-2 ${pos ? "bg-amber-50 border-amber-300" : "bg-red-50 border-red-300"}`}>
-                        <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1">C — Bénéfice YTD projeté</div>
+                        <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1">C — Bénéfice YTD projeté</div>
                         <div className={`text-2xl font-black ${pos ? "text-amber-700" : "text-red-700"}`}>
-                          {result.totalCost > 0 ? formatFCFA(Math.round(proj)) : <span className="text-base font-semibold text-slate-400">Saisir un coût pour calculer</span>}
+                          {result.totalCost > 0 ? formatFCFA(Math.round(proj)) : <span className="text-base font-semibold text-muted-foreground/60">Saisir un coût pour calculer</span>}
                         </div>
                         <div className="text-[10px] text-muted-foreground mt-1">
                           = Résultat net YTD ({formatFCFA(Math.round(fiscalConfig.ytdNetProfit))}) + Résultat net deal ({result.totalCost > 0 ? formatFCFA(Math.round(result.netProfit)) : "—"})
@@ -3573,7 +3573,7 @@ export default function PricingCalculator() {
                   })()}
                   <div className="flex items-center gap-2 pt-1">
                     <span className="text-[10px] text-muted-foreground">Barème IS :</span>
-                    <span className="text-[10px] font-medium text-slate-700">{fiscalConfig.brackets.length} tranches — {fiscalConfig.brackets.map(b => `${b.rate}%`).join(" · ")}</span>
+                    <span className="text-[10px] font-medium text-foreground">{fiscalConfig.brackets.length} tranches — {fiscalConfig.brackets.map(b => `${b.rate}%`).join(" · ")}</span>
                   </div>
                 </div>
               </CardContent>
@@ -3586,9 +3586,9 @@ export default function PricingCalculator() {
             {/* KPI cards */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-xl p-4 shadow">
-                <div className="text-xs text-slate-400 font-medium mb-1">Coût de revient complet</div>
+                <div className="text-xs text-muted-foreground/60 font-medium mb-1">Coût de revient complet</div>
                 <div className="text-xl font-bold">{formatFCFA(result.totalCost)}</div>
-                {scenario.quantity > 1 && <div className="text-xs text-slate-400 mt-0.5">Unit. : {formatFCFA(result.unitCost)}</div>}
+                {scenario.quantity > 1 && <div className="text-xs text-muted-foreground/60 mt-0.5">Unit. : {formatFCFA(result.unitCost)}</div>}
               </div>
               <div className="bg-gradient-to-br from-[#2563EB] to-[#a8862f] text-white rounded-xl p-4 shadow">
                 <div className="text-xs text-amber-100 font-medium mb-1">Prix de vente HT</div>
@@ -3633,9 +3633,9 @@ export default function PricingCalculator() {
                         <div key={i} className="flex items-center justify-between text-xs">
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: e.color }} />
-                            <span className="truncate max-w-[90px] text-slate-600">{e.label}</span>
+                            <span className="truncate max-w-[90px] text-muted-foreground">{e.label}</span>
                           </span>
-                          <span className="font-semibold text-slate-700">{result.priceHT > 0 ? `${((e.value / result.priceHT) * 100).toFixed(1)}%` : "—"}</span>
+                          <span className="font-semibold text-foreground">{result.priceHT > 0 ? `${((e.value / result.priceHT) * 100).toFixed(1)}%` : "—"}</span>
                         </div>
                       ))}
                     </div>
@@ -3645,10 +3645,10 @@ export default function PricingCalculator() {
                     {result.breakdownLabels.map((e, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground w-28 truncate shrink-0">{e.label}</span>
-                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${result.totalCost > 0 ? (e.value / result.totalCost) * 100 : 0}%`, backgroundColor: e.color }} />
                         </div>
-                        <span className="text-xs font-semibold text-slate-700 w-20 text-right shrink-0">{formatFCFA(e.value)}</span>
+                        <span className="text-xs font-semibold text-foreground w-20 text-right shrink-0">{formatFCFA(e.value)}</span>
                       </div>
                     ))}
                   </div>
@@ -3664,13 +3664,13 @@ export default function PricingCalculator() {
               <CardContent className="p-0">
                 <table className="w-full text-xs">
                   <tbody>
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="px-4 py-2.5 text-slate-600 font-medium">Chiffre d'affaires HT</td>
-                      <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatFCFA(Math.round(result.priceHT))}</td>
+                    <tr className="border-b border hover:bg-muted/50">
+                      <td className="px-4 py-2.5 text-muted-foreground font-medium">Chiffre d'affaires HT</td>
+                      <td className="px-4 py-2.5 text-right font-bold text-foreground">{formatFCFA(Math.round(result.priceHT))}</td>
                       <td className="px-4 py-2.5 text-right text-muted-foreground">100%</td>
                     </tr>
                     {result.discountAmount > 0 && (
-                      <tr className="border-b border-slate-100 hover:bg-red-50/20">
+                      <tr className="border-b border hover:bg-red-50/20">
                         <td className="px-4 py-1.5 text-red-500 pl-6">— Remise commerciale ({(scenario.discountPct ?? 0)}%)</td>
                         <td className="px-4 py-1.5 text-right text-red-600 font-semibold">−{formatFCFA(Math.round(result.discountAmount))}</td>
                         <td className="px-4 py-1.5 text-right text-red-400">{result.priceHTBrut > 0 ? `${((result.discountAmount / result.priceHTBrut) * 100).toFixed(1)}%` : "—"}</td>
@@ -3687,21 +3687,21 @@ export default function PricingCalculator() {
                       { label: "— Frais financiers", val: result.byCategory.financial },
                       { label: "— Provisions/risques", val: result.byCategory.risk },
                     ].filter(r => r.val > 0).map((row, i) => (
-                      <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/30">
-                        <td className="px-4 py-1.5 text-slate-500 pl-6">{row.label}</td>
+                      <tr key={i} className="border-b border hover:bg-muted/30">
+                        <td className="px-4 py-1.5 text-muted-foreground pl-6">{row.label}</td>
                         <td className="px-4 py-1.5 text-right text-red-600">{formatFCFA(Math.round(row.val))}</td>
                         <td className="px-4 py-1.5 text-right text-muted-foreground">{result.priceHT > 0 ? `${((row.val / result.priceHT) * 100).toFixed(1)}%` : "—"}</td>
                       </tr>
                     ))}
                     {fiscalConfig.enabled && (
-                      <tr className="border-b border-slate-200 bg-slate-50">
-                        <td className="px-4 py-2.5 font-bold text-slate-700">Résultat avant IS</td>
+                      <tr className="border-b border bg-muted/50">
+                        <td className="px-4 py-2.5 font-bold text-foreground">Résultat avant IS</td>
                         <td className={`px-4 py-2.5 text-right font-bold ${result.grossMargin < 0 ? "text-red-600" : "text-emerald-700"}`}>{formatFCFA(result.grossMargin)}</td>
                         <td className={`px-4 py-2.5 text-right font-semibold ${result.grossMarginPct < 10 ? "text-red-500" : "text-emerald-600"}`}>{result.grossMarginPct.toFixed(1)}%</td>
                       </tr>
                     )}
                     {fiscalConfig.enabled && (
-                      <tr className="border-b border-slate-100 hover:bg-orange-50/20">
+                      <tr className="border-b border hover:bg-orange-50/20">
                         <td className="px-4 py-2 text-orange-700 pl-6">— IS incrémental ({result.effectiveTaxRate.toFixed(1)}% effectif / {result.marginalTaxRate.toFixed(0)}% marginal)</td>
                         <td className="px-4 py-2 text-right text-orange-700 font-semibold">{formatFCFA(Math.round(result.corporateTax))}</td>
                         <td className="px-4 py-2 text-right text-orange-500">{result.priceHT > 0 ? `${((result.corporateTax / result.priceHT) * 100).toFixed(1)}%` : "—"}</td>
@@ -3727,36 +3727,36 @@ export default function PricingCalculator() {
                 </CardHeader>
                 <CardContent className="p-0">
                   <table className="w-full text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-100">
+                    <thead className="bg-muted/50 border-b border">
                       <tr>
-                        <th className="px-4 py-2 text-left font-semibold text-slate-600">Composante</th>
-                        <th className="px-4 py-2 text-right font-semibold text-slate-600">Directs</th>
-                        <th className="px-4 py-2 text-right font-semibold text-slate-600">Structure</th>
-                        <th className="px-4 py-2 text-right font-semibold text-slate-600">Total</th>
-                        <th className="px-4 py-2 text-right font-semibold text-slate-600">%</th>
+                        <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Composante</th>
+                        <th className="px-4 py-2 text-right font-semibold text-muted-foreground">Directs</th>
+                        <th className="px-4 py-2 text-right font-semibold text-muted-foreground">Structure</th>
+                        <th className="px-4 py-2 text-right font-semibold text-muted-foreground">Total</th>
+                        <th className="px-4 py-2 text-right font-semibold text-muted-foreground">%</th>
                       </tr>
                     </thead>
                     <tbody>
                       {result.byComponentResult.map(comp => {
                         const sharePct = result.totalCost > 0 ? (comp.total / result.totalCost) * 100 : 0;
                         return (
-                          <tr key={comp.id} className="border-b border-slate-100 hover:bg-slate-50/30">
-                            <td className="px-4 py-2 text-slate-700 font-medium">
+                          <tr key={comp.id} className="border-b border hover:bg-muted/30">
+                            <td className="px-4 py-2 text-foreground font-medium">
                               <span className="mr-1">{DEAL_TYPE_META[comp.dealType].icon}</span>{comp.label}
                             </td>
-                            <td className="px-4 py-2 text-right text-slate-600">{formatFCFA(Math.round(comp.directCosts))}</td>
-                            <td className="px-4 py-2 text-right text-slate-500">{comp.structureCost > 0 ? formatFCFA(Math.round(comp.structureCost)) : "—"}</td>
-                            <td className="px-4 py-2 text-right font-semibold text-slate-800">{formatFCFA(Math.round(comp.total))}</td>
+                            <td className="px-4 py-2 text-right text-muted-foreground">{formatFCFA(Math.round(comp.directCosts))}</td>
+                            <td className="px-4 py-2 text-right text-muted-foreground">{comp.structureCost > 0 ? formatFCFA(Math.round(comp.structureCost)) : "—"}</td>
+                            <td className="px-4 py-2 text-right font-semibold text-foreground">{formatFCFA(Math.round(comp.total))}</td>
                             <td className="px-4 py-2 text-right text-muted-foreground">{sharePct.toFixed(1)}%</td>
                           </tr>
                         );
                       })}
-                      <tr className="bg-slate-50 border-t border-slate-200">
-                        <td className="px-4 py-2 font-bold text-slate-700">Total composantes</td>
+                      <tr className="bg-muted/50 border-t border">
+                        <td className="px-4 py-2 font-bold text-foreground">Total composantes</td>
                         <td className="px-4 py-2 text-right font-semibold">{formatFCFA(Math.round(result.byComponentResult.reduce((s, r) => s + r.directCosts, 0)))}</td>
                         <td className="px-4 py-2 text-right font-semibold">{formatFCFA(Math.round(result.byComponentResult.reduce((s, r) => s + r.structureCost, 0)))}</td>
-                        <td className="px-4 py-2 text-right font-bold text-slate-900">{formatFCFA(Math.round(result.byComponentResult.reduce((s, r) => s + r.total, 0)))}</td>
-                        <td className="px-4 py-2 text-right font-semibold text-slate-700">
+                        <td className="px-4 py-2 text-right font-bold text-foreground">{formatFCFA(Math.round(result.byComponentResult.reduce((s, r) => s + r.total, 0)))}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-foreground">
                           {result.totalCost > 0 ? `${((result.byComponentResult.reduce((s, r) => s + r.total, 0) / result.totalCost) * 100).toFixed(1)}%` : "—"}
                         </td>
                       </tr>
@@ -3773,17 +3773,17 @@ export default function PricingCalculator() {
               </CardHeader>
               <CardContent className="p-4 space-y-3">
                 <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="bg-slate-50 rounded-lg p-2.5">
+                  <div className="bg-muted/50 rounded-lg p-2.5">
                     <div className="text-xs text-muted-foreground mb-1">Marge sur coût complet</div>
                     <div className={`text-xl font-bold ${result.grossMarginPct < 10 ? "text-red-500" : result.grossMarginPct < 20 ? "text-amber-500" : "text-emerald-600"}`}>{result.grossMarginPct.toFixed(1)}%</div>
                   </div>
-                  <div className="bg-slate-50 rounded-lg p-2.5">
+                  <div className="bg-muted/50 rounded-lg p-2.5">
                     <div className="text-xs text-muted-foreground mb-1">Marge nette</div>
                     <div className={`text-xl font-bold ${result.netMarginPct < 0 ? "text-red-500" : result.netMarginPct < 10 ? "text-amber-500" : "text-emerald-600"}`}>{result.netMarginPct.toFixed(1)}%</div>
                   </div>
-                  <div className="bg-slate-50 rounded-lg p-2.5">
+                  <div className="bg-muted/50 rounded-lg p-2.5">
                     <div className="text-xs text-muted-foreground mb-1">Coefficient</div>
-                    <div className="text-xl font-bold text-slate-700">{result.totalCost > 0 ? (result.priceHT / result.totalCost).toFixed(2) : "—"}</div>
+                    <div className="text-xl font-bold text-foreground">{result.totalCost > 0 ? (result.priceHT / result.totalCost).toFixed(2) : "—"}</div>
                   </div>
                 </div>
 
@@ -3809,15 +3809,15 @@ export default function PricingCalculator() {
                       {result.netMarginPct < 0 ? "⚠ Déficitaire" : result.netMarginPct < 5 ? "⚠ Critique" : result.netMarginPct < 15 ? "⚠ Faible" : result.netMarginPct < 30 ? "✓ Acceptable" : "✓✓ Bonne"}
                     </span>
                   </div>
-                  <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                     <div className={`h-full rounded-full transition-all ${result.netMarginPct < 0 ? "bg-red-500" : result.netMarginPct < 15 ? "bg-amber-400" : "bg-emerald-500"}`}
                       style={{ width: `${Math.min(100, Math.max(0, result.netMarginPct))}%` }} />
                   </div>
                 </div>
 
                 {/* Prix cibles */}
-                <div className="border-t border-slate-100 pt-3 space-y-2">
-                  <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1"><Target className="w-3.5 h-3.5 text-[#2563EB]" />Prix cibles</div>
+                <div className="border-t border pt-3 space-y-2">
+                  <div className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1"><Target className="w-3.5 h-3.5 text-[#2563EB]" />Prix cibles</div>
                   <div className="flex justify-between text-xs bg-red-50 border border-red-100 rounded-lg p-2.5">
                     <span className="text-red-700 font-medium">Prix minimum (seuil de rentabilité)</span>
                     <span className="font-bold text-red-700">{formatFCFA(Math.round(result.minimumPriceHT))} HT</span>
@@ -3867,7 +3867,7 @@ export default function PricingCalculator() {
                   <div className="mt-4 overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b border-slate-200">
+                        <tr className="border-b border">
                           <th className="text-left px-3 py-2 text-muted-foreground font-medium">Scénario</th>
                           <th className="text-right px-3 py-2 text-muted-foreground font-medium">Prix HT</th>
                           <th className="text-right px-3 py-2 text-muted-foreground font-medium">Prix TTC</th>
@@ -3882,7 +3882,7 @@ export default function PricingCalculator() {
                           const sc = { ...scenario, marginTarget: def.margin };
                           const r = calculate(sc, fiscalConfig);
                           return (
-                            <tr key={def.key} className="border-b border-slate-100 hover:bg-slate-50">
+                            <tr key={def.key} className="border-b border hover:bg-muted/50">
                               <td className="px-3 py-2 font-semibold" style={{ color: def.color }}>{def.label}</td>
                               <td className="px-3 py-2 text-right font-semibold">{formatFCFA(Math.round(r.priceHT))}</td>
                               <td className="px-3 py-2 text-right">{formatFCFA(Math.round(r.priceTTC))}</td>
@@ -3993,7 +3993,7 @@ export default function PricingCalculator() {
                 </div>
               ) : (
                 savedScenariosMeta.map(s => (
-                  <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 group">
+                  <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg border border hover:bg-muted/50 group">
                     <div className="w-8 h-8 rounded-lg bg-[#2563EB]/10 flex items-center justify-center shrink-0">
                       <Calculator className="w-4 h-4 text-[#2563EB]" />
                     </div>
@@ -4014,7 +4014,7 @@ export default function PricingCalculator() {
                         onClick={() => loadSavedScenario(s.id)}>
                         <Eye className="w-3 h-3" />Charger
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-slate-400 hover:text-red-500"
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground/60 hover:text-red-500"
                         onClick={async () => {
                           await apiFetch(`/api/pricing/scenarios/${s.id}`, { method: "DELETE" });
                           setSavedScenariosMeta(prev => prev.filter(x => x.id !== s.id));
@@ -4048,7 +4048,7 @@ export default function PricingCalculator() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               {/* Toggle partage */}
-              <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50">
+              <div className="flex items-center justify-between p-3 rounded-lg border border bg-muted/50">
                 <div>
                   <div className="text-sm font-semibold">Lien de partage</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
@@ -4062,7 +4062,7 @@ export default function PricingCalculator() {
               {shareEnabled && shareUrl && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-slate-100 text-xs text-slate-700 font-mono truncate border border-slate-200">
+                    <div className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-muted text-xs text-foreground font-mono truncate border border">
                       {shareUrl}
                     </div>
                     <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={copyShareLink}>
@@ -4078,8 +4078,8 @@ export default function PricingCalculator() {
               )}
 
               {/* Info PDF */}
-              <div className="border border-slate-100 rounded-lg p-3 bg-slate-50/50 text-xs text-muted-foreground space-y-1">
-                <div className="font-medium text-slate-700 mb-1">Vous pouvez aussi :</div>
+              <div className="border border rounded-lg p-3 bg-muted/50 text-xs text-muted-foreground space-y-1">
+                <div className="font-medium text-foreground mb-1">Vous pouvez aussi :</div>
                 <div className="flex items-center gap-2">
                   <Upload className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
                   <span>Exporter un PDF professionnel et l'envoyer par email</span>
@@ -4127,7 +4127,7 @@ export default function PricingCalculator() {
                         {savedScenariosMeta.slice(0, 4).map(s => (
                           <th key={s.id} className={`text-center px-3 py-3 font-semibold ${s.id === savedId ? "text-[#2563EB]" : "text-white"}`}>
                             <div className="truncate max-w-[140px] mx-auto">{s.name}</div>
-                            {s.productName && <div className="text-[9px] font-normal text-slate-400 truncate max-w-[140px] mx-auto">{s.productName}</div>}
+                            {s.productName && <div className="text-[9px] font-normal text-muted-foreground/60 truncate max-w-[140px] mx-auto">{s.productName}</div>}
                             {s.id === savedId && <div className="text-[9px] font-medium text-[#2563EB] mt-0.5">● Actif</div>}
                           </th>
                         ))}
@@ -4139,7 +4139,7 @@ export default function PricingCalculator() {
                         { label: "Modifié le", key: "updatedAt", fmt: (v: any) => new Date(v).toLocaleDateString("fr-FR") },
                         { label: "Partage", key: "shareEnabled", fmt: (v: any) => v ? "✓ Actif" : "Désactivé" },
                       ].map((row, i) => (
-                        <tr key={row.key} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                        <tr key={row.key} className={i % 2 === 0 ? "bg-card" : "bg-muted/50"}>
                           <td className="px-4 py-2.5 text-muted-foreground font-medium">{row.label}</td>
                           {savedScenariosMeta.slice(0, 4).map(s => (
                             <td key={s.id} className="px-3 py-2.5 text-center">

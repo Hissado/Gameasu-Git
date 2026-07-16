@@ -175,13 +175,13 @@ export function ModuleIntroCard({ moduleKey, tourKey }: ModuleIntroCardProps) {
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500">Découvrir ce module</span>
           </div>
-          <p className="text-sm font-semibold text-slate-800 mb-0.5">{config.name}</p>
-          <p className="text-xs text-slate-600 leading-relaxed">{config.description}</p>
+          <p className="text-sm font-semibold text-foreground mb-0.5">{config.name}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{config.description}</p>
           {config.actions.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2.5">
               {config.actions.map((action) => (
                 <Link key={`${action.href}-${action.label}`} href={action.href} onClick={dismiss}>
-                  <button className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors">
+                  <button className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-card border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors">
                     {action.icon && <action.icon className="w-3.5 h-3.5" />}
                     {action.label}
                     <ArrowRight className="w-3 h-3" />
@@ -205,7 +205,7 @@ export function ModuleIntroCard({ moduleKey, tourKey }: ModuleIntroCardProps) {
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 text-xs text-slate-500 hover:bg-slate-100 gap-1"
+          className="h-7 text-xs text-muted-foreground hover:bg-muted gap-1"
           onClick={dismiss}
         >
           <X className="w-3.5 h-3.5" />

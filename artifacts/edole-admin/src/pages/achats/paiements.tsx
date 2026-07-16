@@ -38,10 +38,10 @@ const PAGE_SIZE = 25;
 // ─── Method icon ──────────────────────────────────────────────────────────────
 
 function MethodIcon({ method }: { method: string }) {
-  if (method === "virement") return <Landmark className="w-4 h-4 text-slate-400" />;
+  if (method === "virement") return <Landmark className="w-4 h-4 text-muted-foreground/60" />;
   if (method === "carte") return <CreditCard className="w-4 h-4 text-blue-400" />;
   if (["mixx", "flooz"].includes(method)) return <Smartphone className="w-4 h-4 text-amber-400" />;
-  return <Wallet className="w-4 h-4 text-slate-400" />;
+  return <Wallet className="w-4 h-4 text-muted-foreground/60" />;
 }
 
 // ─── Per-supplier invoice selector ────────────────────────────────────────────
@@ -62,7 +62,7 @@ function SupplierInvoiceSection({
   return (
     <div className="border rounded-lg divide-y max-h-40 overflow-y-auto">
       {unpaid.map(inv => (
-        <div key={inv.id} className={`flex items-center gap-3 p-2.5 cursor-pointer hover:bg-slate-50 ${selectedIds.has(inv.id) ? "bg-orange-50" : ""}`}
+        <div key={inv.id} className={`flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 ${selectedIds.has(inv.id) ? "bg-orange-50" : ""}`}
           onClick={() => onToggle(inv.id, inv.balance)}>
           <Checkbox checked={selectedIds.has(inv.id)} onCheckedChange={() => onToggle(inv.id, inv.balance)} />
           <div className="flex-1 min-w-0">
@@ -198,7 +198,7 @@ function NewPaymentDialog({ onClose, onSuccess, allSuppliers }: { onClose: () =>
               <div className="border rounded-lg divide-y max-h-72 overflow-y-auto">
                 {filteredSuppliers.length === 0 && <p className="p-3 text-sm text-muted-foreground italic">Aucun fournisseur trouvé.</p>}
                 {filteredSuppliers.map(s => (
-                  <div key={s.id} className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 ${selectedSupplierIds.has(s.id) ? "bg-orange-50" : ""}`}
+                  <div key={s.id} className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 ${selectedSupplierIds.has(s.id) ? "bg-orange-50" : ""}`}
                     onClick={() => toggleSupplier(s.id)}>
                     <Checkbox checked={selectedSupplierIds.has(s.id)} onCheckedChange={() => toggleSupplier(s.id)} />
                     <div className="flex-1 min-w-0">
@@ -382,7 +382,7 @@ export default function AchatsPaiements() {
           <CardContent className="px-4 pb-4">
             <div className="space-y-2">
               {upcoming.map(inv => (
-                <div key={inv.id} className="flex items-center justify-between bg-white rounded p-3 text-sm border border-amber-100">
+                <div key={inv.id} className="flex items-center justify-between bg-card rounded p-3 text-sm border border-amber-100">
                   <div className="flex items-center gap-3">
                     {inv.isOverdue && <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />}
                     <div>

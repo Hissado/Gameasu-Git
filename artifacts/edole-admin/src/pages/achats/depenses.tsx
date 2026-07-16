@@ -43,7 +43,7 @@ type Collaborator = { id: string; firstName: string; lastName: string; departmen
 // ─── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  draft:      { label: "Brouillon",   cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  draft:      { label: "Brouillon",   cls: "bg-muted text-muted-foreground border" },
   submitted:  { label: "Soumis",      cls: "bg-blue-50 text-blue-700 border-blue-200" },
   en_revision:{ label: "En révision", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   approved:   { label: "Approuvé",    cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -53,7 +53,7 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_MAP[status] ?? { label: status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+  const s = STATUS_MAP[status] ?? { label: status, cls: "bg-muted text-muted-foreground border" };
   return <Badge variant="outline" className={`text-xs ${s.cls}`}>{s.label}</Badge>;
 }
 
@@ -210,7 +210,7 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
           {/* Lignes de dépense */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold text-slate-700">Lignes de dépense</p>
+              <p className="text-sm font-semibold text-foreground">Lignes de dépense</p>
               <Button variant="outline" size="sm" onClick={addItem} className="h-7 text-xs">
                 <Plus className="h-3 w-3 mr-1" />Ajouter
               </Button>
@@ -218,9 +218,9 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
 
             <div className="space-y-3">
               {items.map((item, idx) => (
-                <div key={item.key} className="border rounded-lg p-3 space-y-2 bg-slate-50">
+                <div key={item.key} className="border rounded-lg p-3 space-y-2 bg-muted/50">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-slate-500">Ligne {idx + 1}</p>
+                    <p className="text-xs font-medium text-muted-foreground">Ligne {idx + 1}</p>
                     {items.length > 1 && (
                       <button onClick={() => removeItem(item.key)} className="text-red-400 hover:text-red-600">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -261,8 +261,8 @@ function CreateExpenseSheet({ collabs, onClose, onSuccess }: {
             </div>
 
             {/* Total */}
-            <div className="flex items-center justify-between mt-3 px-2 py-2 bg-slate-100 rounded-lg">
-              <span className="text-sm font-medium text-slate-600">Total estimé</span>
+            <div className="flex items-center justify-between mt-3 px-2 py-2 bg-muted rounded-lg">
+              <span className="text-sm font-medium text-muted-foreground">Total estimé</span>
               <span className="font-bold text-[#2563EB]">{formatFCFA(totalAmount)}</span>
             </div>
           </div>
@@ -327,23 +327,23 @@ function ReportDetailSheet({ reportId, onClose, onRefresh }: {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-semibold text-base">{detail.title}</h3>
-                <p className="text-sm text-slate-500">{detail.collaboratorName}{detail.department ? ` · ${detail.department}` : ""}</p>
+                <p className="text-sm text-muted-foreground">{detail.collaboratorName}{detail.department ? ` · ${detail.department}` : ""}</p>
               </div>
               <StatusBadge status={detail.status} />
             </div>
 
-            <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Total</span>
+                <span className="text-muted-foreground">Total</span>
                 <span className="font-bold text-base">{formatFCFA(detail.totalAmount)}</span>
               </div>
-              {detail.submittedAt && <div className="flex justify-between text-xs text-slate-500">
+              {detail.submittedAt && <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Soumis le</span><span>{formatDate(detail.submittedAt)}</span>
               </div>}
-              {detail.approvedAt && <div className="flex justify-between text-xs text-slate-500">
+              {detail.approvedAt && <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Approuvé le</span><span>{formatDate(detail.approvedAt)}</span>
               </div>}
-              {detail.paidAt && <div className="flex justify-between text-xs text-slate-500">
+              {detail.paidAt && <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Payé le</span><span>{formatDate(detail.paidAt)}</span>
               </div>}
             </div>
@@ -357,13 +357,13 @@ function ReportDetailSheet({ reportId, onClose, onRefresh }: {
 
             {detail.items.length > 0 && (
               <div>
-                <p className="text-sm font-medium mb-2 text-slate-700">Lignes de dépense</p>
+                <p className="text-sm font-medium mb-2 text-foreground">Lignes de dépense</p>
                 <div className="space-y-2">
                   {detail.items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-2 rounded-md bg-slate-50 border">
+                    <div key={item.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 border">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{item.description}</p>
-                        <p className="text-xs text-slate-500">{item.category} · {formatDate(item.expenseDate)}</p>
+                        <p className="text-xs text-muted-foreground">{item.category} · {formatDate(item.expenseDate)}</p>
                         {item.receiptUrl && (
                           <a href={item.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
                             Justificatif →
@@ -493,7 +493,7 @@ export default function DepensesPage() {
         ].map(({ label, value, fmt }) => (
           <Card key={label}>
             <CardContent className="p-4">
-              <p className="text-xs text-slate-500 mb-1">{label}</p>
+              <p className="text-xs text-muted-foreground mb-1">{label}</p>
               <p className="text-xl font-bold">{fmt === "money" ? formatFCFA(value) : value}</p>
             </CardContent>
           </Card>
@@ -505,7 +505,7 @@ export default function DepensesPage() {
         <CardContent className="p-4">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/60" />
               <Input placeholder="Rechercher…" value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9" />
             </div>
 
@@ -553,14 +553,14 @@ export default function DepensesPage() {
           {isLoading ? (
             <div className="p-4 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
           ) : rows.length === 0 ? (
-            <div className="py-16 text-center text-slate-500">
-              <Receipt className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+            <div className="py-16 text-center text-muted-foreground">
+              <Receipt className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
               <p>Aucune note de frais correspondante</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50">
+                <TableRow className="bg-muted/50">
                   <TableHead>Titre</TableHead>
                   <TableHead>Collaborateur</TableHead>
                   <TableHead>Département</TableHead>
@@ -572,14 +572,14 @@ export default function DepensesPage() {
               </TableHeader>
               <TableBody>
                 {rows.map(r => (
-                  <TableRow key={r.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedId(r.id)}>
+                  <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedId(r.id)}>
                     <TableCell className="font-medium text-sm">{r.title}</TableCell>
                     <TableCell className="text-sm">{r.collaboratorName}</TableCell>
-                    <TableCell className="text-xs text-slate-500">{r.department ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-slate-500">{r.submittedAt ? formatDate(r.submittedAt) : "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{r.department ?? "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{r.submittedAt ? formatDate(r.submittedAt) : "—"}</TableCell>
                     <TableCell className="text-right font-semibold text-sm">{formatFCFA(r.totalAmount)}</TableCell>
                     <TableCell><StatusBadge status={r.status} /></TableCell>
-                    <TableCell><ChevronRight className="h-4 w-4 text-slate-400" /></TableCell>
+                    <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground/60" /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

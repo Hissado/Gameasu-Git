@@ -124,7 +124,7 @@ function AnomalyCard({ anomaly, onResolve }: { anomaly: Anomaly; onResolve: (id:
         <div className="px-4 pb-4 border-t ml-7 space-y-3">
           {anomaly.detail && <p className="text-sm text-foreground/70 leading-relaxed">{anomaly.detail}</p>}
           {anomaly.recommendedAction && (
-            <div className="flex items-start gap-2 p-2.5 bg-white/70 rounded-lg border">
+            <div className="flex items-start gap-2 p-2.5 bg-card/70 rounded-lg border">
               <Zap className="w-3.5 h-3.5 text-orange-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-foreground/80">
                 <strong className="text-foreground">Action recommandée :</strong> {anomaly.recommendedAction}

@@ -442,7 +442,7 @@ export default function BtpPaie() {
                   </TableHeader>
                   <TableBody>
                     {reports.map(({ report: r, firstName, lastName, employeeNumber }, idx) => (
-                      <TableRow key={r.collaboratorId} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                      <TableRow key={r.collaboratorId} className={idx % 2 === 0 ? "bg-card" : "bg-gray-50/50"}>
                         <TableCell className="text-xs font-medium">
                           <div>{lastName} {firstName}</div>
                           {employeeNumber && <div className="text-[10px] text-gray-400">{employeeNumber}</div>}

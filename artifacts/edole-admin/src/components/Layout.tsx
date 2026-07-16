@@ -418,7 +418,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.08] transition-colors"
+          className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-card/[0.08] transition-colors"
           aria-label="Fermer le menu"
         >
           <X className="w-4 h-4" />
@@ -444,10 +444,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                     w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl
                     transition-all duration-150 text-left select-none
                     ${hasActive && !isOpen
-                      ? "bg-white/[0.05] text-white/90"
+                      ? "bg-card/[0.05] text-white/90"
                       : isOpen
-                        ? "bg-white/[0.04] text-white/80"
-                        : "text-white/40 hover:text-white/70 hover:bg-white/[0.03]"
+                        ? "bg-card/[0.04] text-white/80"
+                        : "text-white/40 hover:text-white/70 hover:bg-card/[0.03]"
                     }
                   `}
                 >
@@ -525,7 +525,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                             href={href}
                             title={lockReason}
                             className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
-                              active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
+                              active ? "bg-card/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-card/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-card/[0.05]"
                             }`}
                           >
                             {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />}
@@ -575,7 +575,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                                   href={href}
                                   title={lockReason}
                                   className={`group/item relative flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
-                                    active ? "bg-white/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-white/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-white/[0.05]"
+                                    active ? "bg-card/[0.08] text-white" : locked ? "text-white/25 hover:text-white/40 hover:bg-card/[0.02]" : "text-white/55 hover:text-white/85 hover:bg-card/[0.05]"
                                   }`}
                                 >
                                   {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />}
@@ -608,7 +608,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); toggleExpand(group.title); }}
-                                className="w-full flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 rounded-lg text-[11px] font-medium text-white/25 hover:text-white/50 hover:bg-white/[0.03] transition-colors mt-0.5"
+                                className="w-full flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 rounded-lg text-[11px] font-medium text-white/25 hover:text-white/50 hover:bg-card/[0.03] transition-colors mt-0.5"
                               >
                                 <span className="flex-1 text-left">{isExp ? "Réduire" : `${sec.length} de plus…`}</span>
                                 <ChevronRight className={`w-3 h-3 transition-transform duration-150 ${isExp ? "-rotate-90" : "rotate-90"}`} />

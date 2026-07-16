@@ -346,7 +346,7 @@ function QrViewDialog({
             </div>
           ) : url ? (
             <div className="flex flex-col items-center gap-3">
-              <div className="p-3 bg-white rounded-xl border shadow-sm">
+              <div className="p-3 bg-card rounded-xl border shadow-sm">
                 <QRCodeSVG value={url} size={180} level="M" includeMargin={false} />
               </div>
               <p className="text-xs text-muted-foreground text-center break-all font-mono bg-muted rounded-md p-2 w-full">
@@ -405,7 +405,7 @@ function NewTokenModal({
         <div className="space-y-3">
           <p className="text-sm"><span className="font-medium">Label :</span> {label}</p>
           <div className="flex flex-col items-center gap-3">
-            <div className="p-3 bg-white rounded-xl border shadow-sm">
+            <div className="p-3 bg-card rounded-xl border shadow-sm">
               <QRCodeSVG value={url} size={180} level="M" includeMargin={false} />
             </div>
             <p className="text-xs text-muted-foreground text-center break-all font-mono bg-muted rounded-md p-2 w-full">

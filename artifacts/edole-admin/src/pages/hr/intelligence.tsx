@@ -58,7 +58,7 @@ const STATUS: Record<string, { cls: string; label: string }> = {
   overload: { cls: "bg-red-50 text-red-700 border-red-200", label: "Surcharge" },
   ok: { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Optimal" },
   under: { cls: "bg-amber-50 text-amber-700 border-amber-200", label: "Sous-charge" },
-  absent: { cls: "bg-slate-100 text-slate-700 border-slate-200", label: "Absent" },
+  absent: { cls: "bg-muted text-foreground border", label: "Absent" },
 };
 
 export default function HrIntelligencePage() {

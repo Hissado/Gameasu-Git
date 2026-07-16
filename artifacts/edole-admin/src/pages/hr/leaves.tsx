@@ -75,7 +75,7 @@ const STATUS_COLORS: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800 border-amber-200",
   approved: "bg-emerald-100 text-emerald-800 border-emerald-200",
   rejected: "bg-red-100 text-red-800 border-red-200",
-  cancelled: "bg-slate-100 text-slate-600 border-slate-200",
+  cancelled: "bg-muted text-muted-foreground border",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -332,7 +332,7 @@ export default function LeavesPage() {
                 </div>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase text-muted-foreground border-b">
+                  <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
                     <tr>
                       <th className="text-left px-4 py-3">Collaborateur</th>
                       <th className="text-left px-4 py-3">Type</th>
@@ -345,7 +345,7 @@ export default function LeavesPage() {
                   </thead>
                   <tbody>
                     {leaves.map((l) => (
-                      <tr key={l.id} className="border-t hover:bg-slate-50/50 transition-colors">
+                      <tr key={l.id} className="border-t hover:bg-muted/50 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <Avatar className="w-7 h-7 border border-border">
@@ -442,24 +442,24 @@ export default function LeavesPage() {
                         const pct = total > 0 ? Math.min(100, Math.round((b.used / total) * 100)) : 0;
                         const isOver = b.remaining < 0;
                         return (
-                          <div key={b.id} className="p-3 rounded-lg border border-slate-200 bg-slate-50/50 space-y-2">
+                          <div key={b.id} className="p-3 rounded-lg border border bg-muted/50 space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-slate-700">{TYPE_LABELS[b.leaveType] ?? b.leaveType}</span>
+                              <span className="text-xs font-semibold text-foreground">{TYPE_LABELS[b.leaveType] ?? b.leaveType}</span>
                               <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => {
                                 setOpenBalance({ collaboratorId: collabId, collaboratorName: data.name, leaveType: b.leaveType, allocated: b.allocated, carried: b.carried });
                                 setBalanceForm({ allocated: String(b.allocated), carried: String(b.carried) });
                               }}>
-                                <Pencil className="w-3 h-3 text-slate-400" />
+                                <Pencil className="w-3 h-3 text-muted-foreground/60" />
                               </Button>
                             </div>
-                            <div className="flex justify-between text-xs text-slate-500">
+                            <div className="flex justify-between text-xs text-muted-foreground">
                               <span>Utilisé : <strong>{b.used} j</strong></span>
                               <span className={isOver ? "text-destructive font-semibold" : "text-emerald-700 font-semibold"}>
                                 Solde : {b.remaining} j
                               </span>
                             </div>
                             <Progress value={pct} className={`h-1.5 ${isOver ? "[&>div]:bg-red-500" : pct > 80 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500"}`} />
-                            <div className="flex justify-between text-xs text-slate-400">
+                            <div className="flex justify-between text-xs text-muted-foreground/60">
                               <span>Alloué : {b.allocated} j</span>
                               {b.carried > 0 && <span>Report N-1 : {b.carried} j</span>}
                               <span>Total : {total} j</span>

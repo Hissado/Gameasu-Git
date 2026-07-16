@@ -135,14 +135,14 @@ export default function LeavePoliciesPage() {
             <CardContent className="pt-0 pb-4 space-y-1.5 text-xs">
               <div className="flex flex-wrap gap-2">
                 {p.minNoticeDays > 0 && (
-                  <div className="flex items-center gap-1 bg-slate-100 rounded px-2 py-1">
-                    <Clock className="w-3 h-3 text-slate-500" />
+                  <div className="flex items-center gap-1 bg-muted rounded px-2 py-1">
+                    <Clock className="w-3 h-3 text-muted-foreground" />
                     <span>Préavis : <strong>{p.minNoticeDays} j</strong></span>
                   </div>
                 )}
                 {p.maxDaysPerYear && (
-                  <div className="flex items-center gap-1 bg-slate-100 rounded px-2 py-1">
-                    <Calendar className="w-3 h-3 text-slate-500" />
+                  <div className="flex items-center gap-1 bg-muted rounded px-2 py-1">
+                    <Calendar className="w-3 h-3 text-muted-foreground" />
                     <span>Plafond : <strong>{p.maxDaysPerYear} j/an</strong></span>
                   </div>
                 )}
@@ -163,7 +163,7 @@ export default function LeavePoliciesPage() {
                 )}
               </div>
               <div className="flex gap-2 pt-1 flex-wrap items-center">
-                <span className={`flex items-center gap-1 ${p.requiresApproval ? "text-amber-700" : "text-slate-400"}`}>
+                <span className={`flex items-center gap-1 ${p.requiresApproval ? "text-amber-700" : "text-muted-foreground/60"}`}>
                   <CheckCircle2 className="w-3 h-3" />Approbation {p.requiresApproval ? "requise" : "non requise"}
                 </span>
                 {p.requiresApproval && (
@@ -171,19 +171,19 @@ export default function LeavePoliciesPage() {
                     {APPROVER_LABELS[p.approverRole ?? "manager"] ?? p.approverRole}
                   </span>
                 )}
-                {p.allowHalfDay && <span className="text-slate-500">½ journée OK</span>}
+                {p.allowHalfDay && <span className="text-muted-foreground">½ journée OK</span>}
               </div>
-              {p.description && <p className="text-slate-500 italic pt-1">{p.description}</p>}
+              {p.description && <p className="text-muted-foreground italic pt-1">{p.description}</p>}
             </CardContent>
           </Card>
         ))}
 
         {/* Cards "à configurer" pour les types manquants */}
         {missing.map(type => (
-          <Card key={type} className="border-dashed border-2 border-slate-200 bg-slate-50/50">
+          <Card key={type} className="border-dashed border-2 border bg-muted/50">
             <CardContent className="p-4 flex flex-col items-center justify-center h-full min-h-[120px] text-center gap-2">
-              <Settings2 className="w-6 h-6 text-slate-300" />
-              <p className="text-sm font-medium text-slate-500">{LEAVE_LABELS[type]}</p>
+              <Settings2 className="w-6 h-6 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-muted-foreground">{LEAVE_LABELS[type]}</p>
               <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => {
                 setEditing(null);
                 setForm({ ...EMPTY_FORM, leaveType: type });

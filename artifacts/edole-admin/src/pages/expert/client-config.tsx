@@ -121,7 +121,7 @@ export default function ClientConfigPage() {
           <p className="text-muted-foreground text-sm mt-0.5">Configuration client</p>
         </div>
         {client?.subscription && (
-          <Badge className={`ml-auto border ${PLAN_COLOR[client.subscription.planCode] ?? "bg-slate-100 text-slate-600"}`} variant="outline">
+          <Badge className={`ml-auto border ${PLAN_COLOR[client.subscription.planCode] ?? "bg-muted text-muted-foreground"}`} variant="outline">
             {client.subscription.planName}
           </Badge>
         )}
@@ -242,7 +242,7 @@ export default function ClientConfigPage() {
               <CardContent className="px-5 pb-5">
                 <div className="flex items-center justify-between py-2 text-sm border-b">
                   <span className="text-muted-foreground">Plan</span>
-                  <Badge className={`border ${PLAN_COLOR[client.subscription.planCode] ?? "bg-slate-100 text-slate-600"}`} variant="outline">
+                  <Badge className={`border ${PLAN_COLOR[client.subscription.planCode] ?? "bg-muted text-muted-foreground"}`} variant="outline">
                     {client.subscription.planName}
                   </Badge>
                 </div>

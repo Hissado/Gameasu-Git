@@ -44,7 +44,7 @@ function closeUrgency(date: string | null): { label: string; cls: string } | nul
 }
 
 const STAGES = [
-  { key: "lead",        label: "Prospects",      colorCls: "border-t-slate-400 bg-slate-50" },
+  { key: "lead",        label: "Prospects",      colorCls: "border-t-slate-400 bg-muted/50" },
   { key: "qualified",   label: "Qualifiés",       colorCls: "border-t-blue-400 bg-blue-50/30" },
   { key: "proposal",    label: "En proposition",  colorCls: "border-t-indigo-400 bg-indigo-50/30" },
   { key: "negotiation", label: "Négociation",     colorCls: "border-t-amber-400 bg-amber-50/30" },
@@ -305,7 +305,7 @@ export default function CrmHome() {
         const overdueOpps = activeOpps.filter(o => o.expectedCloseDate && new Date(o.expectedCloseDate) < new Date());
         return (
           <div data-tour="crm-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
-            <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-2.5">
+            <div className="bg-card border rounded-xl p-3 flex items-center gap-2.5">
               <div className="p-2 bg-amber-50 rounded-lg shrink-0"><Target className="w-4 h-4 text-[#2563EB]" /></div>
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="text-[10px] font-bold text-muted-foreground uppercase truncate">Pipeline total</div>
@@ -313,7 +313,7 @@ export default function CrmHome() {
                 <div className="text-[10px] text-muted-foreground truncate">{activeOpps.length} opp. actives</div>
               </div>
             </div>
-            <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-2.5">
+            <div className="bg-card border rounded-xl p-3 flex items-center gap-2.5">
               <div className="p-2 bg-blue-50 rounded-lg shrink-0"><TrendingUp className="w-4 h-4 text-blue-500" /></div>
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="text-[10px] font-bold text-muted-foreground uppercase truncate">Valeur pondérée</div>
@@ -321,7 +321,7 @@ export default function CrmHome() {
                 <div className="text-[10px] text-muted-foreground truncate">probabilité × valeur</div>
               </div>
             </div>
-            <div className="bg-white border border-border rounded-xl p-3 flex items-center gap-2.5">
+            <div className="bg-card border rounded-xl p-3 flex items-center gap-2.5">
               <div className="p-2 bg-emerald-50 rounded-lg shrink-0"><Trophy className="w-4 h-4 text-emerald-500" /></div>
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="text-[10px] font-bold text-muted-foreground uppercase truncate">Deals gagnés</div>
@@ -329,9 +329,9 @@ export default function CrmHome() {
                 <div className="text-[10px] text-muted-foreground truncate">{winRate !== null ? `Taux : ${winRate}%` : "Aucun deal fermé"}</div>
               </div>
             </div>
-            <div className={`border rounded-xl p-3 flex items-center gap-2.5 ${overdueOpps.length > 0 ? "bg-red-50 border-red-200" : "bg-white border-border"}`}>
-              <div className={`p-2 rounded-lg shrink-0 ${overdueOpps.length > 0 ? "bg-red-100" : "bg-slate-50"}`}>
-                <Clock className={`w-4 h-4 ${overdueOpps.length > 0 ? "text-red-500" : "text-slate-400"}`} />
+            <div className={`border rounded-xl p-3 flex items-center gap-2.5 ${overdueOpps.length > 0 ? "bg-red-50 border-red-200" : "bg-card border"}`}>
+              <div className={`p-2 rounded-lg shrink-0 ${overdueOpps.length > 0 ? "bg-red-100" : "bg-muted/50"}`}>
+                <Clock className={`w-4 h-4 ${overdueOpps.length > 0 ? "text-red-500" : "text-muted-foreground"}`} />
               </div>
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="text-[10px] font-bold text-muted-foreground uppercase truncate">Délais dépassés</div>
@@ -347,7 +347,7 @@ export default function CrmHome() {
       {isLoading ? (
         <div className="flex gap-4 overflow-hidden h-full">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="flex-1 min-w-[300px] max-w-[350px] bg-slate-50/50 rounded-xl border border-border p-3">
+            <div key={i} className="flex-1 min-w-[300px] max-w-[350px] bg-muted/50 rounded-xl border border-border p-3">
               <Skeleton className="h-6 w-1/2 mb-4" />
               <div className="space-y-3">
                 <Skeleton className="h-24 w-full" />
@@ -366,12 +366,12 @@ export default function CrmHome() {
               <div key={stage.key}
                 className={`flex-1 min-w-[280px] max-w-[340px] rounded-xl border border-border/50 border-t-4 flex flex-col max-h-full ${stage.colorCls}`}>
                 {/* Column header */}
-                <div className="px-3 pt-3 pb-2 flex items-center justify-between bg-white/60 rounded-t-lg backdrop-blur-sm border-b border-border/30">
+                <div className="px-3 pt-3 pb-2 flex items-center justify-between bg-card/60 rounded-t-lg backdrop-blur-sm border-b border-border/30">
                   <div>
-                    <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">{stage.label}</h3>
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">{stage.label}</h3>
                     <p className="text-xs text-muted-foreground mt-0.5 font-medium">{formatFCFA(stageTotal)}</p>
                   </div>
-                  <Badge variant="secondary" className="font-bold bg-white shadow-sm border-border text-xs">
+                  <Badge variant="secondary" className="font-bold bg-card shadow-sm border-border text-xs">
                     {stageOpps.length}
                   </Badge>
                 </div>
@@ -379,23 +379,23 @@ export default function CrmHome() {
                 {/* Cards */}
                 <div className="p-2 space-y-2 overflow-y-auto flex-1">
                   {stageOpps.map(opp => (
-                    <Card key={opp.id} className="shadow-sm hover:shadow-md transition-shadow bg-white group">
+                    <Card key={opp.id} className="shadow-sm hover:shadow-md transition-shadow bg-card group">
                       <CardContent className="p-3 space-y-2">
                         <div className="font-semibold text-sm leading-tight">{opp.title}</div>
 
                         {/* Client */}
-                        <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                          <Building className="w-3 h-3 shrink-0 text-slate-400" />
-                          <span className="truncate">{opp.clientName || <span className="italic text-slate-400">Prospect non assigné</span>}</span>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Building className="w-3 h-3 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{opp.clientName || <span className="italic text-muted-foreground">Prospect non assigné</span>}</span>
                         </div>
 
                         {/* Valeur + probabilité */}
                         {opp.value != null && (
                           <div className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-slate-800">{formatFCFA(opp.value)}</span>
+                              <span className="text-xs font-bold text-muted-foreground">{formatFCFA(opp.value)}</span>
                               {opp.probability != null && (
-                                <span className="text-[10px] font-bold text-slate-500">{opp.probability}%</span>
+                                <span className="text-[10px] font-bold text-muted-foreground">{opp.probability}%</span>
                               )}
                             </div>
                             {opp.probability != null && (
@@ -423,7 +423,7 @@ export default function CrmHome() {
                         <div className="flex items-center gap-1 pt-1 flex-wrap">
                           {opp.clientId && (
                             <Link href={`/clients/${opp.clientId}`}>
-                              <button className="text-[10px] font-semibold px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center gap-1 transition-colors">
+                              <button className="text-[10px] font-semibold px-2 py-1 rounded bg-muted hover:bg-slate-200 text-muted-foreground flex items-center gap-1 transition-colors">
                                 <Building className="w-3 h-3" /> Fiche client
                               </button>
                             </Link>
@@ -449,13 +449,13 @@ export default function CrmHome() {
 
                         {/* Stage mover — prev / next uniquement */}
                         {stage.key !== "won" && stage.key !== "lost" && (
-                          <div className="flex items-center gap-1 pt-0.5 border-t border-slate-100 mt-1">
+                          <div className="flex items-center gap-1 pt-0.5 border-t border mt-1">
                             {STAGE_PREV[stage.key] && (
                               <button
                                 onClick={() => moveMutation.mutate({ id: opp.id, stage: STAGE_PREV[stage.key] })}
                                 disabled={moveMutation.isPending}
                                 title={`Reculer vers ${STAGES.find(s => s.key === STAGE_PREV[stage.key])?.label}`}
-                                className="flex-1 text-[10px] font-semibold py-1 rounded border border-slate-200 hover:border-slate-400 text-slate-500 hover:text-slate-700 transition-colors flex items-center justify-center gap-0.5">
+                                className="flex-1 text-[10px] font-semibold py-1 rounded border border hover:border text-muted-foreground hover:text-muted-foreground transition-colors flex items-center justify-center gap-0.5">
                                 <ChevronLeft className="w-3 h-3" /> Reculer
                               </button>
                             )}
@@ -475,8 +475,8 @@ export default function CrmHome() {
                   ))}
 
                   {stageOpps.length === 0 && (
-                    <div className="text-center p-6 text-xs text-muted-foreground bg-white/50 rounded-lg border border-dashed border-border">
-                      <Briefcase className="w-6 h-6 mx-auto text-slate-200 mb-1.5" />
+                    <div className="text-center p-6 text-xs text-muted-foreground bg-card/50 rounded-lg border border-dashed border-border">
+                      <Briefcase className="w-6 h-6 mx-auto text-muted-foreground mb-1.5" />
                       Aucune opportunité
                     </div>
                   )}

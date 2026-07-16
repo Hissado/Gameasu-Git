@@ -96,7 +96,7 @@ export default function AcceptExpertInvitationPage() {
             {BRANDING.appName}
           </div>
           <div className="text-white text-lg font-bold">Espace Cabinet Expert</div>
-          <div className="text-slate-400 text-sm">Activez votre compte professionnel</div>
+          <div className="text-muted-foreground/60 text-sm">Activez votre compte professionnel</div>
         </div>
 
         <Card className="border-0 shadow-2xl">
@@ -133,17 +133,17 @@ export default function AcceptExpertInvitationPage() {
             {!loadingInfo && info && !success && (
               <>
                 {/* Firm info banner */}
-                <div className="rounded-lg border bg-slate-50 p-4 space-y-1">
+                <div className="rounded-lg border bg-muted/50 p-4 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm text-slate-800">{info.firm.name}</span>
+                    <span className="font-semibold text-sm text-foreground">{info.firm.name}</span>
                     <Badge variant="outline" className="text-xs capitalize">
                       {PLAN_LABEL[info.firm.plan] ?? info.firm.plan}
                     </Badge>
                   </div>
-                  <div className="text-xs text-slate-500">
-                    Invitation pour&nbsp;<span className="font-medium text-slate-700">{info.email}</span>
+                  <div className="text-xs text-muted-foreground">
+                    Invitation pour&nbsp;<span className="font-medium text-foreground">{info.email}</span>
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-muted-foreground/60">
                     Expire le {new Date(info.expiresAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>

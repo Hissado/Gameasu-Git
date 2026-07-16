@@ -70,4 +70,26 @@ app.use("/uploads", requireAuth, express.static(UPLOAD_DIR));
 app.use("/api/uploads", requireAuth, express.static(UPLOAD_DIR));
 app.use("/api", router);
 
+// Middleware d'erreur global — doit être enregistré APRÈS toutes les routes.
+// Capture les erreurs async non gérées relayées via next(err) ou les rejets
+// de promesse dans Express 5 (qui les propage automatiquement).
+app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const log = (req as any).log ?? logger;
+  const status = typeof (err as any)?.status === "number"
+    ? (err as any).status
+    : typeof (err as any)?.statusCode === "number"
+    ? (err as any).statusCode
+    : 500;
+  if (status >= 500) {
+    log.error({ err }, "Unhandled server error");
+  }
+  if (!res.headersSent) {
+    res.status(status).json({
+      error: status < 500
+        ? (err instanceof Error ? err.message : "Erreur de requête")
+        : "Erreur interne du serveur",
+    });
+  }
+});
+
 export default app;

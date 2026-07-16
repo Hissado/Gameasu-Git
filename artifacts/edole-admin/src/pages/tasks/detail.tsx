@@ -157,7 +157,7 @@ function MentionTextarea({
         className="resize-none text-sm"
       />
       {showMentions && filteredUsers.length > 0 && (
-        <div className="absolute left-0 z-50 mt-1 w-56 bg-white rounded-lg border border-border shadow-lg overflow-hidden">
+        <div className="absolute left-0 z-50 mt-1 w-56 bg-card rounded-lg border border-border shadow-lg overflow-hidden">
           <div className="px-3 py-1.5 text-[10px] text-muted-foreground font-semibold uppercase border-b border-border">
             Mentionner un membre
           </div>
@@ -210,7 +210,7 @@ function SubtasksChecklist({ subtasks }: { subtasks: any[] }) {
             <div
               key={s.id}
               className={`flex items-start gap-3 p-2.5 rounded-lg border transition-all ${
-                isChecked ? "bg-emerald-50/50 border-emerald-100" : "border-border hover:border-primary/30 hover:bg-slate-50/50"
+                isChecked ? "bg-emerald-50/50 border-emerald-100" : "border-border hover:border-primary/30 hover:bg-muted/50"
               }`}
             >
               <Checkbox
@@ -365,7 +365,7 @@ export default function TaskDetail() {
       </div>
 
       {/* Time tracker pill */}
-      <div className="flex items-center gap-3 bg-slate-50 border border-border rounded-xl px-4 py-3 w-fit">
+      <div className="flex items-center gap-3 bg-muted/50 border border-border rounded-xl px-4 py-3 w-fit">
         <Timer className="w-4 h-4 text-muted-foreground" />
         <span className={`font-mono text-lg font-bold ${timer.running ? "text-primary" : "text-foreground"}`}>
           {timer.formatted}
@@ -503,7 +503,7 @@ export default function TaskDetail() {
                       {h.field && <span className="text-muted-foreground"> · {FIELD_LABEL[h.field] || h.field}</span>}
                     </div>
                     {(h.oldValue || h.newValue) && (
-                      <div className="text-xs mt-1 text-slate-600">
+                      <div className="text-xs mt-1 text-muted-foreground">
                         {h.oldValue && <span className="line-through text-red-500/70 mr-2">{h.oldValue}</span>}
                         {h.newValue && <span className="text-green-600 font-medium">{h.newValue}</span>}
                       </div>

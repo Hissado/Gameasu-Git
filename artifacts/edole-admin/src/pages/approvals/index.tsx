@@ -83,7 +83,7 @@ const SEVERITY_CONFIG: Record<Severity, { label: string; cls: string; icon: Reac
   urgent: { label: "Urgent",  cls: "bg-red-50 text-red-700 border-red-200",      icon: AlertTriangle, bar: "bg-red-500" },
   high:   { label: "Élevé",   cls: "bg-amber-50 text-amber-700 border-amber-200", icon: ShieldAlert,   bar: "bg-amber-500" },
   medium: { label: "Moyen",   cls: "bg-blue-50 text-blue-700 border-blue-200",    icon: Clock,         bar: "bg-blue-400" },
-  low:    { label: "Faible",  cls: "bg-slate-50 text-slate-600 border-slate-200", icon: CheckCircle2,  bar: "bg-slate-300" },
+  low:    { label: "Faible",  cls: "bg-muted/50 text-muted-foreground border", icon: CheckCircle2,  bar: "bg-slate-300" },
 };
 
 const SEVERITY_ORDER: Severity[] = ["urgent", "high", "medium", "low"];
@@ -96,14 +96,14 @@ function ApprovalCard({ item, onDismiss }: { item: ApprovalItem; onDismiss: (id:
     action: "Voir",
     href: () => "#",
     icon: ClipboardCheck,
-    badgeCls: "bg-slate-50 text-slate-600 border-slate-200",
+    badgeCls: "bg-muted/50 text-muted-foreground border",
   };
   const sev = SEVERITY_CONFIG[item.severity] ?? SEVERITY_CONFIG.low;
   const Icon = cfg.icon;
   const SevIcon = sev.icon;
 
   return (
-    <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
+    <div className="flex items-start gap-4 p-4 bg-card rounded-xl border border hover:border hover:shadow-sm transition-all group">
       {/* Left accent + icon */}
       <div className={`mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${sev.cls.replace("border-", "bg-").replace("text-", "text-")} border`}>
         <Icon className="w-4 h-4" />
@@ -120,13 +120,13 @@ function ApprovalCard({ item, onDismiss }: { item: ApprovalItem; onDismiss: (id:
             {sev.label}
           </Badge>
         </div>
-        <p className="text-sm font-semibold text-slate-800 leading-snug mt-0.5 truncate">{item.title}</p>
+        <p className="text-sm font-semibold text-foreground leading-snug mt-0.5 truncate">{item.title}</p>
         {item.subtitle && (
-          <p className="text-xs text-slate-500 mt-0.5">{item.subtitle}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{item.subtitle}</p>
         )}
         {item.amount != null && item.amount > 0 && (
-          <p className="text-xs font-semibold text-slate-700 mt-1 flex items-center gap-1">
-            <Banknote className="w-3 h-3 text-slate-400" />
+          <p className="text-xs font-semibold text-foreground mt-1 flex items-center gap-1">
+            <Banknote className="w-3 h-3 text-muted-foreground/60" />
             {formatFCFA(item.amount)}
           </p>
         )}
@@ -143,7 +143,7 @@ function ApprovalCard({ item, onDismiss }: { item: ApprovalItem; onDismiss: (id:
         <Button
           size="sm"
           variant="ghost"
-          className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+          className="h-8 w-8 p-0 text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted"
           title="Ignorer"
           onClick={() => onDismiss(item.id)}
         >
@@ -243,7 +243,7 @@ export default function ApprovalsQueue() {
         <Card>
           <CardContent className="p-16 text-center">
             <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-emerald-400" />
-            <p className="font-semibold text-slate-700 text-lg">Tout est à jour</p>
+            <p className="font-semibold text-foreground text-lg">Tout est à jour</p>
             <p className="text-sm text-muted-foreground mt-1">
               Aucune validation en attente pour le moment.
             </p>

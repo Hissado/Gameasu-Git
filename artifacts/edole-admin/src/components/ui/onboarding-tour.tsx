@@ -610,7 +610,7 @@ export function WelcomeModal({
       onClick={(e) => { if (e.target === e.currentTarget) onDismiss(); }}
     >
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="relative bg-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header gradient */}
@@ -651,17 +651,17 @@ export function WelcomeModal({
                   className={`w-full text-left p-3 rounded-xl border transition-all ${
                     selectedPath === path.key
                       ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                      : "border hover:border hover:bg-muted/50"
                   }`}
                 >
                   <div className="flex items-start gap-2.5">
                     <span className={`flex-shrink-0 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center mt-0.5 ${
-                      selectedPath === path.key ? "bg-primary text-white" : "bg-slate-100 text-slate-500"
+                      selectedPath === path.key ? "bg-primary text-white" : "bg-muted text-muted-foreground"
                     }`}>
                       {i + 1}
                     </span>
                     <div>
-                      <div className="text-sm font-semibold text-slate-900">{path.name}</div>
+                      <div className="text-sm font-semibold text-foreground">{path.name}</div>
                       <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{path.description}</div>
                       <div className="text-[11px] text-muted-foreground/60 mt-1">
                         {path.steps.length} étape{path.steps.length > 1 ? "s" : ""}
@@ -684,7 +684,7 @@ export function WelcomeModal({
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">
                     {i + 1}
                   </span>
-                  <span className="text-sm text-slate-700 leading-snug">
+                  <span className="text-sm text-foreground leading-snug">
                     <span className="font-medium">{s.title}</span>
                     {" "}
                     <span className="text-muted-foreground">— {s.description}</span>
@@ -857,9 +857,9 @@ export function OnboardingTour({ steps, onClose, pathLabel, initialStep = 0, onS
 
       {/* Bubble */}
       <div style={bubbleStyle}>
-        <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200">
+        <div className="bg-card rounded-xl shadow-2xl overflow-hidden border border">
           {/* Progress bar */}
-          <div className="h-1 bg-slate-100">
+          <div className="h-1 bg-muted">
             <div
               className="h-full bg-primary transition-all duration-300"
               style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
@@ -881,11 +881,11 @@ export function OnboardingTour({ steps, onClose, pathLabel, initialStep = 0, onS
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
                   {currentStep + 1}
                 </span>
-                <h3 className="text-sm font-bold text-slate-900">{step.title}</h3>
+                <h3 className="text-sm font-bold text-foreground">{step.title}</h3>
               </div>
               <button
                 onClick={onClose}
-                className="text-muted-foreground hover:text-slate-700 transition-colors shrink-0"
+                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1090,16 +1090,16 @@ export function GuidesPanel({ moduleKey, open, onOpenChange }: GuidesPanelProps)
           />
 
           {/* Drawer */}
-          <div className="fixed top-0 right-0 bottom-0 z-[9810] w-[360px] bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-200">
+          <div className="fixed top-0 right-0 bottom-0 z-[9810] w-[360px] bg-card shadow-2xl border-l border flex flex-col animate-in slide-in-from-right duration-200">
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b border shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <BookOpen className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900">Guides disponibles</h2>
+                  <h2 className="text-sm font-bold text-foreground">Guides disponibles</h2>
                   <p className="text-[11px] text-muted-foreground">
                     {paths.length > 0
                       ? `${paths.length} parcours pour ce module`
@@ -1109,7 +1109,7 @@ export function GuidesPanel({ moduleKey, open, onOpenChange }: GuidesPanelProps)
               </div>
               <button
                 onClick={() => onOpenChange(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-muted-foreground hover:text-slate-700 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1138,7 +1138,7 @@ export function GuidesPanel({ moduleKey, open, onOpenChange }: GuidesPanelProps)
                         ? "border-emerald-200 bg-emerald-50/40"
                         : status === "in_progress"
                         ? "border-amber-200 bg-amber-50/40"
-                        : "border-slate-200 bg-white"
+                        : "border bg-card"
                     }`}
                   >
                     {/* Path header */}
@@ -1149,18 +1149,18 @@ export function GuidesPanel({ moduleKey, open, onOpenChange }: GuidesPanelProps)
                         ) : status === "in_progress" ? (
                           <Clock className="w-4 h-4 text-amber-500" />
                         ) : (
-                          <Circle className="w-4 h-4 text-slate-300" />
+                          <Circle className="w-4 h-4 text-muted-foreground/40" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-sm font-semibold text-slate-900">{path.name}</h3>
+                          <h3 className="text-sm font-semibold text-foreground">{path.name}</h3>
                           <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
                             status === "done"
                               ? "bg-emerald-100 text-emerald-700"
                               : status === "in_progress"
                               ? "bg-amber-100 text-amber-700"
-                              : "bg-slate-100 text-slate-500"
+                              : "bg-muted text-muted-foreground"
                           }`}>
                             {status === "done" ? "Terminé" : status === "in_progress" ? "En cours" : "Non commencé"}
                           </span>
@@ -1239,7 +1239,7 @@ export function GuidesPanel({ moduleKey, open, onOpenChange }: GuidesPanelProps)
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-3 border-t border-slate-200 shrink-0 bg-slate-50/60">
+            <div className="px-4 py-3 border-t border shrink-0 bg-muted/60">
               <p className="text-[11px] text-muted-foreground text-center">
                 Utilisez ← → pour naviguer · Échap pour fermer
               </p>

@@ -240,7 +240,7 @@ export default function Dashboard() {
       {/* ── En-tête ─────────────────────────────────────────────────────── */}
       <header
         data-tour="dash-header"
-        className="rounded-2xl overflow-hidden border border-slate-800 shadow-lg"
+        className="rounded-2xl overflow-hidden border border shadow-lg"
         style={{ background: "linear-gradient(135deg, #0d1424 0%, #111827 50%, #0f172a 100%)" }}
       >
         <div className="px-6 py-7 md:px-8 md:py-8 relative">
@@ -276,7 +276,7 @@ export default function Dashboard() {
                 { label: "Projet",   href: "/projets",   icon: FolderKanban },
               ] as { label: string; href: string; icon: React.ComponentType<{ className?: string }> }[]).map((a) => (
                 <Button key={a.label} size="sm" variant="secondary" asChild
-                  className="bg-white/10 hover:bg-white/20 text-white border-0 text-xs h-8 gap-1.5">
+                  className="bg-card/10 hover:bg-card/20 text-white border-0 text-xs h-8 gap-1.5">
                   <Link href={a.href}><Plus className="w-3 h-3" />{a.label}</Link>
                 </Button>
               ))}
@@ -284,7 +284,7 @@ export default function Dashboard() {
                 size="sm"
                 variant="secondary"
                 onClick={() => setCustomizeOpen(true)}
-                className="bg-white/10 hover:bg-white/20 text-white border-0 text-xs h-8 gap-1.5"
+                className="bg-card/10 hover:bg-card/20 text-white border-0 text-xs h-8 gap-1.5"
               >
                 <Settings2 className="w-3 h-3" />
                 Personnaliser
@@ -303,7 +303,7 @@ export default function Dashboard() {
       <section>
         <div className="flex items-end justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Raccourcis</h2>
+            <h2 className="text-base font-bold text-foreground">Raccourcis</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Actions fréquentes</p>
           </div>
         </div>
@@ -317,9 +317,9 @@ export default function Dashboard() {
             { label: "Rapport achats",           href: "/achats/rapports", icon: Briefcase,     color: "text-rose-600" },
           ] as { label: string; href: string; icon: React.ComponentType<{ className?: string }>; color: string }[]).map((a) => (
             <Link key={a.label} href={a.href}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 hover:shadow-sm transition-all text-center group">
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border border bg-card hover:border-primary/40 hover:shadow-sm transition-all text-center group">
               <a.icon className={cn("w-6 h-6 transition-colors", a.color)} />
-              <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900 leading-tight">{a.label}</span>
+              <span className="text-xs font-medium text-foreground group-hover:text-foreground leading-tight">{a.label}</span>
             </Link>
           ))}
         </div>

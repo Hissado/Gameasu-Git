@@ -266,19 +266,19 @@ function badgeVariant(key: string, val: unknown): string {
   if (key === "severite") {
     if (v === "high") return "bg-red-100 text-red-700";
     if (v === "medium") return "bg-amber-100 text-amber-700";
-    return "bg-slate-100 text-slate-600";
+    return "bg-muted text-muted-foreground";
   }
   if (key === "statut" || key === "status") {
     if (["active", "actif", "approved", "paid", "validated"].some(x => v.includes(x))) return "bg-emerald-100 text-emerald-700";
     if (["pending", "draft"].some(x => v.includes(x))) return "bg-amber-100 text-amber-700";
     if (["rejected", "terminated", "expired"].some(x => v.includes(x))) return "bg-red-100 text-red-700";
   }
-  if (key === "resolu") return val === "Oui" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600";
-  return "bg-slate-100 text-slate-600";
+  if (key === "resolu") return val === "Oui" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground";
+  return "bg-muted text-muted-foreground";
 }
 
 function renderCell(col: ColDef, val: unknown) {
-  if (val == null || val === "") return <span className="text-slate-400">—</span>;
+  if (val == null || val === "") return <span className="text-muted-foreground/60">—</span>;
   if (col.kind === "money") {
     const n = Number(val);
     return <span className="font-medium tabular-nums">{isNaN(n) ? "—" : formatFCFA(n)}</span>;
@@ -292,7 +292,7 @@ function renderCell(col: ColDef, val: unknown) {
   }
   if (col.kind === "date") {
     const d = String(val);
-    if (!d || d === "—") return <span className="text-slate-400">—</span>;
+    if (!d || d === "—") return <span className="text-muted-foreground/60">—</span>;
     const parts = d.split("T")[0];
     const [y, m, day] = parts.split("-");
     return <span className="tabular-nums">{day}/{m}/{y}</span>;
@@ -333,10 +333,10 @@ function MultiSelect({
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "h-9 min-w-44 flex items-center justify-between gap-2 rounded-lg border px-3 text-sm bg-white transition-colors",
+            "h-9 min-w-44 flex items-center justify-between gap-2 rounded-lg border px-3 text-sm bg-card transition-colors",
             selected.length > 0
               ? "border-orange-300 text-orange-700 hover:bg-orange-50"
-              : "border-slate-200 text-slate-700 hover:bg-slate-50",
+              : "border text-foreground hover:bg-muted/50",
             className
           )}
         >
@@ -353,7 +353,7 @@ function MultiSelect({
                 <X className="h-3 w-3" />
               </span>
             )}
-            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
           </div>
         </button>
       </PopoverTrigger>
@@ -364,7 +364,7 @@ function MultiSelect({
             return (
               <label
                 key={opt.value}
-                className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-slate-50 cursor-pointer select-none"
+                className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer select-none"
               >
                 <input
                   type="checkbox"
@@ -372,7 +372,7 @@ function MultiSelect({
                   onChange={() => toggle(opt.value)}
                   className="h-3.5 w-3.5 accent-orange-500 rounded"
                 />
-                <span className={cn("text-sm", checked ? "font-medium text-slate-800" : "text-slate-600")}>
+                <span className={cn("text-sm", checked ? "font-medium text-foreground" : "text-muted-foreground")}>
                   {opt.label}
                 </span>
               </label>
@@ -470,11 +470,11 @@ export default function HrReports() {
       <div className="flex flex-col gap-5 p-6">
 
         {/* ── Report type selector ── */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <div className="bg-card border border rounded-xl p-4">
           <div className="flex flex-wrap gap-5">
             {REPORT_GROUPS.map(group => (
               <div key={group.label} className="flex flex-col gap-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1">{group.label}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 px-1">{group.label}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {group.reports.map(r => {
                     const Icon = r.icon;
@@ -487,7 +487,7 @@ export default function HrReports() {
                           "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                           active
                             ? "bg-primary text-white shadow-sm"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            : "bg-muted text-muted-foreground hover:bg-slate-200"
                         )}
                       >
                         <Icon className="h-3.5 w-3.5" />
@@ -502,26 +502,26 @@ export default function HrReports() {
         </div>
 
         {/* ── Filters ── */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <div className="bg-card border border rounded-xl p-4">
           <div className="flex flex-wrap items-end gap-3">
 
             {/* Date range */}
             {def.hasDateRange && (
               <>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-slate-500">Du</label>
+                  <label className="text-xs font-medium text-muted-foreground">Du</label>
                   <input
                     type="date" value={from}
                     onChange={e => setFrom(e.target.value)}
-                    className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="h-9 rounded-lg border border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-slate-500">Au</label>
+                  <label className="text-xs font-medium text-muted-foreground">Au</label>
                   <input
                     type="date" value={to}
                     onChange={e => setTo(e.target.value)}
-                    className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="h-9 rounded-lg border border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </>
@@ -530,11 +530,11 @@ export default function HrReports() {
             {/* Payroll period */}
             {reportType === "payroll" && (
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-slate-500">Période</label>
+                <label className="text-xs font-medium text-muted-foreground">Période</label>
                 <input
                   type="month" value={period}
                   onChange={e => setPeriod(e.target.value)}
-                  className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="h-9 rounded-lg border border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
             )}
@@ -542,18 +542,18 @@ export default function HrReports() {
             {/* Contract expiry */}
             {reportType === "contracts" && (
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-slate-500">Expire avant</label>
+                <label className="text-xs font-medium text-muted-foreground">Expire avant</label>
                 <input
                   type="date" value={expiringBefore}
                   onChange={e => setExpiringBefore(e.target.value)}
-                  className="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="h-9 rounded-lg border border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </div>
             )}
 
             {/* Department — multi-select */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-500">Département</label>
+              <label className="text-xs font-medium text-muted-foreground">Département</label>
               <MultiSelect
                 options={(depts ?? []).map(d => ({ value: d.id, label: d.name }))}
                 selected={departmentIds}
@@ -565,7 +565,7 @@ export default function HrReports() {
 
             {/* Collaborator — multi-select */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-500">Collaborateur</label>
+              <label className="text-xs font-medium text-muted-foreground">Collaborateur</label>
               <MultiSelect
                 options={(collabs ?? []).map(c => ({ value: c.id, label: `${c.firstName} ${c.lastName}` }))}
                 selected={collaboratorIds}
@@ -578,7 +578,7 @@ export default function HrReports() {
             {/* Extra filters per report type */}
             {(def.extraFilters ?? []).map(f => (
               <div key={f.key} className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-slate-500">{f.label}</label>
+                <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
                 <Select
                   value={extraFilters[f.key] || "__all__"}
                   onValueChange={v => handleExtraFilter(f.key, v === "__all__" ? "" : v)}
@@ -614,23 +614,23 @@ export default function HrReports() {
         {/* ── KPI cards ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {kpiCards.map(card => (
-            <Card key={card.label} className="border-slate-200 shadow-none">
+            <Card key={card.label} className="border shadow-none">
               <CardContent className="p-4">
-                <p className="text-xs text-slate-500 mb-1">{card.label}</p>
-                <p className="text-xl font-bold text-slate-800">{card.value}</p>
-                {card.sub && <p className="text-xs text-slate-400 mt-0.5">{card.sub}</p>}
+                <p className="text-xs text-muted-foreground mb-1">{card.label}</p>
+                <p className="text-xl font-bold text-foreground">{card.value}</p>
+                {card.sub && <p className="text-xs text-muted-foreground/60 mt-0.5">{card.sub}</p>}
               </CardContent>
             </Card>
           ))}
         </div>
 
         {/* ── Table ── */}
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+        <div className="bg-card border border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border">
             <div className="flex items-center gap-2">
               <FileBarChart2 className="h-4 w-4 text-orange-500" />
-              <span className="font-semibold text-slate-800 text-sm">{def.label}</span>
-              <span className="text-xs text-slate-400">{def.description}</span>
+              <span className="font-semibold text-foreground text-sm">{def.label}</span>
+              <span className="text-xs text-muted-foreground/60">{def.description}</span>
             </div>
             {!isLoading && (
               <Badge variant="secondary" className="text-xs">{rows.length} résultat{rows.length !== 1 ? "s" : ""}</Badge>
@@ -639,21 +639,21 @@ export default function HrReports() {
 
           <div className="overflow-x-auto">
             {isLoading ? (
-              <div className="flex items-center justify-center h-40 text-slate-400 text-sm gap-2">
+              <div className="flex items-center justify-center h-40 text-muted-foreground/60 text-sm gap-2">
                 <RefreshCw className="h-4 w-4 animate-spin" />
                 Chargement du rapport…
               </div>
             ) : rows.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 gap-2 text-slate-400">
+              <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground/60">
                 <FileBarChart2 className="h-8 w-8 opacity-30" />
                 <p className="text-sm">Aucune donnée pour cette sélection</p>
               </div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
+                  <tr className="bg-muted/50 border-b border">
                     {cols.map(col => (
-                      <th key={col.key} className="text-left text-xs font-semibold text-slate-500 px-4 py-2.5 whitespace-nowrap">
+                      <th key={col.key} className="text-left text-xs font-semibold text-muted-foreground px-4 py-2.5 whitespace-nowrap">
                         {col.label}
                       </th>
                     ))}
@@ -661,9 +661,9 @@ export default function HrReports() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {rows.map((row, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={i} className="hover:bg-muted/50 transition-colors">
                       {cols.map(col => (
-                        <td key={col.key} className="px-4 py-2.5 text-slate-700 whitespace-nowrap">
+                        <td key={col.key} className="px-4 py-2.5 text-foreground whitespace-nowrap">
                           {renderCell(col, row[col.key])}
                         </td>
                       ))}

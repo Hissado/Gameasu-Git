@@ -32,13 +32,13 @@ function KpiCard({
     blue:    "text-blue-600 bg-blue-50",
   };
   const inner = (
-    <Card className={cn("shadow-sm border-slate-200 transition-all", href && "hover:border-primary/40 hover:shadow-md cursor-pointer")}>
+    <Card className={cn("shadow-sm border transition-all", href && "hover:border-primary/40 hover:shadow-md cursor-pointer")}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide truncate">{label}</p>
             {loading ? <Skeleton className="h-7 w-24 mt-2" /> : (
-              <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1 leading-tight tabular-nums break-words">{value}</p>
+              <p className="text-lg sm:text-2xl font-bold text-foreground mt-1 leading-tight tabular-nums break-words">{value}</p>
             )}
             {sub && !loading && <p className="text-xs text-muted-foreground mt-1.5 truncate">{sub}</p>}
           </div>
@@ -69,7 +69,7 @@ export function KpisSection({ kpis, loading, overdueInvoicesCount, totalAlerts, 
     <section data-tour="dash-kpis">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Vue d'ensemble</h2>
+          <h2 className="text-base font-bold text-foreground">Vue d'ensemble</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Indicateurs clés de votre organisation</p>
         </div>
       </div>

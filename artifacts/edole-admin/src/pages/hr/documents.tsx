@@ -31,7 +31,7 @@ const TYPE_COLOR: Record<string, string> = {
   medical: "bg-rose-50 text-rose-700 border-rose-200",
   certification: "bg-amber-50 text-amber-700 border-amber-200",
   payslip: "bg-orange-50 text-orange-700 border-orange-200",
-  other: "bg-slate-50 text-slate-600 border-slate-200",
+  other: "bg-muted/50 text-muted-foreground border",
 };
 
 async function uploadToStorage(file: File): Promise<string> {
@@ -133,9 +133,9 @@ export default function HrDocumentsPage() {
           const count = all.filter(d => d.type === type).length;
           if (count === 0) return null;
           return (
-            <button key={type} onClick={() => setTypeFilter(t => t === type ? "all" : type)} className={`p-3 rounded-lg border text-left transition-all hover:shadow-sm ${typeFilter === type ? TYPE_COLOR[type] : "bg-white border-slate-200"}`}>
-              <p className="text-xs text-slate-500">{label}</p>
-              <p className="text-xl font-bold text-slate-900">{count}</p>
+            <button key={type} onClick={() => setTypeFilter(t => t === type ? "all" : type)} className={`p-3 rounded-lg border text-left transition-all hover:shadow-sm ${typeFilter === type ? TYPE_COLOR[type] : "bg-card border"}`}>
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xl font-bold text-foreground">{count}</p>
             </button>
           );
         })}
@@ -220,9 +220,9 @@ export default function HrDocumentsPage() {
             <div>
               <label className="text-sm font-medium">Fichier</label>
               <div className="mt-1">
-                <label className={`flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploading ? "border-primary/40 bg-primary/5" : "border-slate-300 hover:border-primary/50 hover:bg-slate-50"}`}>
-                  {uploading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Upload className="w-4 h-4 text-slate-400" />}
-                  <span className="text-sm text-slate-600">
+                <label className={`flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploading ? "border-primary/40 bg-primary/5" : "border hover:border-primary/50 hover:bg-muted/50"}`}>
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Upload className="w-4 h-4 text-muted-foreground/60" />}
+                  <span className="text-sm text-muted-foreground">
                     {uploading ? "Envoi en cours…" : form.fileUrl ? "Fichier joint ✓ (cliquez pour changer)" : "Cliquez pour sélectionner un fichier"}
                   </span>
                   <input type="file" className="hidden" disabled={uploading} onChange={handleFileChange} />

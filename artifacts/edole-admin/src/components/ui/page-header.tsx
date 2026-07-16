@@ -56,7 +56,7 @@ export function StatusTabs<T extends string>({ tabs, active, onChange, className
           {tab.count !== undefined && tab.count > 0 && (
             <span className={cn(
               "text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1",
-              active === tab.key ? "bg-white/25 text-white" : "bg-muted text-muted-foreground"
+              active === tab.key ? "bg-card/25 text-white" : "bg-muted text-muted-foreground"
             )}>
               {tab.count}
             </span>

@@ -602,7 +602,7 @@ export default function PayrollRun() {
                           <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                             {l.attendanceSynced && <span className="text-xs text-blue-600">✓ présence sync</span>}
                             {(() => { const att = attendanceMap.get(l.collaboratorId); return att ? (
-                              <span className="text-[10px] text-slate-500 bg-slate-100 border border-slate-200 rounded px-1 py-px">
+                              <span className="text-[10px] text-muted-foreground bg-muted border border rounded px-1 py-px">
                                 {att.effectiveHours}h · {att.workDays}j{att.lateDays > 0 ? ` · ${att.lateDays} retard${att.lateDays > 1 ? "s" : ""}` : ""}
                               </span>
                             ) : null; })()}

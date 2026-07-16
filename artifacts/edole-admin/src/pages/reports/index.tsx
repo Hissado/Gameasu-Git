@@ -203,7 +203,7 @@ const SUPPLIER_STATUS_LABELS: Record<string, string> = {
 
 function Kpi({ label, value, hint, accent = "default" }: { label: string; value: string; hint?: string; accent?: "default" | "success" | "warning" | "danger" | "primary" }) {
   const tone: Record<string, string> = {
-    default: "bg-slate-50 border-slate-100 text-slate-800",
+    default: "bg-muted/50 border text-foreground",
     success: "bg-green-50 border-green-100 text-green-700",
     warning: "bg-amber-50 border-amber-100 text-amber-700",
     danger: "bg-red-50 border-red-100 text-red-700",
@@ -220,7 +220,7 @@ function Kpi({ label, value, hint, accent = "default" }: { label: string; value:
 
 function SectionTitle({ icon: Icon, children }: { icon: any; children: React.ReactNode }) {
   return (
-    <h3 className="flex items-center gap-2 font-bold text-sm uppercase tracking-wider text-slate-500 mb-3">
+    <h3 className="flex items-center gap-2 font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3">
       <Icon className="w-4 h-4 text-primary" /> {children}
     </h3>
   );
@@ -228,13 +228,13 @@ function SectionTitle({ icon: Icon, children }: { icon: any; children: React.Rea
 
 function FilterBar({ children, onClear }: { children: React.ReactNode; onClear?: () => void }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 p-2.5 bg-slate-50/80 border border-slate-200 rounded-xl flex-1">
-      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+    <div className="flex flex-wrap items-center gap-2 p-2.5 bg-muted/80 border border rounded-xl flex-1">
+      <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground/60 uppercase tracking-wider shrink-0">
         <SlidersHorizontal className="w-3 h-3" /> Filtres
       </div>
       {children}
       {onClear && (
-        <button onClick={onClear} className="ml-auto flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-700 transition-colors px-1">
+        <button onClick={onClear} className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors px-1">
           <X className="w-3 h-3" /> Réinitialiser
         </button>
       )}
@@ -245,7 +245,7 @@ function FilterBar({ children, onClear }: { children: React.ReactNode; onClear?:
 function FilterInput({ placeholder, value, onChange }: { placeholder: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="relative">
-      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/60 pointer-events-none" />
       <Input
         placeholder={placeholder}
         value={value}
@@ -253,7 +253,7 @@ function FilterInput({ placeholder, value, onChange }: { placeholder: string; va
         className="h-7 pl-7 pr-6 w-44 text-xs"
       />
       {value && (
-        <button onClick={() => onChange("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+        <button onClick={() => onChange("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground">
           <X className="w-3 h-3" />
         </button>
       )}
@@ -468,12 +468,12 @@ function StandardCatalogTab({ onOpen }: { onOpen: (tabTarget: string, reportName
           <div key={cat.id} className="border rounded-lg overflow-hidden">
             <button
               onClick={() => toggleCollapse(cat.id)}
-              className="w-full flex items-center gap-2.5 px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+              className="w-full flex items-center gap-2.5 px-4 py-3 bg-muted/50 hover:bg-muted transition-colors text-left"
             >
-              {isOpen ? <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />}
+              {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground/60 shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />}
               <Icon className="w-4 h-4 text-[#2563EB] shrink-0" />
-              <span className="font-semibold text-sm text-slate-800">{cat.label}</span>
-              <span className="ml-auto text-xs text-slate-400">{cat.reports.length} rapport{cat.reports.length > 1 ? "s" : ""}</span>
+              <span className="font-semibold text-sm text-foreground">{cat.label}</span>
+              <span className="ml-auto text-xs text-muted-foreground/60">{cat.reports.length} rapport{cat.reports.length > 1 ? "s" : ""}</span>
             </button>
             {isOpen && (
               <div className="divide-y">
@@ -507,26 +507,26 @@ function ReportRow({ report, tab, isFav, onOpen, onToggleFav }: {
   onToggleFav: (id: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 group">
+    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 group">
       <button
         className="flex-1 text-left min-w-0"
         onClick={() => onOpen(tab, report.name)}
       >
-        <span className="text-sm font-medium text-slate-800 hover:text-[#2563EB] hover:underline underline-offset-2 cursor-pointer leading-tight">
+        <span className="text-sm font-medium text-foreground hover:text-[#2563EB] hover:underline underline-offset-2 cursor-pointer leading-tight">
           {report.name}
         </span>
         <span className="block text-xs text-muted-foreground mt-0.5 truncate">{report.desc}</span>
       </button>
       <button
         onClick={() => onToggleFav(report.id)}
-        className={`shrink-0 p-1 rounded transition-colors ${isFav ? "text-amber-400 hover:text-amber-500" : "text-slate-200 hover:text-amber-300 group-hover:text-slate-300"}`}
+        className={`shrink-0 p-1 rounded transition-colors ${isFav ? "text-amber-400 hover:text-amber-500" : "text-slate-200 hover:text-amber-300 group-hover:text-muted-foreground/40"}`}
         title={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
       >
         <Star className={`w-4 h-4 ${isFav ? "fill-amber-400" : ""}`} />
       </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="shrink-0 p-1 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-all">
+          <button className="shrink-0 p-1 rounded text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all">
             <MoreHorizontal className="w-4 h-4" />
           </button>
         </DropdownMenuTrigger>
@@ -691,7 +691,7 @@ function DashboardsTab({ onOpen }: { onOpen: (tab: string, name: string) => void
     { id: "sales-dashboard",   title: "Tableau de bord Ventes",  desc: "Pipeline, commandes, conversions, top clients", icon: ShoppingCart, tab: "sales", color: "from-blue-50 to-white border-blue-200" },
     { id: "projects-dashboard",title: "Tableau de bord Projets", desc: "Avancement, budgets, retards, charge équipe",    icon: Briefcase, tab: "projects", color: "from-violet-50 to-white border-violet-200" },
     { id: "hr-dashboard",      title: "Tableau de bord RH",      desc: "Effectifs, présences, masse salariale, turnover",icon: Users, tab: "hr", color: "from-orange-50 to-white border-orange-200" },
-    { id: "ops-dashboard",     title: "Tableau de bord Parc",    desc: "Inventaire, locations, maintenances en cours",   icon: Wrench, tab: "parc", color: "from-slate-50 to-white border-slate-200" },
+    { id: "ops-dashboard",     title: "Tableau de bord Parc",    desc: "Inventaire, locations, maintenances en cours",   icon: Wrench, tab: "parc", color: "from-slate-50 to-white border" },
     { id: "overview-dashboard",title: "Vue d'ensemble globale",  desc: "Tous modules — tableau de pilotage exécutif",    icon: LayoutDashboard, tab: "overview", color: "from-amber-50 to-white border-amber-200" },
   ];
   return (
@@ -703,11 +703,11 @@ function DashboardsTab({ onOpen }: { onOpen: (tab: string, name: string) => void
             <button key={d.id} onClick={() => onOpen(d.tab, d.title)}
               className={`text-left border bg-gradient-to-br ${d.color} rounded-xl p-5 hover:shadow-md transition-shadow group`}>
               <div className="flex items-start justify-between mb-3">
-                <div className="p-2 bg-white rounded-lg shadow-sm border"><Icon className="w-5 h-5 text-[#2563EB]" /></div>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors mt-1" />
+                <div className="p-2 bg-card rounded-lg shadow-sm border"><Icon className="w-5 h-5 text-[#2563EB]" /></div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors mt-1" />
               </div>
-              <p className="font-semibold text-sm text-slate-800 mb-1">{d.title}</p>
-              <p className="text-xs text-slate-500 leading-relaxed">{d.desc}</p>
+              <p className="font-semibold text-sm text-foreground mb-1">{d.title}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{d.desc}</p>
             </button>
           );
         })}
@@ -887,7 +887,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
       {/* ─── En-tête ─── */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-slate-800">Rapport personnalisé</h3>
+          <h3 className="font-semibold text-foreground">Rapport personnalisé</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Configurez la source, les colonnes, les filtres et les regroupements.</p>
         </div>
         {generated && (
@@ -916,7 +916,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
           <div className="lg:col-span-1 space-y-4">
 
             {/* Nom du rapport */}
-            <Card className="shadow-none border-slate-200">
+            <Card className="shadow-none border">
               <CardContent className="pt-4 pb-4 space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nom du rapport</p>
                 <Input value={reportName} onChange={e => setReportName(e.target.value)}
@@ -925,7 +925,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
             </Card>
 
             {/* Source */}
-            <Card className="shadow-none border-slate-200">
+            <Card className="shadow-none border">
               <CardContent className="pt-4 pb-4 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Source de données</p>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -935,7 +935,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                       <button key={m.id} onClick={() => setModule(m.id)}
                         className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium border transition-all ${module === m.id
                           ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-[#2563EB]/50 hover:bg-primary/5"}`}>
+                          : "bg-card border text-muted-foreground hover:border-[#2563EB]/50 hover:bg-primary/5"}`}>
                         <Icon className="w-3.5 h-3.5 shrink-0" /> {m.label}
                       </button>
                     );
@@ -945,12 +945,12 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
             </Card>
 
             {/* Filtres */}
-            <Card className="shadow-none border-slate-200">
+            <Card className="shadow-none border">
               <CardContent className="pt-4 pb-4 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filtres</p>
                 <div className="space-y-2.5">
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-500 font-medium">Période</label>
+                    <label className="text-xs text-muted-foreground font-medium">Période</label>
                     <Select value={period} onValueChange={setPeriod}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -959,7 +959,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-500 font-medium">Statut</label>
+                    <label className="text-xs text-muted-foreground font-medium">Statut</label>
                     <Select value={statut} onValueChange={setStatut}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -969,7 +969,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-500 font-medium">Grouper par</label>
+                    <label className="text-xs text-muted-foreground font-medium">Grouper par</label>
                     <Select value={groupBy} onValueChange={setGroupBy}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -978,7 +978,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-500 font-medium">Trier par</label>
+                    <label className="text-xs text-muted-foreground font-medium">Trier par</label>
                     <Select value={sortBy} onValueChange={setSortBy}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -996,14 +996,14 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
         <div className={`space-y-4 ${generated ? "" : "lg:col-span-2"}`}>
 
           {!generated && (
-            <Card className="shadow-none border-slate-200">
+            <Card className="shadow-none border">
               <CardContent className="pt-4 pb-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Colonnes affichées</p>
                   <div className="flex gap-1.5">
                     <button onClick={() => setCols([...allCols])} className="text-xs text-[#2563EB] hover:underline">Tout</button>
-                    <span className="text-slate-300">|</span>
-                    <button onClick={() => setCols([])} className="text-xs text-slate-400 hover:underline">Aucune</button>
+                    <span className="text-muted-foreground/40">|</span>
+                    <button onClick={() => setCols([])} className="text-xs text-muted-foreground/60 hover:underline">Aucune</button>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -1012,8 +1012,8 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                     return (
                       <button key={c} onClick={() => setCols(prev => active ? prev.filter(x => x !== c) : [...prev, c])}
                         className={`px-2.5 py-1 rounded-md text-xs border font-medium transition-all ${active
-                          ? "bg-slate-800 text-white border-slate-800"
-                          : "bg-white border-slate-200 text-slate-500 hover:border-slate-400"}`}>
+                          ? "bg-slate-800 text-white border"
+                          : "bg-card border text-muted-foreground hover:border"}`}>
                         {active && <span className="mr-1 opacity-60">✓</span>}{c}
                       </button>
                     );
@@ -1024,10 +1024,10 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
           )}
 
           {/* Aperçu / résultat */}
-          <Card className="shadow-none border-slate-200">
+          <Card className="shadow-none border">
             <CardHeader className="pb-2 pt-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-slate-700">
+                <CardTitle className="text-sm font-semibold text-foreground">
                   {generated ? reportName : "Aperçu"}
                 </CardTitle>
                 {generated && (
@@ -1037,7 +1037,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
               {generated && (
                 <div className="pt-2">
                   <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
                     <Input value={search} onChange={e => setSearch(e.target.value)}
                       placeholder="Rechercher dans le rapport…" className="h-8 pl-8 text-xs" />
                   </div>
@@ -1051,7 +1051,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                     <Table2 className="w-5 h-5 text-[#2563EB]" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-600">Configurez et générez votre rapport</p>
+                    <p className="text-sm font-medium text-muted-foreground">Configurez et générez votre rapport</p>
                     <p className="text-xs text-muted-foreground mt-1">Sélectionnez la source, les filtres et les colonnes, puis cliquez sur Générer.</p>
                   </div>
                   <Button onClick={handleGenerate} disabled={generating || cols.length === 0}
@@ -1069,9 +1069,9 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                   ) : (
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b border-slate-100">
+                        <tr className="border-b border">
                           {(visibleCols.length > 0 ? visibleCols : Object.keys(previewRows[0])).map(c => (
-                            <th key={c} className="text-left py-2 px-3 font-semibold text-slate-500 whitespace-nowrap">{c}</th>
+                            <th key={c} className="text-left py-2 px-3 font-semibold text-muted-foreground whitespace-nowrap">{c}</th>
                           ))}
                         </tr>
                       </thead>
@@ -1079,7 +1079,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                         {previewRows.map((row, i) => {
                           const displayCols = visibleCols.length > 0 ? visibleCols : Object.keys(row);
                           return (
-                            <tr key={i} className={`border-b border-slate-50 ${i % 2 === 0 ? "bg-slate-50/40" : "bg-white"}`}>
+                            <tr key={i} className={`border-b border-slate-50 ${i % 2 === 0 ? "bg-muted/40" : "bg-card"}`}>
                               {displayCols.map(c => {
                                 const val = String(row[c] ?? "—");
                                 const isStatus = c === "Statut";
@@ -1088,7 +1088,7 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                                   "Payé": "bg-emerald-100 text-emerald-700",
                                   "En attente": "bg-amber-100 text-amber-700",
                                   "En retard": "bg-red-100 text-red-700",
-                                  "Brouillon": "bg-slate-100 text-slate-600",
+                                  "Brouillon": "bg-muted text-muted-foreground",
                                   "Terminé": "bg-blue-100 text-blue-700",
                                   "En cours": "bg-indigo-100 text-indigo-700",
                                   "Actif": "bg-emerald-100 text-emerald-700",
@@ -1096,9 +1096,9 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                                   "Réservé": "bg-amber-100 text-amber-700",
                                 };
                                 return (
-                                  <td key={c} className="py-2 px-3 whitespace-nowrap text-slate-700">
+                                  <td key={c} className="py-2 px-3 whitespace-nowrap text-foreground">
                                     {isStatus
-                                      ? <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColors[val] ?? "bg-slate-100 text-slate-600"}`}>{val}</span>
+                                      ? <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColors[val] ?? "bg-muted text-muted-foreground"}`}>{val}</span>
                                       : val
                                     }
                                   </td>
@@ -1130,9 +1130,9 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
 
       {/* Modèles suggérés */}
       {!generated && (
-        <Card className="shadow-none border-slate-200">
+        <Card className="shadow-none border">
           <CardHeader className="pb-2 pt-4">
-            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-1.5">
               <Star className="w-3.5 h-3.5 text-[#2563EB]" /> Modèles prêts à l'emploi
             </CardTitle>
           </CardHeader>
@@ -1151,8 +1151,8 @@ function CustomReportsTab({ onOpen }: { onOpen: (tab: string, name: string) => v
                 { label: "Avancement projets",          mod: "projects",   period: "this_quarter", desc: "Budget vs réalisé par projet" },
               ].map(t => (
                 <button key={t.label} onClick={() => { setModule(t.mod); setPeriod(t.period); setReportName(t.label); setCols((MODULE_COLS[t.mod]??[]).slice(0,5)); setGenerated(false); }}
-                  className="text-left border border-slate-200 rounded-lg p-3 hover:border-[#2563EB]/60 hover:bg-primary/5 transition-all group">
-                  <p className="text-xs font-semibold text-slate-700 group-hover:text-[#2563EB] transition-colors">{t.label}</p>
+                  className="text-left border border rounded-lg p-3 hover:border-[#2563EB]/60 hover:bg-primary/5 transition-all group">
+                  <p className="text-xs font-semibold text-foreground group-hover:text-[#2563EB] transition-colors">{t.label}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">{t.desc}</p>
                 </button>
               ))}
@@ -1190,7 +1190,7 @@ function PerformanceTab({ onOpen }: { onOpen: (tab: string, name: string) => voi
               className="text-left border rounded-xl p-4 hover:border-[#2563EB] hover:bg-primary/5 transition-all group">
               <div className="flex items-center gap-2 mb-2">
                 <Icon className="w-4 h-4 text-[#2563EB]" />
-                <span className="font-semibold text-sm text-slate-800 group-hover:text-[#2563EB] transition-colors">{r.name}</span>
+                <span className="font-semibold text-sm text-foreground group-hover:text-[#2563EB] transition-colors">{r.name}</span>
               </div>
               <p className="text-xs text-muted-foreground">{r.desc}</p>
             </button>
@@ -1311,7 +1311,7 @@ function ExportToolbar({ tab, periodQuery, reportName }: { tab: string; periodQu
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-3 py-1.5">
               Exporter — {reportName}
             </p>
             <DropdownMenuSeparator />
@@ -1332,10 +1332,10 @@ function ExportToolbar({ tab, periodQuery, reportName }: { tab: string; periodQu
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={saveTabAsPdf} disabled={saving}>
-              <FileText className="w-4 h-4 text-slate-500" /> Enregistrer en PDF
+              <FileText className="w-4 h-4 text-muted-foreground" /> Enregistrer en PDF
             </DropdownMenuItem>
             <DropdownMenuItem className="gap-2 cursor-pointer text-sm" onClick={handleShare}>
-              <Share2 className="w-4 h-4 text-slate-500" /> Copier le lien de partage
+              <Share2 className="w-4 h-4 text-muted-foreground" /> Copier le lien de partage
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -1363,7 +1363,7 @@ function ReportViewer({ tab, reportName, pf, onBack }: {
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Ligne 1 : navigation + titre + exports */}
       <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 text-slate-600 hover:text-slate-900 shrink-0">
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 text-muted-foreground hover:text-foreground shrink-0">
           <ArrowLeft className="w-4 h-4" /> Retour
         </Button>
         <div className="flex-1 min-w-0">
@@ -1446,7 +1446,7 @@ export default function ReportsPage() {
                 className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   active
                     ? "border-[#2563EB] text-[#2563EB]"
-                    : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" /> {t.label}
@@ -1570,8 +1570,8 @@ function OverviewTab({ periodQuery, period, comparePeriod, compareMode = "none" 
                   const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
                   return (
                     <div key={b.key} className="flex items-center gap-2">
-                      <span className="w-20 text-xs shrink-0 text-slate-600">{b.label}</span>
-                      <div className="flex-1 h-4 bg-slate-100 rounded overflow-hidden">
+                      <span className="w-20 text-xs shrink-0 text-muted-foreground">{b.label}</span>
+                      <div className="flex-1 h-4 bg-muted rounded overflow-hidden">
                         <div className="h-full rounded" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
                       </div>
                       <span className="text-xs font-bold w-28 text-right" style={{ color: clr }}>{formatFCFA(b.amount)}</span>
@@ -1589,7 +1589,7 @@ function OverviewTab({ periodQuery, period, comparePeriod, compareMode = "none" 
               <div className="space-y-1.5">
                 {payables.bySupplier.slice(0, 6).map((s) => (
                   <div key={s.supplier} className="flex items-center justify-between p-2 border rounded text-sm">
-                    <span className="font-medium text-slate-800 truncate">{s.supplier}</span>
+                    <span className="font-medium text-foreground truncate">{s.supplier}</span>
                     <span className="font-bold text-red-600 shrink-0 ml-2">{formatFCFA(s.total)}</span>
                   </div>
                 ))}
@@ -1936,19 +1936,19 @@ function ExecSummaryConfigDialog({
             const isExp = expanded === section.id;
             const hasThresh = !!(section.thresholds.metric && section.thresholds.metric !== "cashPosition");
             return (
-              <div key={section.id} className={`rounded-lg border transition-all ${section.enabled ? "border-slate-200 bg-white" : "border-slate-100 bg-slate-50/60"}`}>
+              <div key={section.id} className={`rounded-lg border transition-all ${section.enabled ? "border bg-card" : "border bg-muted/60"}`}>
                 <div className="flex items-center gap-3 px-3 py-2.5">
-                  <GripVertical className="w-4 h-4 text-slate-300 shrink-0 cursor-grab" />
+                  <GripVertical className="w-4 h-4 text-muted-foreground/40 shrink-0 cursor-grab" />
                   <Switch checked={section.enabled} onCheckedChange={() => toggle(section.id)} />
-                  <Icon className={`w-4 h-4 shrink-0 ${section.enabled ? "text-primary" : "text-slate-400"}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${section.enabled ? "text-primary" : "text-muted-foreground/60"}`} />
                   <input
                     value={section.title}
                     onChange={(e) => setTitle(section.id, e.target.value)}
-                    className="flex-1 text-sm font-medium bg-transparent border-0 outline-none focus:ring-0 placeholder:text-slate-400 min-w-0"
+                    className="flex-1 text-sm font-medium bg-transparent border-0 outline-none focus:ring-0 placeholder:text-muted-foreground/60 min-w-0"
                   />
                   {hasThresh && (
                     <button
-                      className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-0.5 px-2 py-1 rounded hover:bg-slate-100 transition-colors"
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 px-2 py-1 rounded hover:bg-muted transition-colors"
                       onClick={() => setExpanded(isExp ? null : section.id)}
                     >
                       Seuils <ChevronDown className={`w-3 h-3 transition-transform ${isExp ? "rotate-180" : ""}`} />
@@ -1956,24 +1956,24 @@ function ExecSummaryConfigDialog({
                   )}
                   <div className="flex gap-0.5 shrink-0">
                     <button onClick={() => moveUp(idx)} disabled={idx === 0}
-                      className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 transition-colors">
-                      <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+                      className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                      <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
                     <button onClick={() => moveDown(idx)} disabled={idx === draft.length - 1}
-                      className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 transition-colors">
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                      className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
                   </div>
                 </div>
 
                 {isExp && hasThresh && (
-                  <div className="px-12 pb-3 pt-1 border-t border-slate-100 bg-slate-50/80">
-                    <p className="text-xs text-slate-500 mb-2 mt-1 font-medium">
+                  <div className="px-12 pb-3 pt-1 border-t border bg-muted/80">
+                    <p className="text-xs text-muted-foreground mb-2 mt-1 font-medium">
                       {METRIC_LABELS[section.thresholds.metric ?? ""] ?? "Seuils"}
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-slate-500 block mb-1">
+                        <label className="text-xs text-muted-foreground block mb-1">
                           {section.thresholds.metric === "debtorsDays" ? "🟢 Seuil vert (max jours)" : "🟢 Seuil favorable (min %)"}
                         </label>
                         <input
@@ -1981,11 +1981,11 @@ function ExecSummaryConfigDialog({
                           value={section.thresholds.greenMin ?? ""}
                           onChange={(e) => setThresh(section.id, "greenMin", e.target.value ? Number(e.target.value) : undefined)}
                           placeholder={section.thresholds.metric === "debtorsDays" ? "ex: 30" : "ex: 20"}
-                          className="w-full h-8 rounded-md border border-slate-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full h-8 rounded-md border border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-slate-500 block mb-1">
+                        <label className="text-xs text-muted-foreground block mb-1">
                           {section.thresholds.metric === "debtorsDays" ? "🟡 Seuil orange (max jours)" : "🟡 Seuil stable (min %)"}
                         </label>
                         <input
@@ -1993,11 +1993,11 @@ function ExecSummaryConfigDialog({
                           value={section.thresholds.orangeMin ?? ""}
                           onChange={(e) => setThresh(section.id, "orangeMin", e.target.value ? Number(e.target.value) : undefined)}
                           placeholder={section.thresholds.metric === "debtorsDays" ? "ex: 60" : "ex: 10"}
-                          className="w-full h-8 rounded-md border border-slate-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full h-8 rounded-md border border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
                       </div>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1.5">
+                    <p className="text-xs text-muted-foreground/60 mt-1.5">
                       {section.thresholds.metric === "debtorsDays"
                         ? "≤ seuil vert = favorable · entre les deux = stable · > seuil orange = attention"
                         : "≥ seuil vert = favorable · entre les deux = stable · < seuil orange = attention"}
@@ -2256,7 +2256,7 @@ function IncomeStatementSubTab({ periodQuery }: { periodQuery: string }) {
                 <div className="space-y-1.5">
                   {incomeStatement!.revenues.map(r => (
                     <div key={r.code} className="flex items-center justify-between p-2 border rounded text-sm">
-                      <div><span className="font-mono text-xs text-slate-400 mr-2">{r.code}</span><span>{r.label}</span></div>
+                      <div><span className="font-mono text-xs text-muted-foreground/60 mr-2">{r.code}</span><span>{r.label}</span></div>
                       <span className="font-bold text-green-700 shrink-0 ml-2">{formatFCFA(r.amount)}</span>
                     </div>
                   ))}
@@ -2272,7 +2272,7 @@ function IncomeStatementSubTab({ periodQuery }: { periodQuery: string }) {
                 <div className="space-y-1.5">
                   {incomeStatement!.expenses.map(e => (
                     <div key={e.code} className="flex items-center justify-between p-2 border rounded text-sm">
-                      <div><span className="font-mono text-xs text-slate-400 mr-2">{e.code}</span><span>{e.label}</span></div>
+                      <div><span className="font-mono text-xs text-muted-foreground/60 mr-2">{e.code}</span><span>{e.label}</span></div>
                       <span className="font-bold text-red-700 shrink-0 ml-2">{formatFCFA(e.amount)}</span>
                     </div>
                   ))}
@@ -2320,7 +2320,7 @@ function BalanceSheetSubTab({ periodQuery }: { periodQuery: string }) {
           )}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h4 className="font-bold text-slate-700 flex items-center gap-2"><ArrowUpRight className="w-4 h-4 text-blue-500" /> ACTIF</h4>
+              <h4 className="font-bold text-foreground flex items-center gap-2"><ArrowUpRight className="w-4 h-4 text-blue-500" /> ACTIF</h4>
               {[
                 { label: "Immobilisations (cl. 2)", items: balanceSheet!.assets.fixedAssets, color: "blue" },
                 { label: "Stocks (cl. 3)", items: balanceSheet!.assets.stocks, color: "indigo" },
@@ -2328,12 +2328,12 @@ function BalanceSheetSubTab({ periodQuery }: { periodQuery: string }) {
                 { label: "Trésorerie (cl. 5)", items: balanceSheet!.assets.treasury, color: "green" },
               ].map(({ label, items, color }) => items.length > 0 && (
                 <Card key={label}>
-                  <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-600">{label}</CardTitle></CardHeader>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{label}</CardTitle></CardHeader>
                   <CardContent>
                     <div className="space-y-1">
                       {items.map(i => (
-                        <div key={i.code} className="flex items-center justify-between text-sm p-1.5 hover:bg-slate-50 rounded">
-                          <div><span className="font-mono text-xs text-slate-400 mr-2">{i.code}</span>{i.label}</div>
+                        <div key={i.code} className="flex items-center justify-between text-sm p-1.5 hover:bg-muted/50 rounded">
+                          <div><span className="font-mono text-xs text-muted-foreground/60 mr-2">{i.code}</span>{i.label}</div>
                           <span className={`font-bold text-${color}-600 shrink-0 ml-2`}>{formatFCFA(i.balance)}</span>
                         </div>
                       ))}
@@ -2346,18 +2346,18 @@ function BalanceSheetSubTab({ periodQuery }: { periodQuery: string }) {
               </div>
             </div>
             <div className="space-y-4">
-              <h4 className="font-bold text-slate-700 flex items-center gap-2"><ArrowDownRight className="w-4 h-4 text-red-500" /> PASSIF</h4>
+              <h4 className="font-bold text-foreground flex items-center gap-2"><ArrowDownRight className="w-4 h-4 text-red-500" /> PASSIF</h4>
               {[
                 { label: "Capitaux propres & emprunts (cl. 1)", items: balanceSheet!.liabilities.equity, color: "purple" },
                 { label: "Dettes fournisseurs (cl. 4)", items: balanceSheet!.liabilities.payables, color: "red" },
               ].map(({ label, items, color }) => items.length > 0 && (
                 <Card key={label}>
-                  <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-600">{label}</CardTitle></CardHeader>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{label}</CardTitle></CardHeader>
                   <CardContent>
                     <div className="space-y-1">
                       {items.map(i => (
-                        <div key={i.code} className="flex items-center justify-between text-sm p-1.5 hover:bg-slate-50 rounded">
-                          <div><span className="font-mono text-xs text-slate-400 mr-2">{i.code}</span>{i.label}</div>
+                        <div key={i.code} className="flex items-center justify-between text-sm p-1.5 hover:bg-muted/50 rounded">
+                          <div><span className="font-mono text-xs text-muted-foreground/60 mr-2">{i.code}</span>{i.label}</div>
                           <span className={`font-bold text-${color}-600 shrink-0 ml-2`}>{formatFCFA(i.balance)}</span>
                         </div>
                       ))}
@@ -2413,44 +2413,44 @@ function CashFlowSubTab({ periodQuery }: { periodQuery: string }) {
             </CardHeader>
             <CardContent>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between py-2 px-3 bg-slate-100 rounded font-semibold text-slate-700">
+                <div className="flex justify-between py-2 px-3 bg-muted rounded font-semibold text-foreground">
                   <span>A — Activités opérationnelles</span>
                   <span className={flowSign(data!.operating.total)}>{formatFCFA(data!.operating.total)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                <div className="flex justify-between py-1.5 px-6 text-muted-foreground">
                   <span>Résultat net</span><span>{formatFCFA(data!.operating.netIncome)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                <div className="flex justify-between py-1.5 px-6 text-muted-foreground">
                   <span>+ Dotations aux amortissements</span><span>{formatFCFA(data!.operating.depreciation)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                <div className="flex justify-between py-1.5 px-6 text-muted-foreground">
                   <span>Variation stocks</span><span className={flowSign(data!.operating.workingCapitalChanges.stocks)}>{formatFCFA(data!.operating.workingCapitalChanges.stocks)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                <div className="flex justify-between py-1.5 px-6 text-muted-foreground">
                   <span>Variation créances / dettes</span><span className={flowSign(data!.operating.workingCapitalChanges.receivablesAndPayables)}>{formatFCFA(data!.operating.workingCapitalChanges.receivablesAndPayables)}</span>
                 </div>
 
-                <div className="flex justify-between py-2 px-3 bg-slate-100 rounded font-semibold text-slate-700 mt-2">
+                <div className="flex justify-between py-2 px-3 bg-muted rounded font-semibold text-foreground mt-2">
                   <span>B — Activités d'investissement</span>
                   <span className={flowSign(data!.investing.total)}>{formatFCFA(data!.investing.total)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                <div className="flex justify-between py-1.5 px-6 text-muted-foreground">
                   <span>Variation immobilisations nettes</span><span className={flowSign(data!.investing.fixedAssetChanges)}>{formatFCFA(data!.investing.fixedAssetChanges)}</span>
                 </div>
 
-                <div className="flex justify-between py-2 px-3 bg-slate-100 rounded font-semibold text-slate-700 mt-2">
+                <div className="flex justify-between py-2 px-3 bg-muted rounded font-semibold text-foreground mt-2">
                   <span>C — Activités de financement</span>
                   <span className={flowSign(data!.financing.total)}>{formatFCFA(data!.financing.total)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 px-6 text-slate-600">
+                <div className="flex justify-between py-1.5 px-6 text-muted-foreground">
                   <span>Variation dettes financières</span><span className={flowSign(data!.financing.debtChanges)}>{formatFCFA(data!.financing.debtChanges)}</span>
                 </div>
 
-                <div className="flex justify-between py-2.5 px-3 rounded font-bold text-base border-t-2 border-slate-300 mt-2">
+                <div className="flex justify-between py-2.5 px-3 rounded font-bold text-base border-t-2 border mt-2">
                   <span>Variation nette de trésorerie (A+B+C)</span>
                   <span className={flowSign(data!.netCashChange)}>{formatFCFA(data!.netCashChange)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 px-3 text-slate-600">
+                <div className="flex justify-between py-1.5 px-3 text-muted-foreground">
                   <span>Trésorerie d'ouverture</span><span>{formatFCFA(data!.opening.cashAndEquivalents)}</span>
                 </div>
                 <div className="flex justify-between py-2 px-3 bg-primary/10 rounded font-bold border border-primary/20">
@@ -2508,7 +2508,7 @@ function FiscalKPI({ label, value, sub, icon: Icon, accent = "default" }: {
     success: "bg-emerald-50 border-emerald-200 text-emerald-700",
     danger:  "bg-red-50 border-red-200 text-red-700",
     warning: "bg-amber-50 border-amber-200 text-amber-700",
-    default: "bg-slate-50 border-slate-200 text-slate-700",
+    default: "bg-muted/50 border text-foreground",
   };
   return (
     <div className={`border rounded-xl p-4 ${colors[accent]}`}>
@@ -2557,7 +2557,7 @@ function SyntheseFiscaleSubTab({ periodQuery }: { periodQuery: string }) {
     <div className="space-y-5 pt-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">Synthèse fiscale</h3>
+          <h3 className="text-sm font-semibold text-foreground">Synthèse fiscale</h3>
           <p className="text-xs text-muted-foreground">
             Obligations fiscales temps réel · SYSCOHADA/UEMOA · {fromDate} – {toDate}
           </p>
@@ -2577,7 +2577,7 @@ function SyntheseFiscaleSubTab({ periodQuery }: { periodQuery: string }) {
       ) : (
         <>
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">TVA & Retenues</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">TVA & Retenues</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               <FiscalKPI label="TVA collectée" value={formatFCFA(summary.tva.collectee)} sub="Compte 443x" icon={TrendingUp} accent="default" />
               <FiscalKPI label="TVA déductible" value={formatFCFA(summary.tva.deductible)} sub="Compte 445x" icon={Receipt} accent="default" />
@@ -2592,7 +2592,7 @@ function SyntheseFiscaleSubTab({ periodQuery }: { periodQuery: string }) {
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Résultat fiscal & IS</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Résultat fiscal & IS</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <FiscalKPI label="Revenus (Cl. 7)" value={formatFCFA(summary.revenus)} icon={TrendingUp} accent="success" />
               <FiscalKPI label="Charges (Cl. 6)" value={formatFCFA(summary.charges)} icon={Receipt} accent="default" />
@@ -2669,7 +2669,7 @@ function BalanceGeneraleSubTab({ periodQuery }: { periodQuery: string }) {
     <div className="space-y-4 pt-4">
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">Balance générale des comptes</h3>
+          <h3 className="text-sm font-semibold text-foreground">Balance générale des comptes</h3>
           <p className="text-xs text-muted-foreground">Cumuls débits/crédits et soldes SYSCOHADA · {fromDate} – {toDate}</p>
         </div>
         {data && (
@@ -2706,20 +2706,20 @@ function BalanceGeneraleSubTab({ periodQuery }: { periodQuery: string }) {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
+              <thead className="bg-muted/50 border-b">
                 <tr>
-                  <th className="py-2.5 px-4 text-left text-xs font-semibold text-slate-500 w-24">Compte</th>
-                  <th className="py-2.5 px-4 text-left text-xs font-semibold text-slate-500">Libellé</th>
-                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">Total débit</th>
-                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">Total crédit</th>
-                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">Solde débiteur</th>
-                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">Solde créditeur</th>
+                  <th className="py-2.5 px-4 text-left text-xs font-semibold text-muted-foreground w-24">Compte</th>
+                  <th className="py-2.5 px-4 text-left text-xs font-semibold text-muted-foreground">Libellé</th>
+                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-muted-foreground">Total débit</th>
+                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-muted-foreground">Total crédit</th>
+                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-muted-foreground">Solde débiteur</th>
+                  <th className="py-2.5 px-4 text-right text-xs font-semibold text-muted-foreground">Solde créditeur</th>
                 </tr>
               </thead>
               <tbody>
                 {!data || rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-10 text-center text-sm text-slate-400 italic">
+                    <td colSpan={6} className="py-10 text-center text-sm text-muted-foreground/60 italic">
                       {!data ? "Aucun mouvement sur la période" : "Aucun compte ne correspond aux filtres"}
                     </td>
                   </tr>
@@ -2738,11 +2738,11 @@ function BalanceGeneraleSubTab({ periodQuery }: { periodQuery: string }) {
                           </td>
                         </tr>
                         {items.map(r => (
-                          <tr key={r.code} className="border-t border-slate-100 hover:bg-slate-50">
-                            <td className="py-2 px-4 font-mono font-semibold text-slate-700">{r.code}</td>
-                            <td className="py-2 px-4 text-slate-600">{r.label}</td>
-                            <td className="py-2 px-4 text-right font-mono tabular-nums text-slate-700">{formatFCFA(r.totalDebit)}</td>
-                            <td className="py-2 px-4 text-right font-mono tabular-nums text-slate-700">{formatFCFA(r.totalCredit)}</td>
+                          <tr key={r.code} className="border-t border hover:bg-muted/50">
+                            <td className="py-2 px-4 font-mono font-semibold text-foreground">{r.code}</td>
+                            <td className="py-2 px-4 text-muted-foreground">{r.label}</td>
+                            <td className="py-2 px-4 text-right font-mono tabular-nums text-foreground">{formatFCFA(r.totalDebit)}</td>
+                            <td className="py-2 px-4 text-right font-mono tabular-nums text-foreground">{formatFCFA(r.totalCredit)}</td>
                             <td className="py-2 px-4 text-right font-mono tabular-nums text-blue-700">{r.soldDebit ? formatFCFA(r.soldDebit) : "—"}</td>
                             <td className="py-2 px-4 text-right font-mono tabular-nums text-red-600">{r.soldCredit ? formatFCFA(r.soldCredit) : "—"}</td>
                           </tr>
@@ -2753,12 +2753,12 @@ function BalanceGeneraleSubTab({ periodQuery }: { periodQuery: string }) {
                 )}
               </tbody>
               {data && rows.length > 0 && (
-                <tfoot className="bg-slate-100 border-t-2 border-amber-400">
+                <tfoot className="bg-muted border-t-2 border-amber-400">
                   <tr>
-                    <td colSpan={2} className="py-2.5 px-4 text-sm font-bold text-slate-700 text-right">Totaux généraux</td>
-                    <td className="py-2.5 px-4 text-right font-bold font-mono tabular-nums text-slate-800">{formatFCFA(data.totalDebit)}</td>
-                    <td className="py-2.5 px-4 text-right font-bold font-mono tabular-nums text-slate-800">{formatFCFA(data.totalCredit)}</td>
-                    <td colSpan={2} className="py-2.5 px-4 text-right text-xs font-semibold text-slate-500">
+                    <td colSpan={2} className="py-2.5 px-4 text-sm font-bold text-foreground text-right">Totaux généraux</td>
+                    <td className="py-2.5 px-4 text-right font-bold font-mono tabular-nums text-foreground">{formatFCFA(data.totalDebit)}</td>
+                    <td className="py-2.5 px-4 text-right font-bold font-mono tabular-nums text-foreground">{formatFCFA(data.totalCredit)}</td>
+                    <td colSpan={2} className="py-2.5 px-4 text-right text-xs font-semibold text-muted-foreground">
                       {isBalanced ? "✓ Équilibrée" : `Écart : ${formatFCFA(Math.abs(data.totalDebit - data.totalCredit))}`}
                     </td>
                   </tr>
@@ -2875,14 +2875,14 @@ function DecaissementSubTab({ periodQuery }: { periodQuery: string }) {
                   <div className="space-y-2.5 mt-1">
                     {data.methodBreakdown.map(m => (
                       <div key={m.method} className="flex items-center gap-3">
-                        <span className="text-sm text-slate-600 w-36 shrink-0">{METHOD_LABELS[m.method] ?? m.method}</span>
+                        <span className="text-sm text-muted-foreground w-36 shrink-0">{METHOD_LABELS[m.method] ?? m.method}</span>
                         <div className="flex-1">
-                          <div className="h-2 bg-slate-100 rounded-full">
+                          <div className="h-2 bg-muted rounded-full">
                             <div className="h-2 rounded-full bg-orange-400" style={{ width: `${Math.min(m.percent, 100)}%` }} />
                           </div>
                         </div>
                         <span className="text-sm font-semibold tabular-nums w-28 text-right">{formatFCFA(m.amount)}</span>
-                        <span className="text-xs text-slate-400 w-8 text-right">{m.percent}%</span>
+                        <span className="text-xs text-muted-foreground/60 w-8 text-right">{m.percent}%</span>
                       </div>
                     ))}
                   </div>
@@ -2904,23 +2904,23 @@ function DecaissementSubTab({ periodQuery }: { periodQuery: string }) {
               <CardContent className="p-0">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-50 border-b">
-                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Fournisseur</th>
-                      <th className="py-2 px-4 text-center text-xs font-semibold text-slate-500">Paiements</th>
-                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Montant</th>
-                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-muted-foreground">Fournisseur</th>
+                      <th className="py-2 px-4 text-center text-xs font-semibold text-muted-foreground">Paiements</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-muted-foreground">Montant</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-muted-foreground">% Total</th>
                       <th className="py-2 px-4"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.topSuppliers.map(s => (
-                      <tr key={s.name} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-2.5 px-4 font-medium text-slate-800">{s.name}</td>
-                        <td className="py-2.5 px-4 text-center text-slate-500">{s.count}</td>
+                      <tr key={s.name} className="border-b border hover:bg-muted/50">
+                        <td className="py-2.5 px-4 font-medium text-foreground">{s.name}</td>
+                        <td className="py-2.5 px-4 text-center text-muted-foreground">{s.count}</td>
                         <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(s.total)}</td>
-                        <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{s.percent}%</td>
+                        <td className="py-2.5 px-4 text-right text-muted-foreground tabular-nums">{s.percent}%</td>
                         <td className="py-2.5 px-4">
-                          <div className="h-1.5 bg-slate-100 rounded-full w-20 ml-auto">
+                          <div className="h-1.5 bg-muted rounded-full w-20 ml-auto">
                             <div className="h-1.5 rounded-full bg-orange-400" style={{ width: `${Math.min(s.percent, 100)}%` }} />
                           </div>
                         </td>
@@ -2949,36 +2949,36 @@ function DecaissementSubTab({ periodQuery }: { periodQuery: string }) {
             </CardHeader>
             <CardContent className="p-0">
               {filtered.length === 0 ? (
-                <div className="py-10 text-center text-sm text-slate-400">Aucun résultat pour ces filtres.</div>
+                <div className="py-10 text-center text-sm text-muted-foreground/60">Aucun résultat pour ces filtres.</div>
               ) : (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-50 border-b">
-                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Date</th>
-                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Fournisseur</th>
-                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Réf. facture</th>
-                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Mode</th>
-                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Référence</th>
-                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Montant</th>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-muted-foreground">Date</th>
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-muted-foreground">Fournisseur</th>
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-muted-foreground">Réf. facture</th>
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-muted-foreground">Mode</th>
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-muted-foreground">Référence</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-muted-foreground">Montant</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map(t => (
-                      <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-2.5 px-4 text-slate-500 tabular-nums">{new Date(t.date).toLocaleDateString("fr-FR")}</td>
-                        <td className="py-2.5 px-4 font-medium text-slate-800">{t.supplier}</td>
-                        <td className="py-2.5 px-4 text-slate-500 font-mono text-xs">{t.invoiceRef}</td>
+                      <tr key={t.id} className="border-b border hover:bg-muted/50">
+                        <td className="py-2.5 px-4 text-muted-foreground tabular-nums">{new Date(t.date).toLocaleDateString("fr-FR")}</td>
+                        <td className="py-2.5 px-4 font-medium text-foreground">{t.supplier}</td>
+                        <td className="py-2.5 px-4 text-muted-foreground font-mono text-xs">{t.invoiceRef}</td>
                         <td className="py-2.5 px-4">
                           <Badge variant="outline" className="text-xs">{METHOD_LABELS[t.method] ?? t.method}</Badge>
                         </td>
-                        <td className="py-2.5 px-4 text-slate-400 text-xs font-mono">{t.reference || "—"}</td>
+                        <td className="py-2.5 px-4 text-muted-foreground/60 text-xs font-mono">{t.reference || "—"}</td>
                         <td className="py-2.5 px-4 text-right font-semibold tabular-nums text-red-600">{formatFCFA(t.amount)}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-50 border-t">
-                      <td colSpan={5} className="py-2 px-4 text-sm font-semibold text-slate-600">Total affiché</td>
+                    <tr className="bg-muted/50 border-t">
+                      <td colSpan={5} className="py-2 px-4 text-sm font-semibold text-muted-foreground">Total affiché</td>
                       <td className="py-2 px-4 text-right font-bold tabular-nums text-red-700">{formatFCFA(filtered.reduce((s, t) => s + t.amount, 0))}</td>
                     </tr>
                   </tfoot>
@@ -3031,7 +3031,7 @@ function ReconciliationSubTab({ periodQuery }: { periodQuery: string }) {
                         <div>
                           <span className="font-semibold text-sm">{acc.name}</span>
                           {acc.bankName && <span className="text-xs text-muted-foreground ml-2">{acc.bankName}</span>}
-                          {acc.accountNumber && <span className="font-mono text-xs text-slate-400 ml-2">{acc.accountNumber}</span>}
+                          {acc.accountNumber && <span className="font-mono text-xs text-muted-foreground/60 ml-2">{acc.accountNumber}</span>}
                         </div>
                         <Badge variant={acc.unreconciledCount === 0 ? "default" : "destructive"} className="text-xs">
                           {acc.unreconciledCount === 0 ? "Équilibré" : `${acc.unreconciledCount} à traiter`}
@@ -3040,19 +3040,19 @@ function ReconciliationSubTab({ periodQuery }: { periodQuery: string }) {
                       <div className="grid grid-cols-4 gap-2 text-xs text-center">
                         <div className="bg-green-50 p-2 rounded">
                           <div className="font-bold text-green-700">{formatFCFA(acc.totalIn)}</div>
-                          <div className="text-slate-500">Entrées</div>
+                          <div className="text-muted-foreground">Entrées</div>
                         </div>
                         <div className="bg-red-50 p-2 rounded">
                           <div className="font-bold text-red-700">{formatFCFA(acc.totalOut)}</div>
-                          <div className="text-slate-500">Sorties</div>
+                          <div className="text-muted-foreground">Sorties</div>
                         </div>
                         <div className="bg-emerald-50 p-2 rounded">
                           <div className="font-bold text-emerald-700">{acc.reconciledCount}</div>
-                          <div className="text-slate-500">Rapprochés</div>
+                          <div className="text-muted-foreground">Rapprochés</div>
                         </div>
-                        <div className={`p-2 rounded ${acc.unreconciledCount > 0 ? "bg-red-50" : "bg-slate-50"}`}>
-                          <div className={`font-bold ${acc.unreconciledCount > 0 ? "text-red-600" : "text-slate-400"}`}>{acc.unreconciledCount}</div>
-                          <div className="text-slate-500">En attente</div>
+                        <div className={`p-2 rounded ${acc.unreconciledCount > 0 ? "bg-red-50" : "bg-muted/50"}`}>
+                          <div className={`font-bold ${acc.unreconciledCount > 0 ? "text-red-600" : "text-muted-foreground/60"}`}>{acc.unreconciledCount}</div>
+                          <div className="text-muted-foreground">En attente</div>
                         </div>
                       </div>
                     </div>
@@ -3118,7 +3118,7 @@ function pctChange(curr: number, prev: number): number | null {
 
 function TrendBadge({ curr, prev, higherIsBetter = true }: { curr: number; prev: number; higherIsBetter?: boolean }) {
   const pct = pctChange(curr, prev);
-  if (pct === null) return <span className="text-xs text-slate-400">N/A vs N-1</span>;
+  if (pct === null) return <span className="text-xs text-muted-foreground/60">N/A vs N-1</span>;
   const isPositive = higherIsBetter ? pct >= 0 : pct <= 0;
   const sign = pct >= 0 ? "+" : "";
   return (
@@ -3137,29 +3137,29 @@ function HealthRow({ label, value, prev, target, targetLabel, importance, higher
   const numPrev = typeof prev === "number" ? prev : parseFloat(String(prev));
   const change = !isNaN(numVal) && !isNaN(numPrev) ? pctChange(numVal, numPrev) : null;
   const improving = change !== null ? (higherIsBetter ? change >= 0 : change <= 0) : null;
-  const dot = improving === null ? "bg-slate-200" : improving ? "bg-emerald-400" : "bg-red-400";
+  const dot = improving === null ? "bg-muted" : improving ? "bg-emerald-400" : "bg-red-400";
   const importanceColor: Record<string, string> = {
     "Critique": "text-red-600 bg-red-50", "Élevé": "text-amber-600 bg-amber-50",
-    "Moyen": "text-blue-600 bg-blue-50", "Faible": "text-slate-500 bg-slate-50",
+    "Moyen": "text-blue-600 bg-blue-50", "Faible": "text-muted-foreground bg-muted/50",
   };
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50/50">
+    <tr className="border-b border hover:bg-muted/50">
       <td className="py-2 px-3 flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
-        <span className="text-sm text-slate-700">{label}</span>
+        <span className="text-sm text-foreground">{label}</span>
       </td>
       <td className="py-2 px-3 text-right text-sm font-semibold tabular-nums">{typeof value === "number" ? formatFCFA(value) : value}</td>
-      <td className="py-2 px-3 text-right text-sm text-slate-500 tabular-nums">{typeof prev === "number" ? formatFCFA(prev) : prev}</td>
-      <td className="py-2 px-3 text-center text-xs text-slate-400">{target ?? "—"}</td>
+      <td className="py-2 px-3 text-right text-sm text-muted-foreground tabular-nums">{typeof prev === "number" ? formatFCFA(prev) : prev}</td>
+      <td className="py-2 px-3 text-center text-xs text-muted-foreground/60">{target ?? "—"}</td>
       <td className="py-2 px-3 text-center">
         {change !== null ? (
           <span className={`text-xs font-medium ${improving ? "text-emerald-600" : "text-red-500"}`}>
             {change >= 0 ? "+" : ""}{change}%
           </span>
-        ) : <span className="text-xs text-slate-300">—</span>}
+        ) : <span className="text-xs text-muted-foreground/40">—</span>}
       </td>
       <td className="py-2 px-3">
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${importanceColor[importance] ?? "text-slate-500"}`}>{importance}</span>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${importanceColor[importance] ?? "text-muted-foreground"}`}>{importance}</span>
       </td>
     </tr>
   );
@@ -3262,14 +3262,14 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
   ];
   const impColor: Record<string, string> = {
     "Critique": "text-red-600 bg-red-50", "Élevé": "text-amber-600 bg-amber-50",
-    "Moyen": "text-blue-600 bg-blue-50", "Faible": "text-slate-500 bg-slate-50",
+    "Moyen": "text-blue-600 bg-blue-50", "Faible": "text-muted-foreground bg-muted/50",
   };
 
   return (
     <div className="space-y-4 pt-4">
 
       {/* ── En-tête rapport — design bicolonne ───────────────────────── */}
-      <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+      <div className="rounded-xl overflow-hidden border border shadow-sm">
         {/* Barre or Gameasu */}
         <div className="h-1 w-full bg-[#2563EB]" />
         <div className="flex">
@@ -3290,13 +3290,13 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
             </div>
           </div>
           {/* Colonne droite blanche */}
-          <div className="flex-1 bg-white px-6 py-5 flex items-start justify-between">
+          <div className="flex-1 bg-card px-6 py-5 flex items-start justify-between">
             <div>
               <p className="text-[9px] uppercase tracking-[0.3em] text-[#2563EB] font-bold mb-1">Exercice {yearLabel}</p>
               <h1 className="text-2xl font-extrabold tracking-tight text-[#0F1A3A] leading-[1.0]">
                 Rapport<br /><span className="text-[#2563EB]">de Gestion</span>
               </h1>
-              <p className="text-slate-500 text-sm mt-2">{periodLabel}</p>
+              <p className="text-muted-foreground text-sm mt-2">{periodLabel}</p>
             </div>
             <div className="flex flex-col items-end gap-2 mt-1 flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -3317,13 +3317,13 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               </div>
               <div className="text-right">
                 <p className={`text-xl font-extrabold ${hsColor}`}>{hs.score}%</p>
-                <p className="text-[10px] text-slate-400">{hsStatus}</p>
+                <p className="text-[10px] text-muted-foreground/60">{hsStatus}</p>
               </div>
             </div>
           </div>
         </div>
         {/* KPI footer blanc */}
-        <div className="border-t border-slate-100 bg-slate-50 px-6 py-3 grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-200">
+        <div className="border-t border bg-muted/50 px-6 py-3 grid grid-cols-2 md:grid-cols-4 divide-x divide-border">
           {[
             { label: "Produits", value: fmtCompact(f.revenues) + " FCFA", color: "text-emerald-600" },
             { label: "Charges",  value: fmtCompact(f.expenses) + " FCFA",  color: "text-red-600" },
@@ -3331,7 +3331,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
             { label: "Trésorerie",   value: fmtCompact(liq.cashPosition) + " FCFA", color: liq.cashPosition >= 0 ? "text-sky-600" : "text-red-600" },
           ].map(item => (
             <div key={item.label} className="px-4 first:pl-0">
-              <div className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">{item.label}</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground/60 font-semibold">{item.label}</div>
               <div className={`text-sm font-bold mt-0.5 ${item.color}`}>{item.value}</div>
             </div>
           ))}
@@ -3346,7 +3346,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
           return (
             <button key={p.id} onClick={() => setActivePage(p.id)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all border ${
-                isActive ? "bg-primary text-white border-primary shadow-sm" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                isActive ? "bg-primary text-white border-primary shadow-sm" : "bg-card text-muted-foreground border hover:bg-muted/50 hover:border"
               }`}>
               <span className={`text-[10px] font-bold ${isActive ? "opacity-70" : "opacity-40"}`}>{p.num}</span>
               <Icon className="w-3.5 h-3.5" />
@@ -3362,7 +3362,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
       {activePage === "overview" && (
         <div className="space-y-6">
           <Card className="overflow-hidden">
-            <CardHeader className="pb-4 border-b border-slate-100">
+            <CardHeader className="pb-4 border-b border">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">
@@ -3372,11 +3372,11 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                   <CardDescription className="mt-0.5">{periodLabel} · Usage exclusif Direction &amp; Gouvernance</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs gap-1.5 text-slate-500 hover:text-slate-700"
+                  <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
                     onClick={() => setCfgOpen(true)}>
                     <Settings2 className="w-3.5 h-3.5" /> Configurer
                   </Button>
-                  <div className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+                  <div className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted/50 border border rounded-full px-3 py-1">
                     <span className={`w-1.5 h-1.5 rounded-full ${activeSections.some(s => computeSectionSignal(s.id, s.thresholds, d) === "warning") ? "bg-amber-400" : "bg-emerald-400"}`} />
                     {activeSections.some(s => computeSectionSignal(s.id, s.thresholds, d) === "warning") ? "Points d'attention identifiés" : "Vue d'ensemble favorable"}
                   </div>
@@ -3390,18 +3390,18 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                 const Icon = SECTION_ICONS[section.id] ?? FileText;
                 const { headline, body } = buildSectionContent(section.id, d);
                 return (
-                  <div key={section.id} className="flex gap-0 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+                  <div key={section.id} className="flex gap-0 border-b border last:border-0 hover:bg-muted/50 transition-colors">
                     <div className={`w-1 shrink-0 ${signal === "positive" ? "bg-emerald-400" : signal === "warning" ? "bg-amber-400" : "bg-sky-400"}`} />
                     <div className="flex-1 px-5 py-4">
                       <div className="flex items-start justify-between gap-3 mb-1.5">
                         <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-slate-400 shrink-0" />
-                          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{section.title}</span>
+                          <Icon className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                          <span className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wide">{section.title}</span>
                         </div>
                         <span className={`shrink-0 text-xs font-medium border rounded-full px-2.5 py-0.5 ${cfg.badge}`}>{cfg.label}</span>
                       </div>
-                      <p className="text-sm font-semibold text-slate-800 mb-1">{headline}</p>
-                      <p className="text-sm text-slate-500 leading-relaxed">{body}</p>
+                      <p className="text-sm font-semibold text-foreground mb-1">{headline}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
                     </div>
                   </div>
                 );
@@ -3437,9 +3437,9 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <LayoutDashboard className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold text-slate-700">Chiffres Clés — {periodLabel}</h3>
+              <h3 className="text-sm font-semibold text-foreground">Chiffres Clés — {periodLabel}</h3>
             </div>
-            <p className="text-xs text-slate-500">Métriques Période vs Exercice en cours (YTD au {new Date(d.period.to).toLocaleDateString("fr-FR")})</p>
+            <p className="text-xs text-muted-foreground">Métriques Période vs Exercice en cours (YTD au {new Date(d.period.to).toLocaleDateString("fr-FR")})</p>
           </div>
           {[
             {
@@ -3461,15 +3461,15 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
           ].map((row, i) => (
             <div key={i} className="grid md:grid-cols-2 gap-4">
               {[row.p, row.y].map(card => (
-                <div key={card.label} className={`bg-white border border-slate-200 rounded-lg p-5 border-l-4 ${card.color} shadow-sm`}>
+                <div key={card.label} className={`bg-card border border rounded-lg p-5 border-l-4 ${card.color} shadow-sm`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide leading-tight">{card.label}</span>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-tight">{card.label}</span>
                     <TrendBadge curr={card.value} prev={card.prev} higherIsBetter={card.higherIsBetter} />
                   </div>
-                  <div className="text-3xl font-bold text-slate-900 mb-2">
+                  <div className="text-3xl font-bold text-foreground mb-2">
                     {card.isPercent ? `${card.value}%` : fmtCompact(card.value) + " FCFA"}
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">{card.desc}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
                 </div>
               ))}
             </div>
@@ -3495,14 +3495,14 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                   <span className={`text-2xl font-black ${hsColor}`}>{hs.score}%</span>
                 </div>
               </div>
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Indice de Santé</div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">Indice de Santé</div>
               <div className={`text-sm font-bold mt-1 ${hsColor}`}>{hsStatus}</div>
             </Card>
             <Card className="flex flex-col items-center justify-center py-6">
-              <div className="text-5xl font-black text-slate-800 mb-1">
-                {hs.achieved}<span className="text-2xl text-slate-400">/{hs.total}</span>
+              <div className="text-5xl font-black text-foreground mb-1">
+                {hs.achieved}<span className="text-2xl text-muted-foreground/60">/{hs.total}</span>
               </div>
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Objectifs atteints</div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Objectifs atteints</div>
               <div className="mt-3 flex flex-wrap justify-center gap-1 px-4">
                 {hs.checks.map((c, i) => (
                   <span key={i} className={`w-5 h-5 rounded-full flex items-center justify-center ${c.achieved ? "bg-emerald-100" : "bg-red-100"}`}>
@@ -3512,10 +3512,10 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               </div>
             </Card>
             <Card className="flex flex-col items-center justify-center py-6">
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Période analysée</div>
-              <div className="text-sm font-bold text-slate-800 text-center px-4">{periodLabel}</div>
-              <div className="text-xs text-slate-400 mt-2">vs N-1</div>
-              <div className="text-sm text-slate-600 font-medium mt-1 text-center px-4">{fmtDate2(d.prev.from)} – {fmtDate2(d.prev.to)}</div>
+              <div className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wide mb-3">Période analysée</div>
+              <div className="text-sm font-bold text-foreground text-center px-4">{periodLabel}</div>
+              <div className="text-xs text-muted-foreground/60 mt-2">vs N-1</div>
+              <div className="text-sm text-muted-foreground font-medium mt-1 text-center px-4">{fmtDate2(d.prev.from)} – {fmtDate2(d.prev.to)}</div>
               <div className={`mt-3 text-xs font-medium px-3 py-1 rounded-full ${watchpoints.length === 0 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
                 {watchpoints.length === 0 ? "Aucun point d'attention" : `${watchpoints.length} point${watchpoints.length > 1 ? "s" : ""} d'attention`}
               </div>
@@ -3535,14 +3535,14 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="py-2 px-3 text-left text-xs font-semibold text-slate-600">Indicateur</th>
-                      <th className="py-2 px-3 text-right text-xs font-semibold text-slate-600">Période</th>
-                      <th className="py-2 px-3 text-right text-xs font-semibold text-slate-600">N-1</th>
-                      <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Cible</th>
-                      <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Période vs Cible</th>
-                      <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Atteint</th>
-                      <th className="py-2 px-3 text-center text-xs font-semibold text-slate-600">Importance</th>
+                    <tr className="bg-muted/50 border-b border">
+                      <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground">Indicateur</th>
+                      <th className="py-2 px-3 text-right text-xs font-semibold text-muted-foreground">Période</th>
+                      <th className="py-2 px-3 text-right text-xs font-semibold text-muted-foreground">N-1</th>
+                      <th className="py-2 px-3 text-center text-xs font-semibold text-muted-foreground">Cible</th>
+                      <th className="py-2 px-3 text-center text-xs font-semibold text-muted-foreground">Période vs Cible</th>
+                      <th className="py-2 px-3 text-center text-xs font-semibold text-muted-foreground">Atteint</th>
+                      <th className="py-2 px-3 text-center text-xs font-semibold text-muted-foreground">Importance</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3551,8 +3551,8 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                       if (rows.length === 0) return null;
                       return (
                         <React.Fragment key={cat}>
-                          <tr className="bg-slate-50">
-                            <td colSpan={7} className="py-1.5 px-3 text-xs font-bold text-slate-500 uppercase tracking-wide">{cat}</td>
+                          <tr className="bg-muted/50">
+                            <td colSpan={7} className="py-1.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wide">{cat}</td>
                           </tr>
                           {rows.map((c, i) => {
                             const currFmt = c.isPercent ? `${c.curr}%` : c.isMoney ? formatFCFA(c.curr) : String(c.curr);
@@ -3562,15 +3562,15 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                               ? (c.isMoney ? formatFCFA(diffFromTarget) : `${Math.round(diffFromTarget * 10) / 10}${c.isPercent ? "%" : ""}`)
                               : "—";
                             return (
-                              <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/50">
-                                <td className="py-2.5 px-3 text-sm text-slate-700">{c.label}</td>
+                              <tr key={i} className="border-b border hover:bg-muted/50">
+                                <td className="py-2.5 px-3 text-sm text-foreground">{c.label}</td>
                                 <td className="py-2.5 px-3 text-right text-sm font-semibold tabular-nums">{currFmt}</td>
-                                <td className="py-2.5 px-3 text-right text-sm text-slate-500 tabular-nums">{prevFmt}</td>
-                                <td className="py-2.5 px-3 text-center text-xs text-slate-400">{c.target}</td>
+                                <td className="py-2.5 px-3 text-right text-sm text-muted-foreground tabular-nums">{prevFmt}</td>
+                                <td className="py-2.5 px-3 text-center text-xs text-muted-foreground/60">{c.target}</td>
                                 <td className="py-2.5 px-3 text-center">
                                   {diffFromTarget !== null
                                     ? <span className={`text-xs font-medium tabular-nums ${c.achieved ? "text-emerald-600" : "text-red-500"}`}>{vsTarget}</span>
-                                    : <span className="text-xs text-slate-300">—</span>}
+                                    : <span className="text-xs text-muted-foreground/40">—</span>}
                                 </td>
                                 <td className="py-2.5 px-3 text-center">
                                   {c.achieved
@@ -3578,7 +3578,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                                     : <AlertTriangle className="w-4 h-4 text-red-400 mx-auto" />}
                                 </td>
                                 <td className="py-2.5 px-3 text-center">
-                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${impColor[c.importance] ?? "text-slate-500"}`}>{c.importance}</span>
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${impColor[c.importance] ?? "text-muted-foreground"}`}>{c.importance}</span>
                                 </td>
                               </tr>
                             );
@@ -3604,7 +3604,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               { label: "Seuil de rentabilité", value: be.bep !== null ? fmtCompact(be.bep) + " FCFA" : "N/A", cls: "bg-orange-50 border-orange-200 text-orange-700" },
               { label: "Chiffre d'affaires", value: fmtCompact(f.revenues) + " FCFA", cls: "bg-emerald-50 border-emerald-200 text-emerald-700" },
               { label: "Charges opérationnelles", value: fmtCompact(f.expenses) + " FCFA", cls: "bg-red-50 border-red-200 text-red-700" },
-              { label: "Charges fixes", value: fmtCompact(be.fixedCosts) + " FCFA", cls: "bg-slate-50 border-slate-200 text-slate-700" },
+              { label: "Charges fixes", value: fmtCompact(be.fixedCosts) + " FCFA", cls: "bg-muted/50 border text-foreground" },
               { label: "Charges variables", value: fmtCompact(be.variableCosts) + " FCFA", cls: "bg-sky-50 border-sky-200 text-sky-700" },
               { label: be.operatingResult >= 0 ? "Résultat d'exploitation" : "Perte d'exploitation", value: fmtCompact(Math.abs(be.operatingResult)) + " FCFA", cls: be.operatingResult >= 0 ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-700" },
             ].map(m => (
@@ -3646,7 +3646,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-600 leading-relaxed mb-4">
+              <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                 {be.bep !== null
                   ? `Le seuil de rentabilité pour la période ${periodLabel} s'élève à ${formatFCFA(be.bep)}. Il représente le chiffre d'affaires à partir duquel l'entité couvre intégralement ses charges opérationnelles.`
                   : "Le seuil de rentabilité ne peut être calculé (aucun produit enregistré sur la période). "}
@@ -3664,9 +3664,9 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                   { label: "Charges fixes / CA", value: f.revenues > 0 ? `${Math.round((be.fixedCosts / f.revenues) * 100)}%` : "N/A" },
                   { label: "Charges variables / CA", value: f.revenues > 0 ? `${Math.round((be.variableCosts / f.revenues) * 100)}%` : "N/A" },
                 ].map(s => (
-                  <div key={s.label} className="bg-slate-50 rounded-lg p-3">
-                    <div className="text-xs text-slate-500 mb-1">{s.label}</div>
-                    <div className="text-lg font-bold text-slate-800">{s.value}</div>
+                  <div key={s.label} className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground mb-1">{s.label}</div>
+                    <div className="text-lg font-bold text-foreground">{s.value}</div>
                   </div>
                 ))}
               </div>
@@ -3681,7 +3681,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
       {activePage === "revenues" && (
         <div className="space-y-4">
           {d.series.length === 0
-            ? <Card><CardContent className="py-12 text-center text-slate-400 text-sm">Aucune donnée mensuelle disponible.</CardContent></Card>
+            ? <Card><CardContent className="py-12 text-center text-muted-foreground/60 text-sm">Aucune donnée mensuelle disponible.</CardContent></Card>
             : <>
               <Card>
                 <CardHeader>
@@ -3751,14 +3751,14 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: "Créances clients", value: formatFCFA(liq.arOutstanding), color: "text-primary", sub: `Dont ${formatFCFA(liq.arOverdue)} en retard` },
-              { label: "DSO", value: `${liq.debtorsDays}j`, color: "text-slate-700", sub: "Délai moyen de recouvrement" },
+              { label: "DSO", value: `${liq.debtorsDays}j`, color: "text-foreground", sub: "Délai moyen de recouvrement" },
               { label: "Dettes fournisseurs", value: formatFCFA(liq.apOutstanding), color: "text-amber-600", sub: `Dont ${formatFCFA(liq.apOverdue)} en retard` },
-              { label: "DPO", value: `${liq.creditorsDays}j`, color: "text-slate-700", sub: "Délai moyen de paiement" },
+              { label: "DPO", value: `${liq.creditorsDays}j`, color: "text-foreground", sub: "Délai moyen de paiement" },
             ].map(k => (
               <Card key={k.label} className="p-3">
-                <div className="text-xs text-slate-500 mb-1">{k.label}</div>
+                <div className="text-xs text-muted-foreground mb-1">{k.label}</div>
                 <div className={`text-xl font-bold ${k.color}`}>{k.value}</div>
-                <div className="text-xs text-slate-400 mt-0.5">{k.sub}</div>
+                <div className="text-xs text-muted-foreground/60 mt-0.5">{k.sub}</div>
               </Card>
             ))}
           </div>
@@ -3774,22 +3774,22 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               <CardContent className="p-0">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-50 border-b">
-                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Client</th>
-                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Encours</th>
-                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">En retard</th>
-                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-muted-foreground">Client</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-muted-foreground">Encours</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-muted-foreground">En retard</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-muted-foreground">% Total</th>
                       <th className="py-2 px-4"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {d.topArClients.map(c => (
-                      <tr key={c.name} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-2.5 px-4 font-medium text-slate-800">{c.name}</td>
+                      <tr key={c.name} className="border-b border hover:bg-muted/50">
+                        <td className="py-2.5 px-4 font-medium text-foreground">{c.name}</td>
                         <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(c.outstanding)}</td>
-                        <td className={`py-2.5 px-4 text-right tabular-nums ${c.overdue > 0 ? "text-red-600 font-semibold" : "text-slate-400"}`}>{c.overdue > 0 ? formatFCFA(c.overdue) : "—"}</td>
-                        <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{c.percent}%</td>
-                        <td className="py-2.5 px-4"><div className="h-1.5 bg-slate-100 rounded-full w-24 ml-auto"><div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.min(c.percent, 100)}%` }} /></div></td>
+                        <td className={`py-2.5 px-4 text-right tabular-nums ${c.overdue > 0 ? "text-red-600 font-semibold" : "text-muted-foreground/60"}`}>{c.overdue > 0 ? formatFCFA(c.overdue) : "—"}</td>
+                        <td className="py-2.5 px-4 text-right text-muted-foreground tabular-nums">{c.percent}%</td>
+                        <td className="py-2.5 px-4"><div className="h-1.5 bg-muted rounded-full w-24 ml-auto"><div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.min(c.percent, 100)}%` }} /></div></td>
                       </tr>
                     ))}
                   </tbody>
@@ -3809,22 +3809,22 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               <CardContent className="p-0">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-50 border-b">
-                      <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500">Fournisseur</th>
-                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">Encours</th>
-                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">En retard</th>
-                      <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500">% Total</th>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="py-2 px-4 text-left text-xs font-semibold text-muted-foreground">Fournisseur</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-muted-foreground">Encours</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-muted-foreground">En retard</th>
+                      <th className="py-2 px-4 text-right text-xs font-semibold text-muted-foreground">% Total</th>
                       <th className="py-2 px-4"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {d.topApSuppliers.map(s => (
-                      <tr key={s.name} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-2.5 px-4 font-medium text-slate-800">{s.name}</td>
+                      <tr key={s.name} className="border-b border hover:bg-muted/50">
+                        <td className="py-2.5 px-4 font-medium text-foreground">{s.name}</td>
                         <td className="py-2.5 px-4 text-right font-semibold tabular-nums">{formatFCFA(s.outstanding)}</td>
-                        <td className={`py-2.5 px-4 text-right tabular-nums ${s.overdue > 0 ? "text-red-600 font-semibold" : "text-slate-400"}`}>{s.overdue > 0 ? formatFCFA(s.overdue) : "—"}</td>
-                        <td className="py-2.5 px-4 text-right text-slate-500 tabular-nums">{s.percent}%</td>
-                        <td className="py-2.5 px-4"><div className="h-1.5 bg-slate-100 rounded-full w-24 ml-auto"><div className="h-1.5 rounded-full bg-amber-400" style={{ width: `${Math.min(s.percent, 100)}%` }} /></div></td>
+                        <td className={`py-2.5 px-4 text-right tabular-nums ${s.overdue > 0 ? "text-red-600 font-semibold" : "text-muted-foreground/60"}`}>{s.overdue > 0 ? formatFCFA(s.overdue) : "—"}</td>
+                        <td className="py-2.5 px-4 text-right text-muted-foreground tabular-nums">{s.percent}%</td>
+                        <td className="py-2.5 px-4"><div className="h-1.5 bg-muted rounded-full w-24 ml-auto"><div className="h-1.5 rounded-full bg-amber-400" style={{ width: `${Math.min(s.percent, 100)}%` }} /></div></td>
                       </tr>
                     ))}
                   </tbody>
@@ -3841,7 +3841,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
       {activePage === "expenses" && (
         <div className="space-y-4">
           {d.expenseBreakdown.length === 0
-            ? <Card><CardContent className="py-12 text-center text-slate-400 text-sm">Aucune donnée de charges disponible.</CardContent></Card>
+            ? <Card><CardContent className="py-12 text-center text-muted-foreground/60 text-sm">Aucune donnée de charges disponible.</CardContent></Card>
             : <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -3854,15 +3854,15 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                 <div className="space-y-2">
                   {d.expenseBreakdown.map(e => (
                     <div key={e.code} className="flex items-center gap-3">
-                      <div className="w-28 shrink-0"><span className="font-mono text-xs text-slate-400">{e.code}</span></div>
+                      <div className="w-28 shrink-0"><span className="font-mono text-xs text-muted-foreground/60">{e.code}</span></div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-sm text-slate-700 truncate">{e.label}</span>
+                          <span className="text-sm text-foreground truncate">{e.label}</span>
                           <span className="text-sm font-semibold tabular-nums shrink-0 ml-2">{formatFCFA(e.amount)}</span>
                         </div>
-                        <div className="h-1.5 bg-slate-100 rounded-full"><div className="h-1.5 rounded-full bg-red-400" style={{ width: `${Math.min(e.percent, 100)}%` }} /></div>
+                        <div className="h-1.5 bg-muted rounded-full"><div className="h-1.5 rounded-full bg-red-400" style={{ width: `${Math.min(e.percent, 100)}%` }} /></div>
                       </div>
-                      <span className="text-xs text-slate-400 w-10 text-right shrink-0">{e.percent}%</span>
+                      <span className="text-xs text-muted-foreground/60 w-10 text-right shrink-0">{e.percent}%</span>
                     </div>
                   ))}
                 </div>
@@ -3889,21 +3889,21 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
               {[
                 { label: "Projets actifs", value: String(ops.activeProjects), note: `sur ${ops.totalProjects} total`, color: "text-primary" },
                 { label: "Projets terminés", value: String(ops.completedProjects), note: "", color: "text-emerald-600" },
-                { label: "Projets en retard", value: String(ops.overdueProjects), note: ops.overdueProjects > 0 ? "⚠ Action requise" : "", color: ops.overdueProjects > 0 ? "text-red-600" : "text-slate-400" },
-                { label: "Budget total actifs", value: formatFCFA(ops.totalBudget), note: "", color: "text-slate-700" },
+                { label: "Projets en retard", value: String(ops.overdueProjects), note: ops.overdueProjects > 0 ? "⚠ Action requise" : "", color: ops.overdueProjects > 0 ? "text-red-600" : "text-muted-foreground/60" },
+                { label: "Budget total actifs", value: formatFCFA(ops.totalBudget), note: "", color: "text-foreground" },
                 { label: "Avancement moyen", value: `${ops.avgProgress}%`, note: ops.avgProgress >= 75 ? "Bon rythme" : ops.avgProgress >= 40 ? "En cours" : "Attention", color: ops.avgProgress >= 75 ? "text-emerald-600" : ops.avgProgress >= 40 ? "text-amber-600" : "text-red-600" },
               ].map(item => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                  <span className="text-sm text-slate-600">{item.label}</span>
+                <div key={item.label} className="flex items-center justify-between py-2 border-b border last:border-0">
+                  <span className="text-sm text-muted-foreground">{item.label}</span>
                   <div className="text-right">
                     <span className={`font-semibold text-sm ${item.color}`}>{item.value}</span>
-                    {item.note && <div className="text-xs text-slate-400">{item.note}</div>}
+                    {item.note && <div className="text-xs text-muted-foreground/60">{item.note}</div>}
                   </div>
                 </div>
               ))}
               {ops.avgProgress > 0 && (
                 <div className="pt-1">
-                  <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
                     <span>Avancement global</span><span>{ops.avgProgress}%</span>
                   </div>
                   <Progress value={ops.avgProgress} className="h-2" />
@@ -3922,29 +3922,29 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-600">Effectif actif</span>
+              <div className="flex items-center justify-between py-2 border-b border">
+                <span className="text-sm text-muted-foreground">Effectif actif</span>
                 <span className="font-bold text-lg text-primary">{d.hr.activeCollab}</span>
               </div>
               {Object.entries(d.hr.byContractType).length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Contrats actifs</div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Contrats actifs</div>
                   {Object.entries(d.hr.byContractType).map(([type, count]) => (
-                    <div key={type} className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0">
-                      <span className="text-sm text-slate-600">{type}</span>
+                    <div key={type} className="flex items-center justify-between py-1.5 border-b border last:border-0">
+                      <span className="text-sm text-muted-foreground">{type}</span>
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 bg-slate-100 rounded-full w-16">
+                        <div className="h-1.5 bg-muted rounded-full w-16">
                           <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.round((count / d.hr.activeCollab) * 100)}%` }} />
                         </div>
                         <span className="text-sm font-semibold w-6 text-right">{count}</span>
-                        <span className="text-xs text-slate-400 w-10">{Math.round((count / d.hr.activeCollab) * 100)}%</span>
+                        <span className="text-xs text-muted-foreground/60 w-10">{Math.round((count / d.hr.activeCollab) * 100)}%</span>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
               {d.hr.activeCollab === 0 && (
-                <p className="text-sm text-slate-400 py-4 text-center">Aucun collaborateur actif enregistré.</p>
+                <p className="text-sm text-muted-foreground/60 py-4 text-center">Aucun collaborateur actif enregistré.</p>
               )}
             </div>
           </CardContent>
@@ -3953,7 +3953,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
       )}
 
       {/* ── Note de bas de rapport ────────────────────────────────── */}
-      <div className="text-center py-3 text-xs text-slate-400 border-t border-slate-200">
+      <div className="text-center py-3 text-xs text-muted-foreground/60 border-t border">
         Rapport généré le {generatedAt} · Données au {new Date(d.period.to).toLocaleDateString("fr-FR")} · Gameasu Analytics
       </div>
 
@@ -4132,12 +4132,12 @@ function AgedReceivablesSection({ clientSearch }: { clientSearch: string }) {
                 const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
                 return (
                   <div key={b.key} className="flex items-center gap-3">
-                    <div className="w-28 shrink-0 text-xs font-medium text-slate-600">{b.label}</div>
-                    <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
+                    <div className="w-28 shrink-0 text-xs font-medium text-muted-foreground">{b.label}</div>
+                    <div className="flex-1 h-5 bg-muted rounded overflow-hidden">
                       <div className="h-full rounded transition-all" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
                     </div>
                     <div className="w-32 text-right text-sm font-bold" style={{ color: clr }}>{formatFCFA(b.amount)}</div>
-                    <div className="w-16 text-right text-xs text-slate-400">{b.count} fact.</div>
+                    <div className="w-16 text-right text-xs text-muted-foreground/60">{b.count} fact.</div>
                   </div>
                 );
               })}
@@ -4147,8 +4147,8 @@ function AgedReceivablesSection({ clientSearch }: { clientSearch: string }) {
                 <SectionTitle icon={Users}>Par client {clientSearch && <span className="text-primary normal-case font-normal text-xs">(filtrés)</span>}</SectionTitle>
                 <div className="space-y-1">
                   {filteredByClient.slice(0, 8).map((c) => (
-                    <div key={c.client} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-slate-50/50">
-                      <span className="font-medium text-slate-800">{c.client}</span>
+                    <div key={c.client} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-muted/50">
+                      <span className="font-medium text-foreground">{c.client}</span>
                       <span className="font-bold text-primary">{formatFCFA(c.total)}</span>
                     </div>
                   ))}
@@ -4350,12 +4350,12 @@ function PurchasesTab({ periodQuery, period, comparePeriod, compareMode = "none"
                   const clr = b.key === "current" ? "#10b981" : b.key === "1-30" ? "#f59e0b" : b.key === "31-60" ? "#f97316" : b.key === "61-90" ? "#ef4444" : "#991b1b";
                   return (
                     <div key={b.key} className="flex items-center gap-3">
-                      <div className="w-28 shrink-0 text-xs font-medium text-slate-600">{b.label}</div>
-                      <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
+                      <div className="w-28 shrink-0 text-xs font-medium text-muted-foreground">{b.label}</div>
+                      <div className="flex-1 h-5 bg-muted rounded overflow-hidden">
                         <div className="h-full rounded transition-all" style={{ width: `${b.percent}%`, backgroundColor: clr }} />
                       </div>
                       <div className="w-32 text-right text-sm font-bold" style={{ color: clr }}>{formatFCFA(b.amount)}</div>
-                      <div className="w-16 text-right text-xs text-slate-400">{b.count} fact.</div>
+                      <div className="w-16 text-right text-xs text-muted-foreground/60">{b.count} fact.</div>
                     </div>
                   );
                 })}
@@ -4366,7 +4366,7 @@ function PurchasesTab({ periodQuery, period, comparePeriod, compareMode = "none"
                   <div className="space-y-1">
                     {filteredAgedBySupplier.slice(0, 8).map((s) => (
                       <div key={s.supplier} className="flex items-center justify-between p-2.5 border rounded-md text-sm hover:bg-red-50/30">
-                        <span className="font-medium text-slate-800">{s.supplier}</span>
+                        <span className="font-medium text-foreground">{s.supplier}</span>
                         <span className="font-bold text-red-600">{formatFCFA(s.total)}</span>
                       </div>
                     ))}
@@ -4381,10 +4381,10 @@ function PurchasesTab({ periodQuery, period, comparePeriod, compareMode = "none"
                       .filter(d => !supplierSearch || d.supplier.toLowerCase().includes(supplierSearch.toLowerCase()))
                       .slice(0, 10)
                       .map((d) => (
-                        <div key={d.id} className="grid grid-cols-4 items-center gap-2 p-2.5 border rounded-md text-xs hover:bg-slate-50/50">
-                          <span className="font-medium text-slate-800 truncate">{d.reference}</span>
-                          <span className="text-slate-500 truncate">{d.supplier}</span>
-                          <span className="text-slate-400">{d.dueDate ? new Date(d.dueDate).toLocaleDateString("fr-FR") : "—"} · {d.daysOverdue > 0 ? `${d.daysOverdue}j retard` : "À échoir"}</span>
+                        <div key={d.id} className="grid grid-cols-4 items-center gap-2 p-2.5 border rounded-md text-xs hover:bg-muted/50">
+                          <span className="font-medium text-foreground truncate">{d.reference}</span>
+                          <span className="text-muted-foreground truncate">{d.supplier}</span>
+                          <span className="text-muted-foreground/60">{d.dueDate ? new Date(d.dueDate).toLocaleDateString("fr-FR") : "—"} · {d.daysOverdue > 0 ? `${d.daysOverdue}j retard` : "À échoir"}</span>
                           <span className="font-bold text-red-600 text-right">{formatFCFA(d.outstanding)}</span>
                         </div>
                       ))}
@@ -4727,8 +4727,8 @@ function HrTab({ periodQuery, period, comparePeriod, compareMode = "none" }: Tab
                           <div className="text-xs text-muted-foreground">{ROLE_LABELS[u.role] || u.role}</div>
                         </div>
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-slate-600">Tâches actives <strong>{u.activeTasks}</strong></span>
-                          <span className="text-slate-600">Projets <strong>{u.activeProjects}</strong></span>
+                          <span className="text-muted-foreground">Tâches actives <strong>{u.activeTasks}</strong></span>
+                          <span className="text-muted-foreground">Projets <strong>{u.activeProjects}</strong></span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -4797,7 +4797,7 @@ function HrTab({ periodQuery, period, comparePeriod, compareMode = "none" }: Tab
                           <div key={d.department} className="flex items-center justify-between p-2.5 border rounded-md text-sm">
                             <span className="font-medium">{d.department}</span>
                             <div className="flex items-center gap-4">
-                              <span className="text-slate-500">{d.count} sal.</span>
+                              <span className="text-muted-foreground">{d.count} sal.</span>
                               <span className="font-bold text-primary">{formatFCFA(d.gross)}</span>
                             </div>
                           </div>
@@ -4898,10 +4898,10 @@ function ParcTab() {
               <SectionTitle icon={CheckCircle2}>Détail par catégorie</SectionTitle>
               <div className="space-y-2">
                 {Object.entries(stock.byCategory).map(([cat, s]) => (
-                  <div key={cat} className="flex items-center justify-between p-3 border border-border rounded-md hover:bg-slate-50/50">
+                  <div key={cat} className="flex items-center justify-between p-3 border border-border rounded-md hover:bg-muted/50">
                     <div className="font-semibold text-sm">{cat}</div>
                     <div className="flex items-center gap-4 text-sm">
-                      <span className="text-slate-500">Total <strong className="text-slate-800">{s.total}</strong></span>
+                      <span className="text-muted-foreground">Total <strong className="text-foreground">{s.total}</strong></span>
                       <span className="text-green-600">Dispo <strong>{s.available}</strong></span>
                       <span className="text-blue-600">Loc. <strong>{s.rented}</strong></span>
                       <span className="text-yellow-600">Maint. <strong>{s.maintenance}</strong></span>

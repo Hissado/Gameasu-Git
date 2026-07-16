@@ -33,7 +33,7 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   client:   { label: "Client",   cls: "bg-blue-100 text-blue-700 border-blue-200" },
   prospect: { label: "Prospect", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   lead:     { label: "Lead",     cls: "bg-purple-50 text-purple-700 border-purple-200" },
-  inactive: { label: "Inactif",  cls: "bg-slate-100 text-slate-500 border-slate-200" },
+  inactive: { label: "Inactif",  cls: "bg-muted text-muted-foreground border" },
   vip:      { label: "VIP",      cls: "bg-rose-100 text-rose-700 border-rose-200" },
 };
 
@@ -121,7 +121,7 @@ export default function ClientsWorkspace() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {clients.map(c => {
-          const stBadge = STATUS_LABELS[c.status] ?? { label: c.status, cls: "bg-slate-100 text-slate-500 border-slate-200" };
+          const stBadge = STATUS_LABELS[c.status] ?? { label: c.status, cls: "bg-muted text-muted-foreground border" };
           const typeIcon = TYPE_ICON[c.type || "entreprise"] || "🏢";
           return (
             <div key={c.id} className="relative group">
@@ -150,12 +150,12 @@ export default function ClientsWorkspace() {
 
                     <div className="flex items-center gap-1.5 flex-wrap mt-1">
                       {c.email && (
-                        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-slate-50 border border-border rounded px-1.5 py-0.5">
+                        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-muted/50 border border-border rounded px-1.5 py-0.5">
                           <Mail className="w-2.5 h-2.5" /> {c.email.split("@")[0]}…
                         </span>
                       )}
                       {c.phone && (
-                        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-slate-50 border border-border rounded px-1.5 py-0.5">
+                        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-muted/50 border border-border rounded px-1.5 py-0.5">
                           <Phone className="w-2.5 h-2.5" /> {c.phone}
                         </span>
                       )}
@@ -169,7 +169,7 @@ export default function ClientsWorkspace() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-md bg-white/90 hover:bg-white border border-border shadow-sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-md bg-card/90 hover:bg-card border border-border shadow-sm"
                       title="Actions"
                     >
                       <MoreVertical className="w-3.5 h-3.5 text-muted-foreground" />

@@ -80,8 +80,8 @@ function CreateInspectionDialog({ open, onClose }: { open: boolean; onClose: () 
             <Label>Type d'inspection *</Label>
             <div className="flex gap-2">
               {[
-                { v: "departure", label: "État des lieux Départ", cls: form.type === "departure" ? "bg-blue-600 text-white border-blue-600" : "border-slate-200 text-slate-600" },
-                { v: "return",    label: "État des lieux Retour", cls: form.type === "return"    ? "bg-purple-600 text-white border-purple-600" : "border-slate-200 text-slate-600" },
+                { v: "departure", label: "État des lieux Départ", cls: form.type === "departure" ? "bg-blue-600 text-white border-blue-600" : "border text-muted-foreground" },
+                { v: "return",    label: "État des lieux Retour", cls: form.type === "return"    ? "bg-purple-600 text-white border-purple-600" : "border text-muted-foreground" },
               ].map(opt => (
                 <button
                   key={opt.v}
@@ -190,7 +190,7 @@ export default function InspectionsList() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Contrat, inspecteur…"
-                className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+                className="pl-9 bg-muted/50 focus-visible:ring-primary h-9"
               />
             </div>
           </div>
@@ -200,15 +200,15 @@ export default function InspectionsList() {
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Contrat Lié</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Type</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Inspecteur</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Date</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600 text-center">Litige</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600 text-right">Retenue</TableHead>
-                  <TableHead className="font-semibold text-slate-600 text-right">Action</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Contrat Lié</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Type</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Inspecteur</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Date</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-muted-foreground text-center">Litige</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-muted-foreground text-right">Retenue</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -226,8 +226,8 @@ export default function InspectionsList() {
                   </TableRow>
                 ) : (
                   inspections.map((inspection: any) => (
-                    <TableRow key={inspection.id} className="hover:bg-slate-50/50">
-                      <TableCell className="font-mono font-bold text-slate-600 text-sm">
+                    <TableRow key={inspection.id} className="hover:bg-muted/50">
+                      <TableCell className="font-mono font-bold text-muted-foreground text-sm">
                         {(inspection.rentalReference || inspection.rentalId?.substring(0, 8) || "—").toUpperCase()}
                       </TableCell>
                       <TableCell>
@@ -239,8 +239,8 @@ export default function InspectionsList() {
                           <Badge variant="outline">{inspection.type || inspection.kind || "—"}</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell font-medium text-slate-800">{inspection.conductedByName || "—"}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-slate-600">{formatDate(inspection.inspectionDate || inspection.createdAt)}</TableCell>
+                      <TableCell className="hidden sm:table-cell font-medium text-foreground">{inspection.conductedByName || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{formatDate(inspection.inspectionDate || inspection.createdAt)}</TableCell>
                       <TableCell className="hidden md:table-cell text-center">
                         {inspection.hasDispute ? (
                           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 flex items-center justify-center gap-1 w-fit mx-auto">
@@ -252,8 +252,8 @@ export default function InspectionsList() {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-right font-semibold text-slate-700">
-                        {inspection.retentionAmount ? formatFCFA(inspection.retentionAmount) : <span className="text-slate-400 italic text-xs">—</span>}
+                      <TableCell className="hidden md:table-cell text-right font-semibold text-foreground">
+                        {inspection.retentionAmount ? formatFCFA(inspection.retentionAmount) : <span className="text-muted-foreground/60 italic text-xs">—</span>}
                       </TableCell>
                       <TableCell className="text-right">
                         <Link href={`/inspections/comparer/${inspection.rentalId}`}>

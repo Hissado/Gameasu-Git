@@ -178,7 +178,7 @@ function PresenceDot({ status }: { status?: string | null }) {
 
 function ReadReceipt({ readByCount }: { readByCount: number }) {
   if (readByCount > 1) return <CheckCheck className="w-3.5 h-3.5 text-sky-500" />;
-  return <Check className="w-3.5 h-3.5 text-slate-400" />;
+  return <Check className="w-3.5 h-3.5 text-muted-foreground/60" />;
 }
 
 function VoicePlayer({ url, durationSeconds }: { url: string; durationSeconds?: number | null }) {
@@ -208,14 +208,14 @@ function VoicePlayer({ url, durationSeconds }: { url: string; durationSeconds?: 
           }}
           className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shrink-0 disabled:opacity-50"
         >
-          {playing ? <span className="w-3 h-3 bg-white rounded-sm" /> : <span className="ml-0.5 border-l-[10px] border-l-white border-y-[7px] border-y-transparent" />}
+          {playing ? <span className="w-3 h-3 bg-card rounded-sm" /> : <span className="ml-0.5 border-l-[10px] border-l-white border-y-[7px] border-y-transparent" />}
         </button>
       )}
       <div className="flex-1">
         <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
           <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
         </div>
-        <div className="text-[10px] text-slate-500 mt-1">
+        <div className="text-[10px] text-muted-foreground mt-1">
           {error ? <span className="text-rose-600">Audio indisponible</span> : formatDuration(durationSeconds)}
         </div>
       </div>
@@ -243,14 +243,14 @@ function LocationCard({ metadata }: { metadata: any }) {
     <a
       href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`}
       target="_blank" rel="noreferrer"
-      className="block w-[260px] rounded-lg overflow-hidden border border-slate-200"
+      className="block w-[260px] rounded-lg overflow-hidden border border"
     >
-      <div className="h-24 bg-slate-100 bg-gradient-to-br from-emerald-50 to-sky-50 flex items-center justify-center">
+      <div className="h-24 bg-muted bg-gradient-to-br from-emerald-50 to-sky-50 flex items-center justify-center">
         <MapPin className="w-10 h-10 text-rose-500" />
       </div>
-      <div className="p-2 bg-white text-xs">
-        <div className="font-semibold text-slate-700 truncate">{metadata?.label || "Position partagée"}</div>
-        <div className="text-slate-500">{lat.toFixed(5)}, {lng.toFixed(5)}</div>
+      <div className="p-2 bg-card text-xs">
+        <div className="font-semibold text-foreground truncate">{metadata?.label || "Position partagée"}</div>
+        <div className="text-muted-foreground">{lat.toFixed(5)}, {lng.toFixed(5)}</div>
       </div>
     </a>
   );
@@ -261,23 +261,23 @@ function AttachmentPreview({ a }: { a: Attachment }) {
   if (a.mime.startsWith("image/")) {
     return (
       <a href={src} target="_blank" rel="noreferrer" className="block">
-        <img src={src} alt={a.filename || "image"} className="rounded-lg max-w-[300px] max-h-[260px] object-cover border border-slate-200" />
+        <img src={src} alt={a.filename || "image"} className="rounded-lg max-w-[300px] max-h-[260px] object-cover border border" />
       </a>
     );
   }
   if (a.mime.startsWith("video/")) {
-    return <video src={src} controls className="rounded-lg max-w-[320px] max-h-[260px] border border-slate-200" />;
+    return <video src={src} controls className="rounded-lg max-w-[320px] max-h-[260px] border border" />;
   }
   if (a.mime.startsWith("audio/")) {
     // Les messages vocaux sont rendus uniquement comme texte transcrit (cf. bulle).
     return null;
   }
   return (
-    <a href={src} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg max-w-[280px] hover:bg-slate-50">
+    <a href={src} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-card border border rounded-lg max-w-[280px] hover:bg-muted/50">
       <FileText className="w-8 h-8 text-rose-500 shrink-0" />
       <div className="overflow-hidden">
-        <div className="text-sm font-medium text-slate-800 truncate">{a.filename || "Document"}</div>
-        <div className="text-xs text-slate-500">{a.mime} {a.sizeBytes ? `· ${(a.sizeBytes / 1024).toFixed(0)} Ko` : ""}</div>
+        <div className="text-sm font-medium text-foreground truncate">{a.filename || "Document"}</div>
+        <div className="text-xs text-muted-foreground">{a.mime} {a.sizeBytes ? `· ${(a.sizeBytes / 1024).toFixed(0)} Ko` : ""}</div>
       </div>
     </a>
   );
@@ -309,7 +309,7 @@ function MessageBubble({
   return (
     <div className={cn("flex flex-col group max-w-[78%]", isMe ? "ml-auto items-end" : "mr-auto items-start")}>
       {!isMe && (
-        <div className="text-[11px] font-semibold text-slate-500 mb-1 ml-2">{msg.senderName}</div>
+        <div className="text-[11px] font-semibold text-muted-foreground mb-1 ml-2">{msg.senderName}</div>
       )}
       <div className="flex items-end gap-2">
         {!isMe && (
@@ -320,13 +320,13 @@ function MessageBubble({
         )}
         <div className={cn(
           "p-3 text-sm shadow-sm break-words relative",
-          isMe ? "bg-primary text-white rounded-2xl rounded-br-sm" : "bg-white text-slate-800 border border-slate-200 rounded-2xl rounded-bl-sm",
+          isMe ? "bg-primary text-white rounded-2xl rounded-br-sm" : "bg-card text-foreground border border rounded-2xl rounded-bl-sm",
           isDeleted && "italic opacity-60",
         )}>
           {repliedMsg && (
             <div className={cn(
               "text-xs px-2 py-1 mb-2 border-l-2 rounded",
-              isMe ? "bg-white/15 border-white/40" : "bg-slate-50 border-primary/40",
+              isMe ? "bg-card/15 border-white/40" : "bg-muted/50 border-primary/40",
             )}>
               <div className="font-semibold opacity-80">{repliedMsg.senderName}</div>
               <div className="opacity-70 truncate">{repliedMsg.content || "(pièce jointe)"}</div>
@@ -347,7 +347,7 @@ function MessageBubble({
                   )}
                   {msg.content && <div className="whitespace-pre-wrap">{msg.content}</div>}
                   {translatedText && (
-                    <div className={cn("mt-2 pt-2 border-t text-xs italic", isMe ? "border-white/30" : "border-slate-200")}>
+                    <div className={cn("mt-2 pt-2 border-t text-xs italic", isMe ? "border-white/30" : "border")}>
                       <div className="opacity-70">Traduction :</div>
                       <div>{translatedText}</div>
                     </div>
@@ -356,7 +356,7 @@ function MessageBubble({
                     transcript ? (
                       <div className="whitespace-pre-wrap">{transcript}</div>
                     ) : (
-                      <div className={cn("text-xs italic flex items-center gap-1.5", isMe ? "text-white/70" : "text-slate-500")}>
+                      <div className={cn("text-xs italic flex items-center gap-1.5", isMe ? "text-white/70" : "text-muted-foreground")}>
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                         Transcription en cours…
                       </div>
@@ -371,7 +371,7 @@ function MessageBubble({
           <div className="opacity-40 group-hover:opacity-100 transition-opacity flex items-center gap-1">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="text-slate-400 hover:text-primary p-1"><Smile className="w-4 h-4" /></button>
+                <button className="text-muted-foreground/60 hover:text-primary p-1"><Smile className="w-4 h-4" /></button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-1 flex gap-1">
                 {EMOJIS.map((e) => (
@@ -381,7 +381,7 @@ function MessageBubble({
             </Popover>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="text-slate-400 hover:text-primary p-1"><MoreVertical className="w-4 h-4" /></button>
+                <button className="text-muted-foreground/60 hover:text-primary p-1"><MoreVertical className="w-4 h-4" /></button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align={isMe ? "end" : "start"}>
                 <DropdownMenuItem onClick={onReply}><Reply className="w-4 h-4 mr-2" /> Répondre</DropdownMenuItem>
@@ -424,12 +424,12 @@ function MessageBubble({
           {reactionMap.map(([emoji, count]) => (
             <button
               key={emoji} onClick={() => onReact(emoji)}
-              className="text-xs bg-white border border-slate-200 rounded-full px-2 py-0.5 hover:border-primary"
+              className="text-xs bg-card border border rounded-full px-2 py-0.5 hover:border-primary"
             >{emoji} {count}</button>
           ))}
         </div>
       )}
-      <div className={cn("text-[10px] text-slate-400 mt-1 mx-1 flex items-center gap-1", isMe ? "flex-row-reverse" : "flex-row")}>
+      <div className={cn("text-[10px] text-muted-foreground/60 mt-1 mx-1 flex items-center gap-1", isMe ? "flex-row-reverse" : "flex-row")}>
         <span>{formatTime(msg.createdAt)}</span>
         {msg.editedAt && <span>· modifié</span>}
         {isMe && !isDeleted && <ReadReceipt readByCount={msg.readBy?.length || 0} />}
@@ -512,7 +512,7 @@ function NewConversationDialog({ onCreated }: { onCreated: (c: Conv) => void }) 
                 onClick={() => setSelected((s) => isSel ? s.filter((x) => x !== u.id) : [...s, u.id])}
                 className={cn(
                   "w-full flex items-center gap-3 p-2 rounded-lg text-left",
-                  isSel ? "bg-primary/10" : "hover:bg-slate-50",
+                  isSel ? "bg-primary/10" : "hover:bg-muted/50",
                 )}
               >
                 <Avatar className="w-8 h-8">
@@ -940,14 +940,14 @@ export default function Messaging() {
                   <button
                     key={r.id}
                     onClick={() => { setSelectedConvId(r.conversationId); setGlobalSearchOpen(false); }}
-                    className="w-full text-left p-3 rounded-lg hover:bg-slate-50 border border-slate-100"
+                    className="w-full text-left p-3 rounded-lg hover:bg-muted/50 border border"
                   >
-                    <div className="text-xs text-slate-500 font-semibold">{r.conversationTitle || "Discussion"} · {r.senderName}</div>
-                    <div className="text-sm text-slate-800 line-clamp-2">{r.content}</div>
-                    <div className="text-[10px] text-slate-400 mt-1">{formatDate(r.createdAt)}</div>
+                    <div className="text-xs text-muted-foreground font-semibold">{r.conversationTitle || "Discussion"} · {r.senderName}</div>
+                    <div className="text-sm text-foreground line-clamp-2">{r.content}</div>
+                    <div className="text-[10px] text-muted-foreground/60 mt-1">{formatDate(r.createdAt)}</div>
                   </button>
                 ))}
-                {globalResults.length === 0 && <div className="text-center text-sm text-slate-400 py-8">Aucun résultat</div>}
+                {globalResults.length === 0 && <div className="text-center text-sm text-muted-foreground/60 py-8">Aucun résultat</div>}
               </div>
             </DialogContent>
           </Dialog>
@@ -959,12 +959,12 @@ export default function Messaging() {
       <div className="flex-1 flex gap-4 overflow-hidden">
         {/* Conversations list */}
         <Card className="w-[340px] flex flex-col h-full border-border shadow-sm shrink-0">
-          <div className="p-3 border-b border-border/50 shrink-0 bg-slate-50/50 space-y-2">
+          <div className="p-3 border-b border-border/50 shrink-0 bg-muted/50 space-y-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher une discussion…"
-                className="pl-9 bg-white h-9"
+                className="pl-9 bg-card h-9"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -991,7 +991,7 @@ export default function Messaging() {
                 </div>
               ))
             ) : conversations.length === 0 ? (
-              <div className="text-center text-sm text-slate-400 py-12 px-4">
+              <div className="text-center text-sm text-muted-foreground/60 py-12 px-4">
                 Aucune conversation. Créez-en une avec « Nouveau message ».
               </div>
             ) : conversations.map((c) => {
@@ -1004,7 +1004,7 @@ export default function Messaging() {
                     onClick={() => setSelectedConvId(c.id)}
                     className={cn(
                       "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border",
-                      isSel ? "bg-primary/5 border-primary/30" : "border-transparent hover:bg-slate-50",
+                      isSel ? "bg-primary/5 border-primary/30" : "border-transparent hover:bg-muted/50",
                     )}
                   >
                     <div className="relative shrink-0">
@@ -1012,7 +1012,7 @@ export default function Messaging() {
                         {other?.avatarUrl ? <AvatarImage src={other.avatarUrl} /> : null}
                         <AvatarFallback className={cn(
                           "font-bold",
-                          isSel ? "bg-primary text-white" : "bg-slate-100 text-slate-600",
+                          isSel ? "bg-primary text-white" : "bg-muted text-muted-foreground",
                         )}>{initials(name)}</AvatarFallback>
                       </Avatar>
                       {other && <PresenceDot status={other.presenceStatus} />}
@@ -1021,16 +1021,16 @@ export default function Messaging() {
                       <div className="flex justify-between items-center mb-0.5">
                         <span className={cn(
                           "font-semibold text-sm truncate flex items-center gap-1",
-                          isSel ? "text-primary" : "text-slate-800",
+                          isSel ? "text-primary" : "text-foreground",
                         )}>
                           {c.pinned && <Pin className="w-3 h-3 text-primary" />}
-                          {c.muted && <BellOff className="w-3 h-3 text-slate-400" />}
+                          {c.muted && <BellOff className="w-3 h-3 text-muted-foreground/60" />}
                           {name}
                         </span>
-                        <span className="text-[10px] text-slate-400 shrink-0">{formatDate(c.lastMessageAt)}</span>
+                        <span className="text-[10px] text-muted-foreground/60 shrink-0">{formatDate(c.lastMessageAt)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-xs text-slate-500 truncate">{c.lastMessage || "Aucun message"}</div>
+                        <div className="text-xs text-muted-foreground truncate">{c.lastMessage || "Aucun message"}</div>
                         {c.unreadCount > 0 && (
                           <Badge className="h-5 min-w-5 px-1.5 text-[10px] rounded-full bg-primary text-white border-none">
                             {c.unreadCount}
@@ -1041,7 +1041,7 @@ export default function Messaging() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button onClick={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 p-1">
-                          <MoreVertical className="w-4 h-4 text-slate-400" />
+                          <MoreVertical className="w-4 h-4 text-muted-foreground/60" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
@@ -1068,7 +1068,7 @@ export default function Messaging() {
         <Card className="flex-1 flex flex-col h-full border-border shadow-sm">
           {selectedConv ? (
             <>
-              <div className="p-3 border-b border-border/50 shrink-0 flex items-center justify-between bg-slate-50/50">
+              <div className="p-3 border-b border-border/50 shrink-0 flex items-center justify-between bg-muted/50">
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <Avatar className="w-10 h-10">
@@ -1080,8 +1080,8 @@ export default function Messaging() {
                     {otherInDirect && <PresenceDot status={otherInDirect.presenceStatus} />}
                   </div>
                   <div>
-                    <h2 className="font-bold text-slate-800">{convDisplayName(selectedConv, meId)}</h2>
-                    <p className="text-xs text-slate-500">
+                    <h2 className="font-bold text-foreground">{convDisplayName(selectedConv, meId)}</h2>
+                    <p className="text-xs text-muted-foreground">
                       {selectedConv.type === "direct" && otherInDirect
                         ? (otherInDirect.presenceStatus === "online"
                           ? "En ligne"
@@ -1093,7 +1093,7 @@ export default function Messaging() {
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost" size="sm"
-                    className="h-8 gap-1.5 text-slate-600 hover:text-primary"
+                    className="h-8 gap-1.5 text-muted-foreground hover:text-primary"
                     title="Résumer la conversation (IA)"
                     onClick={runSummarize}
                   >
@@ -1105,7 +1105,7 @@ export default function Messaging() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant={autoTransLang ? "default" : "ghost"} size="sm"
-                        className={cn("h-8 gap-1.5", autoTransLang ? "" : "text-slate-600 hover:text-primary")}
+                        className={cn("h-8 gap-1.5", autoTransLang ? "" : "text-muted-foreground hover:text-primary")}
                         title="Traduire automatiquement tous les messages"
                       >
                         <Languages className="w-4 h-4" />
@@ -1115,7 +1115,7 @@ export default function Messaging() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <div className="px-2 py-1.5 text-xs text-slate-500 font-semibold uppercase tracking-wide">
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wide">
                         Traduire automatiquement
                       </div>
                       <DropdownMenuItem onClick={() => setAutoTransLang(null)}>
@@ -1153,7 +1153,7 @@ export default function Messaging() {
                   {selectedConv.type === "group" && (
                     <Button
                       variant="ghost" size="sm"
-                      className="h-8 gap-1.5 text-slate-600 hover:text-primary"
+                      className="h-8 gap-1.5 text-muted-foreground hover:text-primary"
                       title="Gérer les participants"
                       onClick={() => { setMembersOpen(true); setNewMemberIds([]); }}
                     >
@@ -1161,10 +1161,10 @@ export default function Messaging() {
                       <span className="text-xs font-semibold">Membres</span>
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" onClick={() => startCall("audio")} className="text-slate-600 hover:text-primary">
+                  <Button variant="ghost" size="sm" onClick={() => startCall("audio")} className="text-muted-foreground hover:text-primary">
                     <Phone className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => startCall("video")} className="text-slate-600 hover:text-primary">
+                  <Button variant="ghost" size="sm" onClick={() => startCall("video")} className="text-muted-foreground hover:text-primary">
                     <Video className="w-4 h-4" />
                   </Button>
                 </div>
@@ -1262,7 +1262,7 @@ export default function Messaging() {
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60">
                     <MessageSquare className="w-12 h-12 mb-2" />
                     <p className="text-sm">Aucun message. Soyez le premier à écrire !</p>
                   </div>
@@ -1281,22 +1281,22 @@ export default function Messaging() {
                   />
                 ))}
                 {typingUsers.size > 0 && (
-                  <div className="text-xs text-slate-500 italic ml-2">
+                  <div className="text-xs text-muted-foreground italic ml-2">
                     {Array.from(typingUsers.values()).join(", ")} {typingUsers.size === 1 ? "écrit" : "écrivent"}…
                   </div>
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-3 border-t border-border/50 shrink-0 bg-white space-y-2">
+              <div className="p-3 border-t border-border/50 shrink-0 bg-card space-y-2">
                 {replyTo && (
-                  <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border-l-2 border-primary">
+                  <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border-l-2 border-primary">
                     <Reply className="w-4 h-4 text-primary" />
                     <div className="flex-1 text-xs">
                       <div className="font-semibold text-primary">{replyTo.senderName}</div>
-                      <div className="text-slate-600 truncate">{replyTo.content || "(pièce jointe)"}</div>
+                      <div className="text-muted-foreground truncate">{replyTo.content || "(pièce jointe)"}</div>
                     </div>
-                    <button onClick={() => setReplyTo(null)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                    <button onClick={() => setReplyTo(null)} className="text-muted-foreground/60 hover:text-muted-foreground"><X className="w-4 h-4" /></button>
                   </div>
                 )}
                 {editing && (
@@ -1309,10 +1309,10 @@ export default function Messaging() {
                 {pendingFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {pendingFiles.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 bg-slate-50 px-2 py-1 rounded text-xs">
+                      <div key={i} className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded text-xs">
                         {f.type.startsWith("image/") ? <ImageIcon className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
                         <span className="truncate max-w-[140px]">{f.name}</span>
-                        <button onClick={() => setPendingFiles((arr) => arr.filter((_, j) => j !== i))} className="text-slate-400 hover:text-red-500">
+                        <button onClick={() => setPendingFiles((arr) => arr.filter((_, j) => j !== i))} className="text-muted-foreground/60 hover:text-red-500">
                           <X className="w-3 h-3" />
                         </button>
                       </div>
@@ -1329,15 +1329,15 @@ export default function Messaging() {
                       if (e.target) e.target.value = "";
                     }}
                   />
-                  <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-10 w-10 p-0 text-slate-500" title="Pièce jointe">
+                  <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-10 w-10 p-0 text-muted-foreground" title="Pièce jointe">
                     <Paperclip className="w-5 h-5" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={shareLocation} className="h-10 w-10 p-0 text-slate-500" title="Partager position">
+                  <Button variant="ghost" size="sm" onClick={shareLocation} className="h-10 w-10 p-0 text-muted-foreground" title="Partager position">
                     <MapPin className="w-5 h-5" />
                   </Button>
                   <Button
                     variant="ghost" size="sm" onClick={toggleRecord}
-                    className={cn("h-10 w-10 p-0", recording ? "text-red-500 animate-pulse" : "text-slate-500")}
+                    className={cn("h-10 w-10 p-0", recording ? "text-red-500 animate-pulse" : "text-muted-foreground")}
                     title={recording ? "Arrêter" : "Message vocal"}
                   >
                     {recording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
@@ -1349,7 +1349,7 @@ export default function Messaging() {
                       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
                     }}
                     placeholder={editing ? "Modifier…" : "Écrivez votre message… (@mention, Entrée pour envoyer)"}
-                    className="flex-1 bg-slate-50 min-h-[44px] max-h-[120px] resize-none"
+                    className="flex-1 bg-muted/50 min-h-[44px] max-h-[120px] resize-none"
                     rows={1}
                   />
                   <Button
@@ -1363,8 +1363,8 @@ export default function Messaging() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-              <MessageSquare className="w-16 h-16 text-slate-200 mb-4" />
-              <p className="text-lg font-medium text-slate-600">Sélectionnez une conversation</p>
+              <MessageSquare className="w-16 h-16 text-muted-foreground/30 mb-4" />
+              <p className="text-lg font-medium text-muted-foreground">Sélectionnez une conversation</p>
               <p className="text-sm">ou démarrez une nouvelle discussion.</p>
             </div>
           )}
@@ -1379,21 +1379,21 @@ export default function Messaging() {
             </DialogTitle>
           </DialogHeader>
           {summaryLoading ? (
-            <div className="flex items-center gap-2 py-8 text-sm text-slate-500">
+            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" /> Génération du résumé en cours…
             </div>
           ) : summary ? (
             <div className="space-y-4">
-              <div className="text-sm text-slate-700 whitespace-pre-wrap">{summary.content}</div>
+              <div className="text-sm text-foreground whitespace-pre-wrap">{summary.content}</div>
               {summary.nextActions && summary.nextActions.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Actions suggérées</p>
-                  <ul className="space-y-1 text-sm text-slate-700 list-disc list-inside">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Actions suggérées</p>
+                  <ul className="space-y-1 text-sm text-foreground list-disc list-inside">
                     {summary.nextActions.map((a, i) => <li key={i}>{a}</li>)}
                   </ul>
                 </div>
               )}
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground/60">
                 Généré par {summary.generatedBy === "openai" ? "IA (OpenAI)" : summary.generatedBy === "heuristic" ? "moteur heuristique (clé IA absente)" : summary.generatedBy}
               </p>
             </div>

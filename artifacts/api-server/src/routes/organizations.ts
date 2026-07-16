@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { logger } from "../lib/logger";
 import { db } from "@workspace/db";
 import { organizationsTable, organizationMembersTable, usersTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
@@ -68,7 +69,7 @@ router.get("/organizations/accounting-framework", async (req, res) => {
       configuredAt: org.configuredAt,
     });
   } catch (e) {
-    console.error(e);
+    logger.error({ err: e }, "organizations error");
     return res.status(500).json({ error: "Erreur serveur" });
   }
 });

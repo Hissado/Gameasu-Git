@@ -28,10 +28,10 @@ const STATUSES = [
   { v: "open", l: "Ouvert", c: "bg-blue-100 text-blue-800 border-blue-300" },
   { v: "in_progress", l: "En cours", c: "bg-amber-100 text-amber-800 border-amber-300" },
   { v: "resolved", l: "Résolu", c: "bg-emerald-100 text-emerald-800 border-emerald-300" },
-  { v: "closed", l: "Clôturé", c: "bg-slate-100 text-slate-700 border-slate-300" },
+  { v: "closed", l: "Clôturé", c: "bg-muted text-foreground border" },
 ];
 const PRIORITIES = [
-  { v: "low", l: "Faible", c: "bg-slate-100 text-slate-700" },
+  { v: "low", l: "Faible", c: "bg-muted text-foreground" },
   { v: "medium", l: "Moyenne", c: "bg-blue-100 text-blue-800" },
   { v: "high", l: "Haute", c: "bg-amber-100 text-amber-800" },
   { v: "urgent", l: "Urgente", c: "bg-red-100 text-red-800" },

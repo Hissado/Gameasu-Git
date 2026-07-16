@@ -170,7 +170,7 @@ export default function MatchingPage() {
                 </div>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase text-muted-foreground">
+                  <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                     <tr>
                       <th className="p-3 w-10"></th>
                       <th className="text-left p-3">N° écriture</th>
@@ -189,7 +189,7 @@ export default function MatchingPage() {
                       return (
                         <tr
                           key={l.lineId}
-                          className={`border-t cursor-pointer transition ${isSelected ? "bg-amber-50" : "hover:bg-slate-50"}`}
+                          className={`border-t cursor-pointer transition ${isSelected ? "bg-amber-50" : "hover:bg-muted/50"}`}
                           onClick={() => toggleLine(l.lineId)}
                         >
                           <td className="p-3">
@@ -204,7 +204,7 @@ export default function MatchingPage() {
                           </td>
                           <td className="p-3 text-right font-mono">{l.debit > 0 ? formatFCFA(l.debit) : "—"}</td>
                           <td className="p-3 text-right font-mono">{l.credit > 0 ? formatFCFA(l.credit) : "—"}</td>
-                          <td className={`p-3 text-right font-mono font-semibold ${solde >= 0 ? "text-slate-700" : "text-red-600"}`}>
+                          <td className={`p-3 text-right font-mono font-semibold ${solde >= 0 ? "text-foreground" : "text-red-600"}`}>
                             {formatFCFA(solde)}
                           </td>
                         </tr>
@@ -212,7 +212,7 @@ export default function MatchingPage() {
                     })}
                   </tbody>
                   {lines.length > 0 && (
-                    <tfoot className="border-t bg-slate-50 font-semibold text-sm">
+                    <tfoot className="border-t bg-muted/50 font-semibold text-sm">
                       <tr>
                         <td colSpan={5} className="p-3 text-right text-muted-foreground">Totaux</td>
                         <td className="p-3 text-right font-mono">{formatFCFA(lines.reduce((s, l) => s + l.debit, 0))}</td>
@@ -231,7 +231,7 @@ export default function MatchingPage() {
         {!searched && (
           <Card className="border-dashed">
             <CardContent className="p-8 text-center text-muted-foreground">
-              <Link2 className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+              <Link2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
               <p className="font-semibold mb-1">Lettrage manuel des écritures</p>
               <p className="text-sm">Sélectionnez un compte (ex : 411 Clients, 401 Fournisseurs), chargez les lignes non lettrées,<br />
               puis sélectionnez au moins 2 lignes équilibrées (débit = crédit) pour les lettrer.</p>

@@ -23,7 +23,7 @@ const MEMBER_ROLE_LABEL: Record<string, string> = {
 const MEMBER_ROLE_COLOR: Record<string, string> = {
   owner: "bg-amber-50 text-amber-700 border-amber-200",
   admin: "bg-blue-50 text-blue-700 border-blue-200",
-  member: "bg-slate-50 text-slate-600 border-slate-200",
+  member: "bg-muted/50 text-muted-foreground border",
 };
 
 function InviteFirmMemberModal({ firmId, open, onClose }: { firmId: string; open: boolean; onClose: () => void }) {
@@ -296,7 +296,7 @@ export default function UsersPermissionsPage() {
                   return (
                     <div key={u.id} className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-muted/40">
                       <Avatar className="w-8 h-8 shrink-0">
-                        <AvatarFallback className="text-[11px] bg-slate-100 text-slate-600">{initials}</AvatarFallback>
+                        <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">{initials}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{fullName}</p>

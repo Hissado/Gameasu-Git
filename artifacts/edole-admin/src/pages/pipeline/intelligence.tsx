@@ -22,7 +22,7 @@ const priorityColor = (p: string) =>
   p === "urgent" ? "bg-red-50 text-red-700 border-red-200" :
   p === "high" ? "bg-amber-50 text-amber-700 border-amber-200" :
   p === "medium" ? "bg-blue-50 text-blue-700 border-blue-200" :
-  "bg-slate-50 text-slate-700 border-slate-200";
+  "bg-muted/50 text-foreground border";
 
 export default function PipelineIntelligence() {
   const ov = useQuery<any>({ queryKey: ["pip-ov"], queryFn: () => apiFetch("/api/pipeline/intelligence/overview") });

@@ -47,20 +47,20 @@ const CUR_SIZE: Record<Size, string> = {
 };
 
 const NUM_COLOR: Record<Color, string> = {
-  default: "text-slate-900",
+  default: "text-foreground",
   success: "text-emerald-600",
   danger:  "text-rose-600",
   warning: "text-amber-600",
-  muted:   "text-slate-500",
+  muted:   "text-muted-foreground",
   white:   "text-white",
 };
 
 const CUR_COLOR: Record<Color, string> = {
-  default: "text-slate-400",
+  default: "text-muted-foreground/60",
   success: "text-emerald-400",
   danger:  "text-rose-400",
   warning: "text-amber-400",
-  muted:   "text-slate-400",
+  muted:   "text-muted-foreground/60",
   white:   "text-white/50",
 };
 

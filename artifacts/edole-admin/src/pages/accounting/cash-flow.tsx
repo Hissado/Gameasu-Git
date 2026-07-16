@@ -62,7 +62,7 @@ function computePeriod(preset: Preset, from: string, to: string): { from: string
 function amountColor(amount: number): string {
   if (amount > 0) return "text-emerald-600";
   if (amount < 0) return "text-red-500";
-  return "text-slate-400";
+  return "text-muted-foreground/60";
 }
 
 function AmountCell({ amount }: { amount: number }) {
@@ -91,35 +91,35 @@ function FlowSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+    <div className="rounded-xl border border overflow-hidden bg-card">
       <button
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50/60 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/60 transition-colors"
         onClick={() => setOpen(!open)}
         style={{ borderLeft: `4px solid ${accentColor}` }}
       >
         <div className="flex items-center gap-3">
           <Icon className="w-4 h-4" style={{ color: accentColor }} />
-          <span className="font-bold text-slate-800 text-sm">{title}</span>
+          <span className="font-bold text-foreground text-sm">{title}</span>
         </div>
         <div className="flex items-center gap-3">
           <AmountCell amount={section.total} />
-          {open ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+          {open ? <ChevronDown className="w-4 h-4 text-muted-foreground/60" /> : <ChevronRight className="w-4 h-4 text-muted-foreground/60" />}
         </div>
       </button>
 
       {open && (
-        <div className="border-t border-slate-100">
+        <div className="border-t border">
           {section.items.map((item, i) => (
             <div
               key={i}
-              className={`flex items-center justify-between px-5 py-2.5 text-sm ${i % 2 === 0 ? "bg-slate-50/30" : ""} hover:bg-slate-50/60 transition-colors`}
+              className={`flex items-center justify-between px-5 py-2.5 text-sm ${i % 2 === 0 ? "bg-muted/30" : ""} hover:bg-muted/60 transition-colors`}
             >
-              <span className="text-slate-600 flex-1 pr-4">{item.label}</span>
+              <span className="text-muted-foreground flex-1 pr-4">{item.label}</span>
               <AmountCell amount={item.amount} />
             </div>
           ))}
-          <div className="flex items-center justify-between px-5 py-3 bg-slate-100/60 font-bold text-sm border-t border-slate-200">
-            <span className="text-slate-700">Sous-total</span>
+          <div className="flex items-center justify-between px-5 py-3 bg-muted/60 font-bold text-sm border-t border">
+            <span className="text-foreground">Sous-total</span>
             <AmountCell amount={section.total} />
           </div>
         </div>
@@ -174,11 +174,11 @@ export default function CashFlowStatement() {
           {preset === "custom" && (
             <>
               <div className="flex items-center gap-1">
-                <Label className="text-xs text-slate-500 shrink-0">Du</Label>
+                <Label className="text-xs text-muted-foreground shrink-0">Du</Label>
                 <Input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="h-8 w-36 text-sm" />
               </div>
               <div className="flex items-center gap-1">
-                <Label className="text-xs text-slate-500 shrink-0">au</Label>
+                <Label className="text-xs text-muted-foreground shrink-0">au</Label>
                 <Input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="h-8 w-36 text-sm" />
               </div>
             </>
@@ -213,27 +213,27 @@ export default function CashFlowStatement() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Card className="border-slate-200">
+            <Card className="border">
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-slate-500">Trésorerie début</p>
+                <p className="text-xs text-muted-foreground">Trésorerie début</p>
                 <p className={`text-xl font-bold mt-1 ${amountColor(data.openingBalance)}`}>
                   {formatFCFA(data.openingBalance)}
                 </p>
               </CardContent>
             </Card>
-            <Card className="border-slate-200">
+            <Card className="border">
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-slate-500">Flux exploitation</p>
+                <p className="text-xs text-muted-foreground">Flux exploitation</p>
                 <p className={`text-xl font-bold mt-1 ${amountColor(data.operatingActivities.total)}`}>
                   {data.operatingActivities.total >= 0 ? "+" : ""}{formatFCFA(data.operatingActivities.total)}
                 </p>
               </CardContent>
             </Card>
-            <Card className="border-slate-200">
+            <Card className="border">
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-slate-500">Variation nette</p>
+                <p className="text-xs text-muted-foreground">Variation nette</p>
                 <div className="flex items-center gap-2 mt-1">
-                  {netOk === true ? <TrendingUp className="w-4 h-4 text-emerald-500" /> : netOk === false ? <TrendingDown className="w-4 h-4 text-red-500" /> : <Minus className="w-4 h-4 text-slate-400" />}
+                  {netOk === true ? <TrendingUp className="w-4 h-4 text-emerald-500" /> : netOk === false ? <TrendingDown className="w-4 h-4 text-red-500" /> : <Minus className="w-4 h-4 text-muted-foreground/60" />}
                   <p className={`text-xl font-bold ${amountColor(data.netCashChange)}`}>
                     {data.netCashChange >= 0 ? "+" : ""}{formatFCFA(data.netCashChange)}
                   </p>
@@ -242,7 +242,7 @@ export default function CashFlowStatement() {
             </Card>
             <Card className={`border-2 ${data.closingBalance >= 0 ? "border-emerald-300 bg-emerald-50/30" : "border-red-300 bg-red-50/30"}`}>
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-slate-500">Trésorerie fin</p>
+                <p className="text-xs text-muted-foreground">Trésorerie fin</p>
                 <div className="flex items-center gap-2 mt-1">
                   {data.closingBalance >= 0
                     ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -256,9 +256,9 @@ export default function CashFlowStatement() {
           </div>
 
           {/* Graphique en barres */}
-          <Card className="border-slate-200">
+          <Card className="border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-700">Répartition par type d'activité</CardTitle>
+              <CardTitle className="text-sm font-semibold text-foreground">Répartition par type d'activité</CardTitle>
               <CardDescription className="text-xs">Montants en FCFA — barres vertes = entrées nettes, rouges = sorties nettes.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -288,7 +288,7 @@ export default function CashFlowStatement() {
 
           {/* Tableau formel */}
           <div className="space-y-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 px-1">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground px-1">
               Tableau des flux — {new Date(period.from).toLocaleDateString("fr-FR")} au {new Date(period.to).toLocaleDateString("fr-FR")}
             </h2>
 
@@ -317,11 +317,11 @@ export default function CashFlowStatement() {
             />
 
             {/* Ligne de totalisation */}
-            <div className="rounded-xl border-2 border-slate-800 bg-slate-900 text-white overflow-hidden">
+            <div className="rounded-xl border-2 border bg-slate-900 text-white overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4">
                 <div>
                   <p className="font-bold text-sm">Variation nette de trésorerie (I + II + III)</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-muted-foreground/60 mt-0.5">
                     Trésorerie d'ouverture : {formatFCFA(data.openingBalance)} → Trésorerie de clôture : {formatFCFA(data.closingBalance)}
                   </p>
                 </div>
@@ -329,14 +329,14 @@ export default function CashFlowStatement() {
                   {data.netCashChange >= 0 ? "+" : ""}{formatFCFA(data.netCashChange)}
                 </div>
               </div>
-              <div className="grid grid-cols-3 border-t border-slate-700">
+              <div className="grid grid-cols-3 border-t border">
                 {[
                   { label: "Trésorerie début", value: data.openingBalance },
                   { label: "Variation nette", value: data.netCashChange },
                   { label: "Trésorerie fin", value: data.closingBalance },
                 ].map((r) => (
-                  <div key={r.label} className="flex flex-col items-center justify-center py-3 border-r border-slate-700 last:border-0">
-                    <p className="text-xs text-slate-400">{r.label}</p>
+                  <div key={r.label} className="flex flex-col items-center justify-center py-3 border-r border last:border-0">
+                    <p className="text-xs text-muted-foreground/60">{r.label}</p>
                     <p className={`text-sm font-bold mt-0.5 ${r.value >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                       {formatFCFA(r.value)}
                     </p>
@@ -346,7 +346,7 @@ export default function CashFlowStatement() {
             </div>
           </div>
 
-          <p className="text-xs text-slate-400 text-center">
+          <p className="text-xs text-muted-foreground/60 text-center">
             Tableau établi selon la méthode indirecte, conforme au référentiel SYSCOHADA révisé.
             Calculé à partir des écritures comptables validées (statut « enregistré »).
           </p>

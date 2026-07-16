@@ -49,7 +49,7 @@ const GROUP_COLORS: Record<string, string> = {
   invoices:      "text-orange-500 bg-orange-50",
   orders:        "text-cyan-500 bg-cyan-50",
   proformas:     "text-teal-500 bg-teal-50",
-  equipment:     "text-slate-500 bg-slate-100",
+  equipment:     "text-muted-foreground bg-muted",
   rentals:       "text-pink-500 bg-pink-50",
   collaborators: "text-indigo-500 bg-indigo-50",
   documents:     "text-gray-500 bg-gray-100",
@@ -174,7 +174,7 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
       />
 
       {/* Palette */}
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
+      <div className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
         {/* Input row */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border/60">
           {loading
@@ -235,7 +235,7 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
                   { label: "Projets", url: "/projets", icon: FolderKanban, color: "text-amber-500 bg-amber-50" },
                   { label: "Factures", url: "/factures", icon: FileText, color: "text-orange-500 bg-orange-50" },
                   { label: "Tâches", url: "/tasks", icon: CheckSquare, color: "text-violet-500 bg-violet-50" },
-                  { label: "Équipements", url: "/equipements", icon: Wrench, color: "text-slate-500 bg-slate-100" },
+                  { label: "Équipements", url: "/equipements", icon: Wrench, color: "text-muted-foreground bg-muted" },
                   { label: "Collaborateurs", url: "/collaborateurs", icon: Users, color: "text-indigo-500 bg-indigo-50" },
                 ].map((item) => (
                   <button

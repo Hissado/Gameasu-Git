@@ -37,7 +37,7 @@ interface GanttViewProps {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const PHASE_STATUS_COLORS: Record<string, { bar: string; text: string; border: string }> = {
-  pending:     { bar: "bg-slate-300", text: "text-slate-600", border: "border-slate-300" },
+  pending:     { bar: "bg-slate-300", text: "text-muted-foreground", border: "border" },
   in_progress: { bar: "bg-primary", text: "text-primary", border: "border-primary" },
   completed:   { bar: "bg-emerald-500", text: "text-emerald-600", border: "border-emerald-400" },
   on_hold:     { bar: "bg-amber-400", text: "text-amber-600", border: "border-amber-400" },
@@ -234,8 +234,8 @@ export default function GanttView({ project, tasks = [] }: GanttViewProps) {
   if (!project.startDate && !project.endDate && phases.length === 0) {
     return (
       <div className="py-16 text-center text-muted-foreground">
-        <CalendarDays className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-        <p className="font-semibold text-slate-600">Aucune date définie</p>
+        <CalendarDays className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
+        <p className="font-semibold text-muted-foreground">Aucune date définie</p>
         <p className="text-sm mt-1">Ajoutez des dates de début et fin au projet pour visualiser la timeline.</p>
       </div>
     );
@@ -270,8 +270,8 @@ export default function GanttView({ project, tasks = [] }: GanttViewProps) {
       <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
         <div className="min-w-[700px]">
           {/* Header: labels */}
-          <div className="flex border-b border-border bg-slate-50/80">
-            <div className="w-48 shrink-0 px-4 py-2.5 text-xs font-semibold text-slate-600 border-r border-border">
+          <div className="flex border-b border-border bg-muted/80">
+            <div className="w-48 shrink-0 px-4 py-2.5 text-xs font-semibold text-muted-foreground border-r border-border">
               Phase / Tâche
             </div>
             <div className="flex-1 relative h-9 overflow-hidden">
@@ -321,7 +321,7 @@ export default function GanttView({ project, tasks = [] }: GanttViewProps) {
             return (
               <React.Fragment key={phase.id}>
                 {/* Phase row */}
-                <div className="flex border-t border-border/30 group hover:bg-slate-50/40 transition-colors">
+                <div className="flex border-t border-border/30 group hover:bg-muted/40 transition-colors">
                   <div className="w-48 shrink-0 px-4 py-3 border-r border-border flex flex-col justify-center">
                     <span className="text-xs font-semibold text-foreground truncate">{phase.name}</span>
                     <Badge variant="outline" className={`mt-1 text-[9px] w-fit px-1.5 py-0 ${phase.colors.border} ${phase.colors.text} bg-transparent`}>
@@ -359,7 +359,7 @@ export default function GanttView({ project, tasks = [] }: GanttViewProps) {
                   const taskLeft = taskMs > 0 ? ((taskMs - startMs) / totalMs) * 100 : null;
                   const prioColor = TASK_PRIORITY_COLORS[task.priority || "medium"] || "bg-slate-400";
                   return (
-                    <div key={task.id} className="flex border-t border-border/20 hover:bg-slate-50/30 transition-colors">
+                    <div key={task.id} className="flex border-t border-border/20 hover:bg-muted/30 transition-colors">
                       <div className="w-48 shrink-0 px-4 py-2 border-r border-border/40 flex items-center gap-2 pl-7">
                         <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${prioColor}`} />
                         <span className="text-[11px] text-muted-foreground truncate">{task.title}</span>
@@ -382,7 +382,7 @@ export default function GanttView({ project, tasks = [] }: GanttViewProps) {
           {/* Unassigned tasks */}
           {unassignedTasks.length > 0 && (
             <>
-              <div className="flex border-t border-border/30 bg-slate-50/60">
+              <div className="flex border-t border-border/30 bg-muted/60">
                 <div className="w-48 shrink-0 px-4 py-2 border-r border-border">
                   <span className="text-xs font-semibold text-muted-foreground">Tâches sans phase</span>
                 </div>
@@ -397,7 +397,7 @@ export default function GanttView({ project, tasks = [] }: GanttViewProps) {
                 const taskLeft = taskMs > 0 ? ((taskMs - startMs) / totalMs) * 100 : null;
                 const prioColor = TASK_PRIORITY_COLORS[task.priority || "medium"] || "bg-slate-400";
                 return (
-                  <div key={task.id} className="flex border-t border-border/20 hover:bg-slate-50/30 transition-colors">
+                  <div key={task.id} className="flex border-t border-border/20 hover:bg-muted/30 transition-colors">
                     <div className="w-48 shrink-0 px-4 py-2 border-r border-border/40 flex items-center gap-2 pl-7">
                       <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${prioColor}`} />
                       <span className="text-[11px] text-muted-foreground truncate">{task.title}</span>
@@ -418,7 +418,7 @@ export default function GanttView({ project, tasks = [] }: GanttViewProps) {
 
           {/* Today footer label */}
           {todayPct >= 0 && todayPct <= 100 && (
-            <div className="relative h-5 border-t border-border/20 bg-slate-50/40">
+            <div className="relative h-5 border-t border-border/20 bg-muted/40">
               <div className="absolute top-0 bottom-0 flex flex-col items-center" style={{ left: `calc(48px + ${todayPct}% - 48px * ${todayPct / 100})` }}>
                 <div className="absolute top-0 bottom-0 w-px bg-red-500/40" style={{ left: `calc(192px + (100% - 192px) * ${todayPct / 100})` }} />
                 <div

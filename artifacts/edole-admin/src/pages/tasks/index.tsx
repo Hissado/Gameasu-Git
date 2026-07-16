@@ -32,7 +32,7 @@ const TASKS_TOUR = [
 type ViewMode = "list" | "kanban" | "calendar";
 
 const STATUS_COLUMNS: Array<{ key: string; label: string; cls: string }> = [
-  { key: "todo",        label: "À faire",   cls: "bg-slate-50 border-slate-200" },
+  { key: "todo",        label: "À faire",   cls: "bg-muted/50 border" },
   { key: "in_progress", label: "En cours",  cls: "bg-amber-50 border-amber-200" },
   { key: "review",      label: "En revue",  cls: "bg-blue-50 border-blue-200" },
   { key: "done",        label: "Terminé",   cls: "bg-green-50 border-green-200" },
@@ -44,7 +44,7 @@ const PRIORITY_DOT: Record<string, string> = {
 
 function getStatusBadge(status: string) {
   switch (status) {
-    case "todo":        return <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">À faire</Badge>;
+    case "todo":        return <Badge variant="outline" className="bg-muted/50 text-muted-foreground border">À faire</Badge>;
     case "in_progress": return <Badge className="bg-primary text-primary-foreground">En cours</Badge>;
     case "review":      return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">En révision</Badge>;
     case "done":        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Terminé</Badge>;
@@ -55,11 +55,11 @@ function getStatusBadge(status: string) {
 
 function getPriorityBadge(priority: string) {
   switch (priority) {
-    case "low":    return <span className="text-slate-500 text-xs font-medium px-2 py-1 bg-slate-100 rounded">Basse</span>;
+    case "low":    return <span className="text-muted-foreground text-xs font-medium px-2 py-1 bg-muted rounded">Basse</span>;
     case "medium": return <span className="text-blue-600 text-xs font-medium px-2 py-1 bg-blue-50 rounded">Moyenne</span>;
     case "high":   return <span className="text-amber-700 text-xs font-medium px-2 py-1 bg-amber-50 rounded flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Haute</span>;
     case "urgent": return <span className="text-red-600 text-xs font-bold px-2 py-1 bg-red-50 rounded border border-red-200 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Urgente</span>;
-    default:       return <span className="text-slate-500 text-xs font-medium">Normale</span>;
+    default:       return <span className="text-muted-foreground text-xs font-medium">Normale</span>;
   }
 }
 
@@ -272,14 +272,14 @@ export default function TasksList() {
       <Card className="shadow-sm border-border">
         <CardHeader data-tour="task-search" className="pb-4 border-b border-border/50">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div data-tour="task-views" className="flex items-center gap-1 bg-slate-100 p-1 rounded-md">
-              <button onClick={() => setView("list")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${view === "list" ? "bg-white shadow-sm text-foreground" : "text-slate-500"}`}>
+            <div data-tour="task-views" className="flex items-center gap-1 bg-muted p-1 rounded-md">
+              <button onClick={() => setView("list")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${view === "list" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>
                 <List className="w-3.5 h-3.5" /> Liste
               </button>
-              <button onClick={() => setView("kanban")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${view === "kanban" ? "bg-white shadow-sm text-foreground" : "text-slate-500"}`}>
+              <button onClick={() => setView("kanban")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${view === "kanban" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>
                 <LayoutGrid className="w-3.5 h-3.5" /> Kanban
               </button>
-              <button onClick={() => setView("calendar")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${view === "calendar" ? "bg-white shadow-sm text-foreground" : "text-slate-500"}`}>
+              <button onClick={() => setView("calendar")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${view === "calendar" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>
                 <CalendarIcon className="w-3.5 h-3.5" /> Calendrier
               </button>
             </div>
@@ -290,7 +290,7 @@ export default function TasksList() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Rechercher une tâche…"
-                className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+                className="pl-9 bg-muted/50 focus-visible:ring-primary h-9"
               />
             </div>
           </div>
@@ -301,14 +301,14 @@ export default function TasksList() {
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : view === "list" ? (
             <Table data-tour="task-table">
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Intitulé</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Projet</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Affecté à</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Priorité</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Échéance</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Intitulé</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Projet</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-muted-foreground">Affecté à</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Statut</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Priorité</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Échéance</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -326,20 +326,20 @@ export default function TasksList() {
                   </tr>
                 ) : (
                   tasks.map((task: any) => (
-                    <TableRow key={task.id} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="font-bold text-slate-800">
+                    <TableRow key={task.id} className="hover:bg-muted/50 transition-colors">
+                      <TableCell className="font-bold text-foreground">
                         <Link href={`/tasks/${task.id}`} className="hover:text-primary transition-colors">{task.title}</Link>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-sm font-medium">{task.projectName || "—"}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{task.assigneeName || <span className="text-slate-400 italic">Non affecté</span>}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{task.assigneeName || <span className="text-muted-foreground/60 italic">Non affecté</span>}</TableCell>
                       <TableCell>{getStatusBadge(task.status)}</TableCell>
                       <TableCell>{getPriorityBadge(task.priority)}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm font-medium text-slate-600">
+                      <TableCell className="hidden sm:table-cell text-sm font-medium text-muted-foreground">
                         {task.dueDate
                           ? <span className={`flex items-center gap-1 ${new Date(task.dueDate) < new Date() && task.status !== "done" ? "text-red-600" : ""}`}>
                               <Clock className="w-3 h-3" /> {formatDate(task.dueDate)}
                             </span>
-                          : <span className="text-slate-400 italic text-xs">—</span>
+                          : <span className="text-muted-foreground/60 italic text-xs">—</span>
                         }
                       </TableCell>
                     </TableRow>
@@ -354,13 +354,13 @@ export default function TasksList() {
                 return (
                   <div key={col.key} className={`rounded-md border ${col.cls} p-3 min-h-[400px]`}>
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">{col.label}</h3>
+                      <h3 className="font-bold text-xs uppercase tracking-wider text-foreground">{col.label}</h3>
                       <Badge variant="secondary" className="text-[10px]">{colTasks.length}</Badge>
                     </div>
                     <div className="space-y-2">
                       {colTasks.map((t: any) => (
                         <Link key={t.id} href={`/tasks/${t.id}`}>
-                          <div className="bg-white border border-border rounded-md p-3 shadow-sm hover:shadow-md transition cursor-pointer">
+                          <div className="bg-card border border-border rounded-md p-3 shadow-sm hover:shadow-md transition cursor-pointer">
                             <div className="flex items-start gap-2 mb-1.5">
                               <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${PRIORITY_DOT[t.priority] || "bg-slate-300"}`} />
                               <div className="font-semibold text-sm flex-1 leading-snug">{t.title}</div>
@@ -372,13 +372,13 @@ export default function TasksList() {
                               </div>
                             )}
                             {t.assigneeName && (
-                              <div className="text-[10px] mt-2 ml-4 inline-block bg-slate-100 px-2 py-0.5 rounded">{t.assigneeName}</div>
+                              <div className="text-[10px] mt-2 ml-4 inline-block bg-muted px-2 py-0.5 rounded">{t.assigneeName}</div>
                             )}
                           </div>
                         </Link>
                       ))}
                       {colTasks.length === 0 && (
-                        <div className="text-xs text-slate-400 text-center py-6">Aucune tâche</div>
+                        <div className="text-xs text-muted-foreground/60 text-center py-6">Aucune tâche</div>
                       )}
                     </div>
                   </div>
@@ -390,8 +390,8 @@ export default function TasksList() {
               {calendarBuckets.map((b, i) => {
                 const isToday = i === 0;
                 return (
-                  <div key={i} className={`border rounded-md p-2 min-h-[120px] ${isToday ? "bg-primary/5 border-primary/30" : "bg-white border-border"}`}>
-                    <div className={`text-[10px] font-bold uppercase mb-2 pb-1 border-b ${isToday ? "text-primary border-primary/20" : "text-slate-500"}`}>
+                  <div key={i} className={`border rounded-md p-2 min-h-[120px] ${isToday ? "bg-primary/5 border-primary/30" : "bg-card border-border"}`}>
+                    <div className={`text-[10px] font-bold uppercase mb-2 pb-1 border-b ${isToday ? "text-primary border-primary/20" : "text-muted-foreground"}`}>
                       {b.label}
                     </div>
                     <div className="space-y-1.5">
@@ -402,7 +402,7 @@ export default function TasksList() {
                           </div>
                         </Link>
                       ))}
-                      {b.tasks.length === 0 && <div className="text-[10px] text-slate-300 text-center py-2">—</div>}
+                      {b.tasks.length === 0 && <div className="text-[10px] text-muted-foreground/40 text-center py-2">—</div>}
                     </div>
                   </div>
                 );

@@ -20,18 +20,18 @@ export function QuickLinksSection() {
     <section>
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Accès rapides</h2>
+          <h2 className="text-base font-bold text-foreground">Accès rapides</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Naviguez directement vers vos modules</p>
         </div>
       </div>
       <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2.5 mt-3">
         {LINKS.map((ql) => (
           <Link key={ql.href} href={ql.href}
-            className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-white hover:border-primary/40 hover:shadow-md transition-all group text-center">
+            className="flex flex-col items-center gap-2 p-3 rounded-xl border border bg-card hover:border-primary/40 hover:shadow-md transition-all group text-center">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${ql.accent} group-hover:scale-110 transition-transform`}>
               <ql.icon className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-medium text-slate-700 leading-tight">{ql.label}</span>
+            <span className="text-[11px] font-medium text-foreground leading-tight">{ql.label}</span>
           </Link>
         ))}
       </div>

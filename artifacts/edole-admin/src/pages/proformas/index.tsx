@@ -28,13 +28,13 @@ type Proforma = {
 };
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  draft:     { label: "Brouillon", cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  draft:     { label: "Brouillon", cls: "bg-muted text-muted-foreground border" },
   sent:      { label: "Envoyé",    cls: "bg-blue-50 text-blue-700 border-blue-200" },
   approved:  { label: "Approuvé", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   accepted:  { label: "Accepté",  cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   rejected:  { label: "Refusé",   cls: "bg-red-50 text-red-700 border-red-200" },
   refused:   { label: "Refusé",   cls: "bg-red-50 text-red-700 border-red-200" },
-  cancelled: { label: "Annulé",   cls: "bg-slate-50 text-slate-400 border-slate-200 line-through" },
+  cancelled: { label: "Annulé",   cls: "bg-muted/50 text-muted-foreground/60 border line-through" },
 };
 
 const EDIT_ALLOWED: Record<string, string[]> = {
@@ -386,7 +386,7 @@ export default function ProformasList() {
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
                   <TableHead>Réf. Devis</TableHead>
                   <TableHead>Client</TableHead>
@@ -411,17 +411,17 @@ export default function ProformasList() {
                     </TableCell>
                   </TableRow>
                 ) : proformas.map(p => {
-                  const st = STATUS_MAP[p.status] ?? { label: p.status, cls: "bg-slate-100 text-slate-600" };
+                  const st = STATUS_MAP[p.status] ?? { label: p.status, cls: "bg-muted text-muted-foreground" };
                   const isCancelled = p.status === "cancelled";
                   const canEditDoc = !!EDIT_ALLOWED[p.status];
                   const canCancelDoc = CANCEL_RULES[p.status]?.allowed === true;
 
                   return (
-                    <TableRow key={p.id} className={`hover:bg-slate-50/50 ${isCancelled ? "opacity-60" : ""}`}>
+                    <TableRow key={p.id} className={`hover:bg-muted/50 ${isCancelled ? "opacity-60" : ""}`}>
                       <TableCell className="font-mono text-sm font-bold">{p.referenceNumber}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <Building className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
                           <span className="font-medium text-sm">{p.clientName || "—"}</span>
                         </div>
                       </TableCell>
@@ -434,7 +434,7 @@ export default function ProformasList() {
                       <TableCell>
                         {!isCancelled && (
                           <div className="flex items-center gap-1 flex-wrap">
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-slate-600 border-slate-200 hover:bg-slate-50"
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-muted-foreground border hover:bg-muted/50"
                               onClick={() => window.open(`/documents/proforma/${p.id}/print`, "_blank")}>
                               <Printer className="w-3 h-3" /> PDF
                             </Button>
@@ -469,7 +469,7 @@ export default function ProformasList() {
                                   </Button>
                                 )}
                                 {canEditDoc && (
-                                  <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-600 hover:bg-slate-100"
+                                  <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:bg-muted"
                                     onClick={() => setEditTarget(p)}>
                                     <Pencil className="w-3 h-3 mr-0.5" /> Modifier
                                   </Button>

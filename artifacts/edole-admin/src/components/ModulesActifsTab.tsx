@@ -27,7 +27,7 @@ type ModuleGroupDef = {
 const MODULE_GROUPS: ModuleGroupDef[] = [
   {
     id: "essentials", label: "Modules essentiels", description: "Fondamentaux au fonctionnement de Gameasu — toujours actifs.",
-    colorCls: "text-slate-700", bgCls: "bg-slate-50", borderCls: "border-slate-200", dotCls: "bg-slate-500",
+    colorCls: "text-foreground", bgCls: "bg-muted/50", borderCls: "border", dotCls: "bg-slate-500",
     icon: <Shield className="w-4 h-4" />,
     modules: [
       { key: "dashboard",            name: "Tableau de bord",          description: "KPI exécutifs, graphiques, alertes et vue d'ensemble.", protected: true, subModules: ["Vue d'ensemble", "Briefing du jour", "Intelligence IA", "Approbations"] },
@@ -177,7 +177,7 @@ export function ModulesActifsTab() {
                   className={`w-full flex items-center justify-between p-4 ${group.bgCls} hover:opacity-90 transition-opacity text-left`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className={`${group.colorCls} p-1.5 rounded-md bg-white/60 border border-white/80`}>
+                    <span className={`${group.colorCls} p-1.5 rounded-md bg-card/60 border border-white/80`}>
                       {group.icon}
                     </span>
                     <div>
@@ -211,7 +211,7 @@ export function ModulesActifsTab() {
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium text-sm">{modDef.name}</span>
                                 {isProtected && (
-                                  <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-200 bg-slate-50 gap-1">
+                                  <Badge variant="outline" className="text-[10px] text-muted-foreground border bg-muted/50 gap-1">
                                     <Lock className="w-2.5 h-2.5" /> Système
                                   </Badge>
                                 )}
@@ -219,7 +219,7 @@ export function ModulesActifsTab() {
                                   <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200 border">Actif</Badge>
                                 )}
                                 {!isEnabled && !isProtected && (
-                                  <Badge variant="outline" className="text-[10px] text-slate-400 border-slate-200">Inactif</Badge>
+                                  <Badge variant="outline" className="text-[10px] text-muted-foreground/60 border">Inactif</Badge>
                                 )}
                               </div>
                               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{modDef.description}</p>
@@ -246,7 +246,7 @@ export function ModulesActifsTab() {
                                           className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${
                                             isEnabled
                                               ? `${group.bgCls} ${group.borderCls} ${group.colorCls}`
-                                              : "bg-slate-50 border-slate-200 text-slate-400 line-through"
+                                              : "bg-muted/50 border text-muted-foreground/60 line-through"
                                           }`}
                                         >
                                           {s}
@@ -261,7 +261,7 @@ export function ModulesActifsTab() {
                             {/* Toggle / Verrou */}
                             <div className="flex items-center gap-2 shrink-0 pt-0.5">
                               {isProtected ? (
-                                <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
                                   <Lock className="w-3.5 h-3.5" />
                                   <span>Protégé</span>
                                 </div>

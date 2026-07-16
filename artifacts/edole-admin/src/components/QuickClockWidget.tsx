@@ -81,7 +81,7 @@ export function QuickClockWidget() {
   if (isLoading) {
     statusNode = <span className="text-xs text-muted-foreground">Chargement…</span>;
   } else if (collaborator === null) {
-    dotColor = "bg-slate-200";
+    dotColor = "bg-muted";
     statusNode = (
       <span className="text-xs text-muted-foreground">
         Aucun profil collaborateur lié à ce compte.
@@ -91,7 +91,7 @@ export function QuickClockWidget() {
     dotColor = "bg-slate-400";
     statusNode = (
       <div className="flex items-center gap-2 flex-wrap">
-        <Badge className="bg-slate-100 text-slate-600 border border-slate-200 font-medium">
+        <Badge className="bg-muted text-muted-foreground border border font-medium">
           <CheckCircle2 className="w-3 h-3 mr-1" /> Journée clôturée
         </Badge>
         <span className="text-xs text-muted-foreground">

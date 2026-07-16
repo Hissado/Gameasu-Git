@@ -28,7 +28,7 @@ type Order = {
 };
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  draft:     { label: "Brouillon",  cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  draft:     { label: "Brouillon",  cls: "bg-muted text-muted-foreground border" },
   confirmed: { label: "Confirmée", cls: "bg-blue-50 text-blue-700 border-blue-200" },
   delivered: { label: "Livrée",    cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   completed: { label: "Terminée",  cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -380,7 +380,7 @@ export default function OrdersList() {
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="N° Commande, Client…" className="pl-9 bg-slate-50 h-9"
+                <Input type="search" placeholder="N° Commande, Client…" className="pl-9 bg-muted/50 h-9"
                   value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <Button variant="outline" size="sm" className="h-9"><Filter className="w-4 h-4 mr-2" /> Filtres</Button>
@@ -392,14 +392,14 @@ export default function OrdersList() {
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">N° Commande</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Client</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Date de création</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Total</TableHead>
-                  <TableHead className="w-56 font-semibold text-slate-600">Actions</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">N° Commande</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Client</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Date de création</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Statut</TableHead>
+                  <TableHead className="text-right font-semibold text-muted-foreground">Total</TableHead>
+                  <TableHead className="w-56 font-semibold text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -416,24 +416,24 @@ export default function OrdersList() {
                     </TableCell>
                   </TableRow>
                 ) : orders.map(order => {
-                  const st = STATUS_MAP[order.status] ?? { label: order.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                  const st = STATUS_MAP[order.status] ?? { label: order.status, cls: "bg-muted text-muted-foreground border" };
                   const isCancelled = order.status === "cancelled";
                   const canEditDoc = !perms.isReadOnly && !!EDIT_ALLOWED[order.status];
                   const canCancelDoc = !perms.isReadOnly && CANCEL_RULES[order.status]?.allowed === true;
                   const isCancelBlocked = !CANCEL_RULES[order.status]?.allowed && !isCancelled;
 
                   return (
-                    <TableRow key={order.id} className={`hover:bg-slate-50/50 ${isCancelled ? "opacity-60" : ""}`}>
+                    <TableRow key={order.id} className={`hover:bg-muted/50 ${isCancelled ? "opacity-60" : ""}`}>
                       <TableCell className="font-mono text-sm font-bold text-primary">{order.referenceNumber}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="font-medium text-sm text-slate-800">{order.clientName || "—"}</span>
+                          <Building className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+                          <span className="font-medium text-sm text-foreground">{order.clientName || "—"}</span>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
-                          <Calendar className="w-4 h-4 text-slate-400" />{formatDate(order.createdAt)}
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                          <Calendar className="w-4 h-4 text-muted-foreground/60" />{formatDate(order.createdAt)}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -454,19 +454,19 @@ export default function OrdersList() {
                               <Mail className="w-3 h-3" /> Email
                             </Button>
                           )}
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-slate-600 border-slate-200 hover:bg-slate-50"
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-0.5 text-muted-foreground border hover:bg-muted/50"
                             onClick={() => window.open(`/documents/order/${order.id}/print`, "_blank")}>
                             <Printer className="w-3 h-3" /> PDF
                           </Button>
                           {canEditDoc && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-600 hover:bg-slate-100"
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:bg-muted"
                               onClick={() => setEditTarget(order)}>
                               <Pencil className="w-3 h-3 mr-0.5" /> Modifier
                             </Button>
                           )}
                           {(canCancelDoc || isCancelBlocked) && !isCancelled && (
                             <Button size="sm" variant="ghost"
-                              className={`h-7 text-xs ${isCancelBlocked ? "text-slate-400" : "text-red-600 hover:bg-red-50 hover:text-red-700"}`}
+                              className={`h-7 text-xs ${isCancelBlocked ? "text-muted-foreground/60" : "text-red-600 hover:bg-red-50 hover:text-red-700"}`}
                               onClick={() => setCancelTarget(order)}>
                               <XCircle className="w-3 h-3 mr-0.5" /> Annuler
                             </Button>

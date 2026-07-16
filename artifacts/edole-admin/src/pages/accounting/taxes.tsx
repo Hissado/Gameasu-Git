@@ -98,7 +98,7 @@ const TAX_TYPES: Record<string, { label: string; color: string; icon: any }> = {
   income_tax:   { label: "Impôt bénéfice", color: "bg-amber-100 text-amber-700", icon: Landmark },
   withholding:  { label: "Retenue à la source", color: "bg-purple-100 text-purple-700", icon: Banknote },
   social:       { label: "Cotisation sociale", color: "bg-emerald-100 text-emerald-700", icon: ShieldCheck },
-  other:        { label: "Autre",          color: "bg-slate-100 text-slate-700",  icon: Briefcase },
+  other:        { label: "Autre",          color: "bg-muted text-foreground",  icon: Briefcase },
 };
 
 const PERIODS: Record<string, string> = {
@@ -148,7 +148,7 @@ function TaxKPI({ label, value, sub, icon: Icon, accent = "default" }: {
     success: "bg-emerald-50 border-emerald-200 text-emerald-700",
     danger: "bg-red-50 border-red-200 text-red-700",
     warning: "bg-amber-50 border-amber-200 text-amber-700",
-    default: "bg-slate-50 border-slate-200 text-slate-700",
+    default: "bg-muted/50 border text-foreground",
   };
   return (
     <div className={`border rounded-xl p-4 ${colors[accent]}`}>
@@ -307,7 +307,7 @@ function TaxFormDialog({ open, onClose, initial, onSave }: {
                   className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors
                     ${form.appliesTo.includes(k)
                       ? "bg-primary border-primary text-white"
-                      : "border-slate-200 text-slate-600 hover:border-primary"}`}>
+                      : "border text-muted-foreground hover:border-primary"}`}>
                   {v}
                 </button>
               ))}
@@ -552,7 +552,7 @@ export default function TaxesPage() {
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors
                 ${tab === t.key
-                  ? "bg-white border border-b-white border-slate-200 text-primary -mb-px"
+                  ? "bg-card border border-b-white border text-primary -mb-px"
                   : "text-muted-foreground hover:text-foreground"}`}>
               {t.label}
             </button>
@@ -598,7 +598,7 @@ export default function TaxesPage() {
                       return (
                         <TableRow key={tax.id} className={!tax.isActive ? "opacity-50" : ""}>
                           <TableCell>
-                            <span className="font-mono text-xs font-bold bg-slate-100 px-2 py-0.5 rounded">{tax.code}</span>
+                            <span className="font-mono text-xs font-bold bg-muted px-2 py-0.5 rounded">{tax.code}</span>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium text-sm">{tax.name}</div>
@@ -615,14 +615,14 @@ export default function TaxesPage() {
                           </TableCell>
                           <TableCell>
                             <div className="text-xs space-y-0.5">
-                              {tax.collectAccountCode && <div className="text-slate-700">↑ {tax.collectAccountCode}</div>}
+                              {tax.collectAccountCode && <div className="text-foreground">↑ {tax.collectAccountCode}</div>}
                               {tax.deductAccountCode && <div className="text-emerald-700">↓ {tax.deductAccountCode}</div>}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {(tax.appliesTo ?? []).map((a) => (
-                                <span key={a} className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">
+                                <span key={a} className="text-xs bg-muted px-1.5 py-0.5 rounded">
                                   {APPLIES_TO_LABELS[a] ?? a}
                                 </span>
                               ))}
@@ -636,7 +636,7 @@ export default function TaxesPage() {
                               className={`text-xs font-semibold px-2 py-0.5 rounded-full transition-colors
                                 ${tax.isActive
                                   ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+                                  : "bg-muted text-muted-foreground hover:bg-slate-200"}`}>
                               {tax.isActive ? "Actif" : "Inactif"}
                             </button>
                           </TableCell>
@@ -864,7 +864,7 @@ export default function TaxesPage() {
                     onClick={() => { setIsEnabled(v => !v); setIsEdited(true); }}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isEnabled ? "bg-orange-500" : "bg-slate-200"}`}
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow ${isEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform shadow ${isEnabled ? "translate-x-6" : "translate-x-1"}`} />
                   </button>
                 </div>
               </CardContent>
@@ -883,11 +883,11 @@ export default function TaxesPage() {
                   <div className="text-sm text-muted-foreground">Calcul en cours…</div>
                 ) : ytdProfit ? (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-slate-50 rounded-lg p-3">
+                    <div className="bg-muted/50 rounded-lg p-3">
                       <div className="text-xs text-muted-foreground mb-1">Produits (cl. 7)</div>
                       <div className="font-bold text-emerald-700 text-sm">{formatFCFA(ytdProfit.ytdRevenues)}</div>
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-3">
+                    <div className="bg-muted/50 rounded-lg p-3">
                       <div className="text-xs text-muted-foreground mb-1">Charges (cl. 6)</div>
                       <div className="font-bold text-red-600 text-sm">{formatFCFA(ytdProfit.ytdCharges)}</div>
                     </div>
@@ -900,7 +900,7 @@ export default function TaxesPage() {
                     <div className="bg-orange-50 rounded-lg p-3">
                       <div className="text-xs text-muted-foreground mb-1">IS estimé (barème)</div>
                       <div className="font-bold text-orange-700 text-sm">
-                        {isEnabled ? formatFCFA(ytdProfit.ytdEstimatedTax) : <span className="text-slate-400">—</span>}
+                        {isEnabled ? formatFCFA(ytdProfit.ytdEstimatedTax) : <span className="text-muted-foreground/60">—</span>}
                       </div>
                     </div>
                   </div>

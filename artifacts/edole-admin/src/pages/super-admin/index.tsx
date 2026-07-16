@@ -59,9 +59,9 @@ function orgStatusBadge(o: Org) {
   switch (o.status) {
     case "trial":     return <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50">Essai</Badge>;
     case "active":    return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50">Actif</Badge>;
-    case "expired":   return <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100">Expiré</Badge>;
+    case "expired":   return <Badge className="bg-muted text-muted-foreground hover:bg-muted">Expiré</Badge>;
     case "past_due":  return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Échu</Badge>;
-    case "cancelled": return <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100">Résilié</Badge>;
+    case "cancelled": return <Badge className="bg-muted text-muted-foreground hover:bg-muted">Résilié</Badge>;
     default:          return <Badge variant="secondary">—</Badge>;
   }
 }
@@ -70,7 +70,7 @@ function invStatusBadge(status: string) {
   switch (status) {
     case "accepted": return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50">Acceptée</Badge>;
     case "pending":  return <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50">En attente</Badge>;
-    case "expired":  return <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100">Expirée</Badge>;
+    case "expired":  return <Badge className="bg-muted text-muted-foreground hover:bg-muted">Expirée</Badge>;
     case "revoked":  return <Badge variant="secondary">Révoquée</Badge>;
     default:         return <Badge variant="outline">{status}</Badge>;
   }

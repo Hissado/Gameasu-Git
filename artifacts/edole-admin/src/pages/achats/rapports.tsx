@@ -79,7 +79,7 @@ function periodLabel(p: string) { const [y, m] = p.split("-"); return `${MONTH_S
 function FcfaTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border rounded-lg shadow-lg p-3 text-xs">
+    <div className="bg-card border rounded-lg shadow-lg p-3 text-xs">
       <p className="font-medium mb-1">{label}</p>
       {payload.map((p: any) => <p key={p.dataKey} style={{ color: p.fill ?? p.color }}>{formatFCFA(p.value)}</p>)}
     </div>
@@ -124,7 +124,7 @@ const INV_STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 function InvBadge({ status }: { status: string }) {
-  const s = INV_STATUS[status] ?? { label: status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+  const s = INV_STATUS[status] ?? { label: status, cls: "bg-muted text-muted-foreground border" };
   return <Badge variant="outline" className={`text-xs ${s.cls}`}>{s.label}</Badge>;
 }
 
@@ -192,15 +192,15 @@ export default function RapportsAchatsPage() {
       />
 
       {/* Tab nav */}
-      <div className="flex gap-1 p-1 bg-slate-100 rounded-lg w-fit">
+      <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === id
-                ? "bg-white text-primary shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-card text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Icon className="h-4 w-4" />{label}
@@ -234,9 +234,9 @@ export default function RapportsAchatsPage() {
                 {Object.entries(BUCKET_LABELS).map(([key, label]) => (
                   <Card key={key} className="border-l-4" style={{ borderLeftColor: BUCKET_COLORS[key] }}>
                     <CardContent className="p-3">
-                      <p className="text-xs text-slate-500 mb-1">{label}</p>
+                      <p className="text-xs text-muted-foreground mb-1">{label}</p>
                       <p className="font-bold text-sm">{formatFCFA(agingQ.data!.buckets[key] ?? 0)}</p>
-                      <p className="text-xs text-slate-400">{agingQ.data!.bucketCounts[key] ?? 0} facture{(agingQ.data!.bucketCounts[key] ?? 0) > 1 ? "s" : ""}</p>
+                      <p className="text-xs text-muted-foreground/60">{agingQ.data!.bucketCounts[key] ?? 0} facture{(agingQ.data!.bucketCounts[key] ?? 0) > 1 ? "s" : ""}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -263,7 +263,7 @@ export default function RapportsAchatsPage() {
               <Card>
                 <CardContent className="p-0">
                   <Table>
-                    <TableHeader><TableRow className="bg-slate-50">
+                    <TableHeader><TableRow className="bg-muted/50">
                       <TableHead>Référence</TableHead><TableHead>Fournisseur</TableHead>
                       <TableHead>Échéance</TableHead><TableHead>Tranche</TableHead>
                       <TableHead className="text-right">Montant TTC</TableHead>
@@ -287,7 +287,7 @@ export default function RapportsAchatsPage() {
                         </TableRow>
                       ))}
                       {agingQ.data.items.length === 0 && (
-                        <TableRow><TableCell colSpan={7} className="text-center py-8 text-slate-400">Aucune facture impayée</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground/60">Aucune facture impayée</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
@@ -305,19 +305,19 @@ export default function RapportsAchatsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-wrap items-end gap-4">
-                <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-1">
                   <Filter className="h-4 w-4" />Filtres
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-500">Période — début</Label>
+                  <Label className="text-xs text-muted-foreground">Période — début</Label>
                   <Input type="date" className="h-8 text-xs mt-0.5 w-36" value={periodFrom} onChange={e => setPeriodFrom(e.target.value)} />
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-500">Période — fin</Label>
+                  <Label className="text-xs text-muted-foreground">Période — fin</Label>
                   <Input type="date" className="h-8 text-xs mt-0.5 w-36" value={periodTo} onChange={e => setPeriodTo(e.target.value)} />
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-500">Fournisseur</Label>
+                  <Label className="text-xs text-muted-foreground">Fournisseur</Label>
                   <Select value={periodSupplierId || "all"} onValueChange={v => setPeriodSupplierId(v === "all" ? "" : v)}>
                     <SelectTrigger className="h-8 text-xs mt-0.5 w-44"><SelectValue placeholder="Tous" /></SelectTrigger>
                     <SelectContent>
@@ -329,7 +329,7 @@ export default function RapportsAchatsPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-500">Projet</Label>
+                  <Label className="text-xs text-muted-foreground">Projet</Label>
                   <Select value={periodProjectId || "all"} onValueChange={v => setPeriodProjectId(v === "all" ? "" : v)}>
                     <SelectTrigger className="h-8 text-xs mt-0.5 w-44"><SelectValue placeholder="Tous" /></SelectTrigger>
                     <SelectContent>
@@ -341,7 +341,7 @@ export default function RapportsAchatsPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-500">Catégorie</Label>
+                  <Label className="text-xs text-muted-foreground">Catégorie</Label>
                   <Select value={periodCategory || "all"} onValueChange={v => setPeriodCategory(v === "all" ? "" : v)}>
                     <SelectTrigger className="h-8 text-xs mt-0.5 w-40"><SelectValue placeholder="Toutes" /></SelectTrigger>
                     <SelectContent>
@@ -403,7 +403,7 @@ export default function RapportsAchatsPage() {
               <Card>
                 <CardContent className="p-0">
                   <Table>
-                    <TableHeader><TableRow className="bg-slate-50">
+                    <TableHeader><TableRow className="bg-muted/50">
                       <TableHead>Période</TableHead>
                       <TableHead className="text-right">Nb paiements</TableHead>
                       <TableHead className="text-right">Total décaissé</TableHead>
@@ -417,7 +417,7 @@ export default function RapportsAchatsPage() {
                         </TableRow>
                       ))}
                       {periodQ.data.data.length === 0 && (
-                        <TableRow><TableCell colSpan={3} className="text-center py-8 text-slate-400">Aucun décaissement enregistré</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground/60">Aucun décaissement enregistré</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
@@ -469,7 +469,7 @@ export default function RapportsAchatsPage() {
               <Card>
                 <CardContent className="p-0">
                   <Table>
-                    <TableHeader><TableRow className="bg-slate-50">
+                    <TableHeader><TableRow className="bg-muted/50">
                       <TableHead>Rang</TableHead><TableHead>Fournisseur</TableHead>
                       <TableHead className="text-right">Nb factures</TableHead>
                       <TableHead className="text-right">Total facturé</TableHead>
@@ -479,7 +479,7 @@ export default function RapportsAchatsPage() {
                     <TableBody>
                       {supplierQ.data.data.map((r, i) => (
                         <TableRow key={r.supplierId}>
-                          <TableCell className="text-xs text-slate-400 font-mono">#{i + 1}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground/60 font-mono">#{i + 1}</TableCell>
                           <TableCell className="font-medium text-sm">{r.supplierName}</TableCell>
                           <TableCell className="text-right text-sm">{r.invoiceCount}</TableCell>
                           <TableCell className="text-right font-semibold text-sm">{formatFCFA(r.totalInvoiced)}</TableCell>
@@ -488,7 +488,7 @@ export default function RapportsAchatsPage() {
                         </TableRow>
                       ))}
                       {supplierQ.data.data.length === 0 && (
-                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-slate-400">Aucun fournisseur</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground/60">Aucun fournisseur</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
@@ -523,13 +523,13 @@ export default function RapportsAchatsPage() {
               <div className="grid grid-cols-3 gap-4">
                 <Card>
                   <CardContent className="p-4">
-                    <p className="text-xs text-slate-500 mb-1">Factures impayées</p>
+                    <p className="text-xs text-muted-foreground mb-1">Factures impayées</p>
                     <p className="text-2xl font-bold">{unpaidQ.data.total}</p>
                   </CardContent>
                 </Card>
                 <Card className="col-span-2">
                   <CardContent className="p-4">
-                    <p className="text-xs text-slate-500 mb-1">Total à décaisser</p>
+                    <p className="text-xs text-muted-foreground mb-1">Total à décaisser</p>
                     <p className="text-2xl font-bold text-primary">{formatFCFA(unpaidQ.data.totalBalance)}</p>
                   </CardContent>
                 </Card>
@@ -538,7 +538,7 @@ export default function RapportsAchatsPage() {
               <Card>
                 <CardContent className="p-0">
                   <Table>
-                    <TableHeader><TableRow className="bg-slate-50">
+                    <TableHeader><TableRow className="bg-muted/50">
                       <TableHead>Référence</TableHead><TableHead>Fournisseur</TableHead>
                       <TableHead>Date facture</TableHead><TableHead>Échéance</TableHead>
                       <TableHead className="text-right">Montant TTC</TableHead>
@@ -551,7 +551,7 @@ export default function RapportsAchatsPage() {
                         <TableRow key={r.id} className={r.isOverdue ? "bg-red-50/40" : ""}>
                           <TableCell className="font-mono text-xs">{r.referenceNumber}</TableCell>
                           <TableCell className="text-sm font-medium">{r.supplierName ?? "—"}</TableCell>
-                          <TableCell className="text-xs text-slate-500">{formatDate(r.invoiceDate)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatDate(r.invoiceDate)}</TableCell>
                           <TableCell className="text-xs">{r.dueDate ? formatDate(r.dueDate) : "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-sm">{formatFCFA(r.totalAmount)}</TableCell>
                           <TableCell className="text-right font-bold text-sm text-primary">{formatFCFA(r.balance)}</TableCell>
@@ -560,13 +560,13 @@ export default function RapportsAchatsPage() {
                               <Badge variant="outline" className={`text-xs ${r.daysOverdue > 60 ? "bg-red-50 text-red-700 border-red-200" : r.daysOverdue > 30 ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-yellow-50 text-yellow-700 border-yellow-200"}`}>
                                 +{r.daysOverdue} j
                               </Badge>
-                            ) : <span className="text-xs text-slate-400">—</span>}
+                            ) : <span className="text-xs text-muted-foreground/60">—</span>}
                           </TableCell>
                           <TableCell><InvBadge status={r.status} /></TableCell>
                         </TableRow>
                       ))}
                       {unpaidQ.data.data.length === 0 && (
-                        <TableRow><TableCell colSpan={8} className="text-center py-8 text-slate-400">Aucune facture impayée</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground/60">Aucune facture impayée</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>

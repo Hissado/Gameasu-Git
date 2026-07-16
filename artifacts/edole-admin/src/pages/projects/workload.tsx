@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 const CAPACITY_HOURS_PER_WEEK = 40;
 
 const HEAT: Array<{ min: number; max: number; bg: string; text: string; label: string }> = [
-  { min: 0, max: 0,   bg: "bg-slate-50",   text: "text-slate-400",  label: "Disponible" },
+  { min: 0, max: 0,   bg: "bg-muted/50",   text: "text-muted-foreground/60",  label: "Disponible" },
   { min: 1, max: 30,  bg: "bg-emerald-50", text: "text-emerald-700", label: "Faible charge" },
   { min: 31, max: 60, bg: "bg-sky-50",     text: "text-sky-700",    label: "Charge modérée" },
   { min: 61, max: 85, bg: "bg-amber-50",   text: "text-amber-700",  label: "Bonne charge" },
@@ -210,16 +210,16 @@ export default function WorkloadPage() {
           </CardContent>
         ) : matrix.length === 0 ? (
           <CardContent className="py-16 text-center text-muted-foreground">
-            <Users2 className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-            <p className="font-semibold text-slate-600">Aucun collaborateur trouvé</p>
+            <Users2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
+            <p className="font-semibold text-muted-foreground">Aucun collaborateur trouvé</p>
             <p className="text-sm mt-1">Les collaborateurs apparaîtront ici une fois créés.</p>
           </CardContent>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b border-border bg-slate-50/80">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 w-52 border-r border-border">
+                <tr className="border-b border-border bg-muted/80">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground w-52 border-r border-border">
                     Collaborateur
                   </th>
                   {weekStarts.map(ws => (
@@ -228,7 +228,7 @@ export default function WorkloadPage() {
                       className={`text-center px-3 py-2 text-[10px] font-semibold min-w-[100px] border-r border-border/40 ${
                         getWeekKey(ws) === getWeekKey(getWeekStart(0))
                           ? "bg-primary/5 text-primary"
-                          : "text-slate-500"
+                          : "text-muted-foreground"
                       }`}
                     >
                       <div>{ws.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</div>
@@ -237,14 +237,14 @@ export default function WorkloadPage() {
                       </div>
                     </th>
                   ))}
-                  <th className="text-center px-3 py-2 text-[10px] font-semibold text-slate-500 min-w-[80px]">
+                  <th className="text-center px-3 py-2 text-[10px] font-semibold text-muted-foreground min-w-[80px]">
                     Total
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {matrix.map(({ assignee, weeks, totalActive }) => (
-                  <tr key={assignee.id} className="border-b border-border/30 hover:bg-slate-50/50 transition-colors">
+                  <tr key={assignee.id} className="border-b border-border/30 hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3 border-r border-border">
                       <div className="flex items-center gap-2.5">
                         <Avatar className="w-8 h-8 shrink-0">
@@ -300,7 +300,7 @@ export default function WorkloadPage() {
                               </TooltipContent>
                             </Tooltip>
                           ) : (
-                            <span className="text-[10px] text-slate-300">—</span>
+                            <span className="text-[10px] text-muted-foreground/40">—</span>
                           )}
                         </td>
                       );

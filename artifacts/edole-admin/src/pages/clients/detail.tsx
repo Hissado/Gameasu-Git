@@ -185,7 +185,7 @@ export default function ClientDetailWorkspace() {
               {creditRisk.riskScore === "low" && "🟢 Faible"}
             </span>
             {creditRisk.creditLimit && creditRisk.utilisationPct !== null && (
-              <div className="w-24 bg-slate-200 rounded-full h-1.5 mt-2">
+              <div className="w-24 bg-muted rounded-full h-1.5 mt-2">
                 <div className={`h-1.5 rounded-full transition-all ${
                   creditRisk.utilisationPct >= 80 ? "bg-red-500" :
                   creditRisk.utilisationPct >= 60 ? "bg-amber-500" : "bg-emerald-500"
@@ -396,7 +396,7 @@ function CommunicationTab({ client }: { client: Client }) {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>À</Label>
-              <Input value={client.email ?? ""} disabled className="bg-slate-50 text-sm" />
+              <Input value={client.email ?? ""} disabled className="bg-muted/50 text-sm" />
             </div>
             <div className="space-y-1">
               <Label>Sujet *</Label>
@@ -444,7 +444,7 @@ function EmailCard({ email }: { email: EmailLog }) {
               <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{email.preview}</p>
             )}
             {expanded && email.body && (
-              <div className="mt-2 text-sm whitespace-pre-wrap bg-slate-50 rounded-md p-3 border text-slate-700">{email.body}</div>
+              <div className="mt-2 text-sm whitespace-pre-wrap bg-muted/50 rounded-md p-3 border text-foreground">{email.body}</div>
             )}
           </div>
           <button
@@ -467,7 +467,7 @@ function StatusBadge({ status }: { status: string }) {
     bounced:   { label: "Rejeté",    class: "bg-red-100 text-red-700" },
     failed:    { label: "Échec",     class: "bg-red-100 text-red-700" },
   };
-  const s = map[status] ?? { label: status, class: "bg-slate-100 text-slate-600" };
+  const s = map[status] ?? { label: status, class: "bg-muted text-muted-foreground" };
   return <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${s.class}`}>{s.label}</span>;
 }
 
@@ -687,15 +687,15 @@ function JournalTab({ clientId }: { clientId: string }) {
           </div>
           <div className="space-y-2 ml-1">
             {dayEvents.map(event => {
-              const cfg = ACTIVITY_CONFIG[event.type] ?? { icon: Activity, color: "text-slate-400", label: event.type };
+              const cfg = ACTIVITY_CONFIG[event.type] ?? { icon: Activity, color: "text-muted-foreground/60", label: event.type };
               const Icon = cfg.icon;
               return (
                 <div key={event.id} className="flex items-start gap-3 group">
-                  <div className={`mt-0.5 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors`}>
+                  <div className={`mt-0.5 w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors`}>
                     <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
                   </div>
                   <div className="flex-1 min-w-0 py-0.5">
-                    <p className="text-sm text-slate-800">{event.label}</p>
+                    <p className="text-sm text-foreground">{event.label}</p>
                     {event.meta?.amount && (
                       <p className="text-xs text-muted-foreground">{formatFCFA(Number(event.meta.amount))}</p>
                     )}
@@ -760,7 +760,7 @@ function NoteCard({
         ) : (
           <div className="flex gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{note.content}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{note.content}</p>
               <p className="text-xs text-muted-foreground mt-2">{relTimeNote(note.createdAt)}</p>
             </div>
             <div className="flex flex-col gap-1 shrink-0">

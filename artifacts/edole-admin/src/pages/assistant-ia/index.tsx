@@ -787,7 +787,7 @@ function HistoryTab({ conversations, loading }: { conversations: Conversation[];
                       <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
                         m.role === "user"
                           ? "bg-violet-600 text-white rounded-br-sm"
-                          : "bg-white border rounded-bl-sm"
+                          : "bg-card border rounded-bl-sm"
                       }`}>
                         <p>{m.content}</p>
                         <p className={`text-xs mt-0.5 ${m.role === "user" ? "text-violet-200" : "text-muted-foreground"}`}>

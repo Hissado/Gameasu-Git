@@ -98,7 +98,7 @@ export default function AlertsPage() {
                       <div className="font-semibold flex items-center gap-2"><BellRing className="w-4 h-4 text-primary" /> {r.name}</div>
                       {r.description && <div className="text-xs text-muted-foreground mt-0.5">{r.description}</div>}
                     </div>
-                    <Badge className={r.isActive ? "bg-emerald-100 text-emerald-700 border-0" : "bg-slate-100 text-slate-700 border-0"}>{r.isActive ? "Actif" : "Inactif"}</Badge>
+                    <Badge className={r.isActive ? "bg-emerald-100 text-emerald-700 border-0" : "bg-muted text-foreground border-0"}>{r.isActive ? "Actif" : "Inactif"}</Badge>
                   </div>
                   <div className="flex items-center flex-wrap gap-2 text-xs">
                     <Badge variant="outline">{SOURCES.find((s) => s.k === r.source)?.l || r.source}</Badge>
@@ -128,7 +128,7 @@ export default function AlertsPage() {
                     <li key={l.id} className="border-b pb-1.5">
                       <div className="flex items-center justify-between">
                         <Badge variant="outline" className="capitalize gap-1 text-[10px]">{CHANNEL_ICONS[l.channel]} {l.channel}</Badge>
-                        <Badge className={`text-[10px] border-0 ${l.status === "sent" ? "bg-emerald-100 text-emerald-700" : l.status === "skipped" ? "bg-slate-100 text-slate-700" : "bg-rose-100 text-rose-700"}`}>{l.status}</Badge>
+                        <Badge className={`text-[10px] border-0 ${l.status === "sent" ? "bg-emerald-100 text-emerald-700" : l.status === "skipped" ? "bg-muted text-foreground" : "bg-rose-100 text-rose-700"}`}>{l.status}</Badge>
                       </div>
                       <div className="text-muted-foreground mt-1">{l.entityType || "—"} · {new Date(l.sentAt).toLocaleString("fr-FR")}</div>
                       {l.error && <div className="text-rose-600 italic mt-0.5">{l.error}</div>}

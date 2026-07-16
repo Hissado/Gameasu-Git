@@ -15,11 +15,11 @@ export default function ActivitiesList() {
   const getActivityTypeInfo = (type: string) => {
     switch (type) {
       case "call": return { label: "Appel", icon: <PhoneCall className="w-3 h-3 mr-1" />, class: "bg-blue-50 text-blue-700 border-blue-200" };
-      case "email": return { label: "Email", icon: <Mail className="w-3 h-3 mr-1" />, class: "bg-slate-100 text-slate-700 border-slate-200" };
+      case "email": return { label: "Email", icon: <Mail className="w-3 h-3 mr-1" />, class: "bg-muted text-foreground border" };
       case "meeting": return { label: "Réunion", icon: <Users className="w-3 h-3 mr-1" />, class: "bg-purple-50 text-purple-700 border-purple-200" };
       case "note": return { label: "Note", icon: <FileText className="w-3 h-3 mr-1" />, class: "bg-yellow-50 text-yellow-700 border-yellow-200" };
       case "task": return { label: "Tâche", icon: <CheckSquare className="w-3 h-3 mr-1" />, class: "bg-green-50 text-green-700 border-green-200" };
-      default: return { label: type, icon: null, class: "bg-slate-100 text-slate-700" };
+      default: return { label: type, icon: null, class: "bg-muted text-foreground" };
     }
   };
 
@@ -42,7 +42,7 @@ export default function ActivitiesList() {
             <CardTitle className="text-lg">Historique</CardTitle>
             <div className="relative w-full md:w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input type="search" placeholder="Rechercher une activité..." className="pl-9 bg-slate-50 focus-visible:ring-primary h-9" />
+              <Input type="search" placeholder="Rechercher une activité..." className="pl-9 bg-muted/50 focus-visible:ring-primary h-9" />
             </div>
           </div>
         </CardHeader>
@@ -54,12 +54,12 @@ export default function ActivitiesList() {
             </div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Type</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Sujet</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Date</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Créé par</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Type</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Sujet</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Date</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-muted-foreground">Créé par</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -73,15 +73,15 @@ export default function ActivitiesList() {
                   data.data.map((activity) => {
                     const info = getActivityTypeInfo(activity.type);
                     return (
-                      <TableRow key={activity.id} className="hover:bg-slate-50/50">
+                      <TableRow key={activity.id} className="hover:bg-muted/50">
                         <TableCell>
                           <Badge variant="outline" className={`flex w-fit items-center px-2 py-0.5 ${info.class}`}>
                             {info.icon} {info.label}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-medium text-slate-800">{activity.subject}</TableCell>
+                        <TableCell className="font-medium text-foreground">{activity.subject}</TableCell>
                         <TableCell className="hidden sm:table-cell text-sm">{formatDate(activity.createdAt)}</TableCell>
-                        <TableCell className="hidden md:table-cell text-sm font-medium text-slate-600">{activity.userName || "—"}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm font-medium text-muted-foreground">{activity.userName || "—"}</TableCell>
                       </TableRow>
                     );
                   })

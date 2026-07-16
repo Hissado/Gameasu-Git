@@ -23,7 +23,7 @@ type Period = {
 
 const STATUS_CFG: Record<string, { label: string; variant: "default" | "secondary" | "outline"; cls: string }> = {
   open:   { label: "Ouvert",   variant: "default",   cls: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  closed: { label: "Clôturé", variant: "secondary", cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  closed: { label: "Clôturé", variant: "secondary", cls: "bg-muted text-muted-foreground border" },
 };
 
 export default function FiscalPeriodsPage() {
@@ -129,7 +129,7 @@ export default function FiscalPeriodsPage() {
       ) : periods.length === 0 ? (
         <Card className="border-dashed">
           <div className="p-10 text-center text-muted-foreground">
-            <CalendarDays className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+            <CalendarDays className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
             <p className="font-semibold">Aucun exercice comptable</p>
             <p className="text-sm mt-1">Créez votre premier exercice pour commencer la saisie comptable.</p>
             <Button className="mt-4 bg-primary hover:bg-primary/90" onClick={openCreateDialog}>
@@ -172,10 +172,10 @@ export default function FiscalPeriodsPage() {
                 <CardContent className="p-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-start gap-3 min-w-0">
-                      <div className={`mt-0.5 p-2 rounded-lg flex-shrink-0 ${isCurrent ? "bg-emerald-100" : "bg-slate-100"}`}>
+                      <div className={`mt-0.5 p-2 rounded-lg flex-shrink-0 ${isCurrent ? "bg-emerald-100" : "bg-muted"}`}>
                         {isCurrent
                           ? <LockOpen className="w-4 h-4 text-emerald-700" />
-                          : <Lock className="w-4 h-4 text-slate-500" />}
+                          : <Lock className="w-4 h-4 text-muted-foreground" />}
                       </div>
                       <div className="min-w-0">
                         <div className="font-bold flex items-center gap-2 flex-wrap">
@@ -205,7 +205,7 @@ export default function FiscalPeriodsPage() {
                               ) : null}
                             </>
                           ) : (
-                            <span className="text-slate-400 italic">Aucune donnée</span>
+                            <span className="text-muted-foreground/60 italic">Aucune donnée</span>
                           )}
                         </div>
                       </div>

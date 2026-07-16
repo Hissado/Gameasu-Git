@@ -122,15 +122,15 @@ export default function TeamCalendarPage() {
     >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <Card><CardContent className="p-3 flex items-center gap-3">
-          <CalendarDays className="w-5 h-5 text-slate-400" />
+          <CalendarDays className="w-5 h-5 text-muted-foreground/60" />
           <div><p className="text-xs text-muted-foreground">Absences ce mois</p><p className="text-2xl font-bold">{totalAbsenceDays}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-3 flex items-center gap-3">
-          <Users className="w-5 h-5 text-slate-400" />
+          <Users className="w-5 h-5 text-muted-foreground/60" />
           <div><p className="text-xs text-muted-foreground">Absents aujourd'hui</p><p className="text-2xl font-bold text-amber-600">{absentToday}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-3 flex items-center gap-3">
-          <CalendarDays className="w-5 h-5 text-slate-400" />
+          <CalendarDays className="w-5 h-5 text-muted-foreground/60" />
           <div><p className="text-xs text-muted-foreground">Jour pic</p><p className="text-sm font-semibold">{peakDay ? `${peakDay[0].slice(8, 10)}/${peakDay[0].slice(5, 7)} (${peakDay[1].size} abs.)` : "—"}</p></div>
         </CardContent></Card>
       </div>
@@ -157,9 +157,9 @@ export default function TeamCalendarPage() {
                   const isToday = ds === today.toISOString().slice(0, 10);
                   const count = collabsByDay.get(ds)?.size ?? 0;
                   return (
-                    <th key={d} className={`px-1 py-1.5 text-center min-w-[28px] border-r border-border ${isWE ? "bg-slate-100" : ""} ${isToday ? "bg-primary/10" : ""}`}>
-                      <div className={`font-semibold ${isToday ? "text-primary" : isWE ? "text-slate-400" : ""}`}>{d}</div>
-                      <div className="text-slate-400 font-normal">{FR_DAYS_SHORT[(new Date(year, month, d).getDay() + 6) % 7]}</div>
+                    <th key={d} className={`px-1 py-1.5 text-center min-w-[28px] border-r border-border ${isWE ? "bg-muted" : ""} ${isToday ? "bg-primary/10" : ""}`}>
+                      <div className={`font-semibold ${isToday ? "text-primary" : isWE ? "text-muted-foreground/60" : ""}`}>{d}</div>
+                      <div className="text-muted-foreground/60 font-normal">{FR_DAYS_SHORT[(new Date(year, month, d).getDay() + 6) % 7]}</div>
                       {count > 0 && <div className="text-amber-600 font-bold">{count}</div>}
                     </th>
                   );
@@ -174,7 +174,7 @@ export default function TeamCalendarPage() {
                 </td></tr>
               ) : filteredCollabs.map(collab => (
                 <tr key={collab.collaboratorId} className="hover:bg-muted/20 border-t border-border">
-                  <td className="px-3 py-1.5 sticky left-0 bg-white border-r border-border">
+                  <td className="px-3 py-1.5 sticky left-0 bg-card border-r border-border">
                     <div className="flex items-center gap-2">
                       <Avatar className="w-5 h-5 shrink-0">
                         {collab.collaboratorAvatar && <AvatarImage src={collab.collaboratorAvatar} />}
@@ -191,7 +191,7 @@ export default function TeamCalendarPage() {
                     const isWE = isWeekend(year, month, d);
                     const isToday = ds === today.toISOString().slice(0, 10);
                     return (
-                      <td key={d} className={`px-0 py-0 text-center border-r border-border ${isWE ? "bg-slate-50" : ""} ${isToday ? "bg-primary/5" : ""}`}>
+                      <td key={d} className={`px-0 py-0 text-center border-r border-border ${isWE ? "bg-muted/50" : ""} ${isToday ? "bg-primary/5" : ""}`}>
                         {entry && (
                           <div
                             className="h-5 mx-0.5 rounded-sm flex items-center justify-center text-[9px] text-white font-bold cursor-default"

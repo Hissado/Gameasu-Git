@@ -117,7 +117,7 @@ function CollabRow({
   return (
     <tr className="group hover:bg-orange-50/30 transition-colors">
       {/* Nom */}
-      <td className="sticky left-0 z-10 bg-white border border-gray-200 px-2 py-1 min-w-[160px] max-w-[160px]">
+      <td className="sticky left-0 z-10 bg-card border border-gray-200 px-2 py-1 min-w-[160px] max-w-[160px]">
         <div className="truncate text-xs font-medium text-gray-800" title={name}>{name}</div>
         {collab.employeeNumber && (
           <div className="text-[10px] text-gray-400">{collab.employeeNumber}</div>
@@ -163,7 +163,7 @@ function CollabRow({
                   value={cell.hoursWorked}
                   onChange={(e) => onCell(collab.id, dateStr, { hoursWorked: parseFloat(e.target.value) || 0 })}
                   disabled={locked}
-                  className="w-8 text-[10px] text-center border border-gray-200 rounded bg-white disabled:bg-gray-50"
+                  className="w-8 text-[10px] text-center border border-gray-200 rounded bg-card disabled:bg-gray-50"
                   title="Heures travaillées"
                 />
               )}

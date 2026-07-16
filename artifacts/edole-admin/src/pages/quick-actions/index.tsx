@@ -73,7 +73,7 @@ export default function QuickActions() {
               <Clock className="w-5 h-5 text-primary" />
               <p className="font-bold">Pointage</p>
             </div>
-            {session && <Badge variant="outline" className={isCheckedIn ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50"}>{isCheckedIn ? "Présent" : session.status === "closed" ? "Journée close" : "Hors site"}</Badge>}
+            {session && <Badge variant="outline" className={isCheckedIn ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-muted/50"}>{isCheckedIn ? "Présent" : session.status === "closed" ? "Journée close" : "Hors site"}</Badge>}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -85,7 +85,7 @@ export default function QuickActions() {
             <button
               disabled={clock.isPending || !isCheckedIn || !session}
               onClick={() => onClock("clock-out")}
-              className="rounded-lg border-2 border-slate-700 bg-slate-700 text-white px-3 py-3 font-bold text-sm disabled:opacity-50 active:scale-[0.97]">
+              className="rounded-lg border-2 border bg-slate-700 text-white px-3 py-3 font-bold text-sm disabled:opacity-50 active:scale-[0.97]">
               Départ
             </button>
           </div>

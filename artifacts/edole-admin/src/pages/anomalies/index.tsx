@@ -17,7 +17,7 @@ const sevColor = (s: string) =>
   s === "critical" ? "bg-red-100 text-red-800 border-red-300" :
   s === "high" ? "bg-red-50 text-red-700 border-red-200" :
   s === "medium" ? "bg-amber-50 text-amber-700 border-amber-200" :
-  "bg-slate-50 text-slate-700 border-slate-200";
+  "bg-muted/50 text-foreground border";
 
 const linkFor = (it: any): string => {
   switch (it.entityType) {

@@ -312,12 +312,12 @@ export default function ReconciliationPage() {
                     onBlur={handleParseCSV}
                     placeholder={`Date;Libellé;Débit;Crédit;Référence\n15/01/2026;Paiement fournisseur BTP;450000;;F2026-001\n20/01/2026;Encaissement client SOGELEC;;1200000;F2026-015`}
                     rows={5}
-                    className="w-full rounded-lg border border-input bg-white text-xs font-mono px-3 py-2 resize-y focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                    className="w-full rounded-lg border border-input bg-card text-xs font-mono px-3 py-2 resize-y focus:outline-none focus:ring-2 focus:ring-amber-400/40"
                   />
                   {parsedLines.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-[12px] font-medium text-emerald-700">{parsedLines.length} ligne(s) détectée(s) — aperçu :</p>
-                      <div className="max-h-40 overflow-y-auto rounded-lg border border-border/60 bg-white">
+                      <div className="max-h-40 overflow-y-auto rounded-lg border border-border/60 bg-card">
                         <table className="w-full text-xs">
                           <thead className="bg-muted/40"><tr>{["Date","Libellé","Montant","Réf"].map((h) => <th key={h} className="px-3 py-1.5 text-left font-semibold text-muted-foreground">{h}</th>)}</tr></thead>
                           <tbody className="divide-y divide-border/40">
@@ -368,7 +368,7 @@ export default function ReconciliationPage() {
                         key={s.transaction.id}
                         className={cn(
                           "flex items-center gap-3 p-2.5 rounded-lg border text-sm cursor-pointer transition-colors",
-                          selectedTx === s.transaction.id ? "border-amber-400 bg-amber-50" : "border-border/60 bg-white hover:bg-muted/30"
+                          selectedTx === s.transaction.id ? "border-amber-400 bg-amber-50" : "border-border/60 bg-card hover:bg-muted/30"
                         )}
                         onClick={() => setSelectedTx(selectedTx === s.transaction.id ? null : s.transaction.id)}
                       >

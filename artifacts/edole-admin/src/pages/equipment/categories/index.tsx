@@ -40,11 +40,11 @@ export default function EquipmentCategories() {
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Nom de la Catégorie</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Description</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Nombre d'Équipements</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Nom de la Catégorie</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Description</TableHead>
+                  <TableHead className="text-right font-semibold text-muted-foreground">Nombre d'Équipements</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -52,16 +52,16 @@ export default function EquipmentCategories() {
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-12 text-muted-foreground">
                       <div className="flex flex-col items-center justify-center">
-                        <Settings2 className="w-12 h-12 text-slate-300 mb-4" />
-                        <p className="text-lg font-medium text-slate-600">Aucune catégorie définie.</p>
+                        <Settings2 className="w-12 h-12 text-muted-foreground/40 mb-4" />
+                        <p className="text-lg font-medium text-muted-foreground">Aucune catégorie définie.</p>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   data.map((category) => (
-                    <TableRow key={category.id} className="hover:bg-slate-50/50">
-                      <TableCell className="font-bold text-slate-800">{category.name}</TableCell>
-                      <TableCell className="text-sm text-slate-600">{category.description || "—"}</TableCell>
+                    <TableRow key={category.id} className="hover:bg-muted/50">
+                      <TableCell className="font-bold text-foreground">{category.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{category.description || "—"}</TableCell>
                       <TableCell className="text-right font-bold text-primary">
                         <span className="bg-primary/10 px-3 py-1 rounded-full">{category.equipmentCount || 0}</span>
                       </TableCell>

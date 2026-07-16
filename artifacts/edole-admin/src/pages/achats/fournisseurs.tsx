@@ -102,7 +102,7 @@ function StatusBadge({ isActive, status }: { isActive: boolean; status?: string 
   const s = status || (isActive ? "actif" : "inactif");
   switch (s) {
     case "actif":       return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">Actif</Badge>;
-    case "inactif":     return <Badge variant="outline" className="bg-slate-50 text-slate-500 text-xs">Inactif</Badge>;
+    case "inactif":     return <Badge variant="outline" className="bg-muted/50 text-muted-foreground text-xs">Inactif</Badge>;
     case "a_verifier":  return <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">À vérifier</Badge>;
     case "suspendu":    return <Badge className="bg-rose-100 text-rose-700 border-rose-200 text-xs">Suspendu</Badge>;
     default:            return <Badge variant="outline" className="text-xs">{s}</Badge>;
@@ -115,7 +115,7 @@ function InvoiceStatusBadge({ status }: { status: string }) {
     case "partially_paid":    return <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">Part. payée</Badge>;
     case "pending":           return <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs">En attente</Badge>;
     case "overdue":           return <Badge className="bg-rose-100 text-rose-700 border-rose-200 text-xs">En retard</Badge>;
-    case "cancelled":         return <Badge variant="outline" className="text-slate-500 text-xs">Annulée</Badge>;
+    case "cancelled":         return <Badge variant="outline" className="text-muted-foreground text-xs">Annulée</Badge>;
     case "review":            return <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">À revoir</Badge>;
     case "approved":          return <Badge className="bg-teal-100 text-teal-800 border-teal-200 text-xs">Approuvée</Badge>;
     default:                  return <Badge variant="outline" className="text-xs">{status}</Badge>;

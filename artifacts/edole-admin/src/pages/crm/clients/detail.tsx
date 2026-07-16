@@ -68,23 +68,23 @@ type CreditRisk = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const INV_STATUS: Record<string, { label: string; cls: string }> = {
-  draft:         { label: "Brouillon",      cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  draft:         { label: "Brouillon",      cls: "bg-muted text-muted-foreground border" },
   pending:       { label: "En attente",     cls: "bg-blue-50 text-blue-700 border-blue-200" },
   partially_paid:{ label: "Partiellement payée", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   paid:          { label: "Payée",          cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   overdue:       { label: "En retard",      cls: "bg-red-50 text-red-700 border-red-200 font-bold" },
-  cancelled:     { label: "Annulée",        cls: "bg-slate-50 text-slate-400 border-slate-200" },
+  cancelled:     { label: "Annulée",        cls: "bg-muted/50 text-muted-foreground/60 border" },
 };
 
 const PRO_STATUS: Record<string, { label: string; cls: string }> = {
-  draft:    { label: "Brouillon", cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  draft:    { label: "Brouillon", cls: "bg-muted text-muted-foreground border" },
   sent:     { label: "Envoyé",    cls: "bg-blue-50 text-blue-700 border-blue-200" },
   approved: { label: "Approuvé", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   rejected: { label: "Refusé",   cls: "bg-red-50 text-red-700 border-red-200" },
 };
 
 const ORD_STATUS: Record<string, { label: string; cls: string }> = {
-  draft:     { label: "Brouillon",   cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  draft:     { label: "Brouillon",   cls: "bg-muted text-muted-foreground border" },
   confirmed: { label: "Confirmée",   cls: "bg-blue-50 text-blue-700 border-blue-200" },
   delivered: { label: "Livrée",      cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   cancelled: { label: "Annulée",     cls: "bg-red-50 text-red-700 border-red-200" },
@@ -97,7 +97,7 @@ const METHODS: Record<string, string> = {
 };
 
 function StatusBadge({ status, map }: { status: string; map: Record<string, { label: string; cls: string }> }) {
-  const s = map[status] ?? { label: status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+  const s = map[status] ?? { label: status, cls: "bg-muted text-muted-foreground border" };
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${s.cls}`}>{s.label}</span>;
 }
 
@@ -433,7 +433,7 @@ export default function ClientDetail() {
               Clients CRM
             </Button>
           </Link>
-          <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-muted border border flex items-center justify-center text-muted-foreground font-bold text-lg shrink-0">
             {client.name.substring(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -441,7 +441,7 @@ export default function ClientDetail() {
               <h1 className="text-2xl font-bold tracking-tight truncate">{client.name}</h1>
               {client.status === "active" && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">Client actif</span>}
               {client.status === "prospect" && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Prospect</span>}
-              {client.status === "inactive" && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">Inactif</span>}
+              {client.status === "inactive" && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border">Inactif</span>}
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">{client.industry || "Secteur non spécifié"}</p>
           </div>
@@ -488,10 +488,10 @@ export default function ClientDetail() {
         {[
           { label: "Devis", value: kpis?.totalProformas ?? "—", icon: FileText, color: "text-blue-600" },
           { label: "Commandes", value: kpis?.totalOrders ?? "—", icon: ShoppingCart, color: "text-indigo-600" },
-          { label: "Facturé", value: kpis ? formatFCFA(kpis.totalInvoiced) : "—", icon: Receipt, color: "text-slate-700" },
+          { label: "Facturé", value: kpis ? formatFCFA(kpis.totalInvoiced) : "—", icon: Receipt, color: "text-foreground" },
           { label: "Encaissé", value: kpis ? formatFCFA(kpis.totalPaid) : "—", icon: CheckCircle2, color: "text-emerald-600" },
           { label: "Solde ouvert", value: kpis ? formatFCFA(kpis.outstandingBalance) : "—", icon: AlertCircle, color: kpis && kpis.outstandingBalance > 0 ? "text-amber-600" : "text-emerald-600" },
-          { label: "Paiements", value: kpis?.totalInvoices ?? "—", icon: Banknote, color: "text-slate-600" },
+          { label: "Paiements", value: kpis?.totalInvoices ?? "—", icon: Banknote, color: "text-muted-foreground" },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="shadow-sm">
             <CardContent className="p-3">
@@ -512,11 +512,11 @@ export default function ClientDetail() {
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors flex items-center gap-1.5
                 ${tab === t.key
-                  ? "bg-white border border-b-white border-slate-200 text-[#2563EB] -mb-px"
+                  ? "bg-card border border-b-white border text-[#2563EB] -mb-px"
                   : "text-muted-foreground hover:text-foreground"}`}>
               {t.label}
               {t.count !== undefined && t.count > 0 && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-[#2563EB]/10 text-[#2563EB]" : "bg-slate-100 text-slate-500"}`}>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-[#2563EB]/10 text-[#2563EB]" : "bg-muted text-muted-foreground"}`}>
                   {t.count}
                 </span>
               )}
@@ -540,7 +540,7 @@ export default function ClientDetail() {
                       { icon: MapPin, label: "Adresse", value: client.address },
                     ].map(({ icon: Icon, label, value }) => (
                       <div key={label} className="flex items-start gap-2">
-                        <Icon className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                        <Icon className="w-4 h-4 text-muted-foreground/60 mt-0.5 shrink-0" />
                         <div>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
                           <p className="text-sm font-medium mt-0.5">{(value as string) || "—"}</p>
@@ -561,7 +561,7 @@ export default function ClientDetail() {
                   const RiskIcon = riskCfg.icon;
                   const pct = creditRisk.utilisationPct;
                   return (
-                    <Card className={`border ${creditRisk.riskScore === "low" ? "border-slate-200" : creditRisk.riskScore === "critical" ? "border-red-200" : "border-amber-200"}`}>
+                    <Card className={`border ${creditRisk.riskScore === "low" ? "border" : creditRisk.riskScore === "critical" ? "border-red-200" : "border-amber-200"}`}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-sm flex items-center gap-1.5">
@@ -602,7 +602,7 @@ export default function ClientDetail() {
                               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Utilisation</p>
                               <span className={`text-xs font-bold ${pct >= 80 ? "text-red-600" : pct >= 60 ? "text-amber-600" : "text-emerald-600"}`}>{pct}%</span>
                             </div>
-                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all ${pct >= 80 ? "bg-red-500" : pct >= 60 ? "bg-amber-400" : "bg-emerald-400"}`}
                                 style={{ width: `${Math.min(pct, 100)}%` }}
@@ -641,7 +641,7 @@ export default function ClientDetail() {
                           const Icon = item.icon;
                           return (
                             <button key={i} onClick={item.action}
-                              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors text-left">
+                              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 border border-transparent hover:border transition-colors text-left">
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.color}`}>
                                 <Icon className="w-4 h-4" />
                               </div>
@@ -877,9 +877,9 @@ export default function ClientDetail() {
               ) : (
                 <div className="grid gap-3">
                   {contacts.map((c: any) => (
-                    <Card key={c.id} className="hover:border-slate-300 transition-colors">
+                    <Card key={c.id} className="hover:border transition-colors">
                       <CardContent className="p-4 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold text-sm shrink-0">
                           {c.firstName?.[0]}{c.lastName?.[0]}
                         </div>
                         <div className="flex-1 min-w-0">

@@ -97,9 +97,9 @@ function StatusBadge({ status }: { status: string }) {
     done:      { label: "Importé",    cls: "bg-emerald-100 text-emerald-700" },
     error:     { label: "Erreur",     cls: "bg-red-100 text-red-700" },
     importing: { label: "En cours",   cls: "bg-blue-100 text-blue-700" },
-    pending:   { label: "En attente", cls: "bg-slate-100 text-slate-600" },
+    pending:   { label: "En attente", cls: "bg-muted text-muted-foreground" },
   };
-  const s = map[status] ?? { label: status, cls: "bg-slate-100 text-slate-500" };
+  const s = map[status] ?? { label: status, cls: "bg-muted text-muted-foreground" };
   return <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${s.cls}`}>{s.label}</span>;
 }
 
@@ -234,11 +234,11 @@ export default function MigrationPage() {
                 {STEPS.map((s, i) => (
                   <div key={s.id} className="flex items-center gap-1 shrink-0">
                     <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold
-                      ${i < stepIndex ? "bg-emerald-100 text-emerald-700" : i === stepIndex ? "bg-primary text-white" : "bg-slate-100 text-slate-400"}`}>
+                      ${i < stepIndex ? "bg-emerald-100 text-emerald-700" : i === stepIndex ? "bg-primary text-white" : "bg-muted text-muted-foreground/60"}`}>
                       {i < stepIndex && <CheckCircle2 className="w-3 h-3" />}
                       {s.label}
                     </div>
-                    {i < STEPS.length - 1 && <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />}
+                    {i < STEPS.length - 1 && <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0" />}
                   </div>
                 ))}
               </div>
@@ -276,8 +276,8 @@ export default function MigrationPage() {
                       onClick={() => { setSelectedModule(mod); setStep("upload"); }}>
                       <CardContent className="p-4 space-y-2">
                         <div className="flex items-start justify-between">
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${done ? "bg-emerald-100" : "bg-slate-100"}`}>
-                            <Icon className={`w-5 h-5 ${done ? "text-emerald-600" : "text-slate-600"}`} />
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${done ? "bg-emerald-100" : "bg-muted"}`}>
+                            <Icon className={`w-5 h-5 ${done ? "text-emerald-600" : "text-muted-foreground"}`} />
                           </div>
                           {done && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
                         </div>
@@ -286,7 +286,7 @@ export default function MigrationPage() {
                           <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{mod.description}</p>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${CAT_COLORS[mod.category] ?? "bg-slate-100 text-slate-600"}`}>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${CAT_COLORS[mod.category] ?? "bg-muted text-muted-foreground"}`}>
                             {mod.category}
                           </span>
                           <span className="text-[10px] text-muted-foreground">{mod.fields} champs</span>
@@ -318,15 +318,15 @@ export default function MigrationPage() {
                     {IMPORT_ORDER.map((step) => {
                       const available = modulesData?.modules.find(m => m.id === step.moduleId);
                       return (
-                        <div key={step.order} className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs ${available ? "bg-slate-50 border border-slate-100" : "bg-slate-50/50 border border-dashed border-slate-200 opacity-60"}`}>
-                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${available ? "bg-primary text-white" : "bg-slate-200 text-slate-500"}`}>{step.order}</span>
+                        <div key={step.order} className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs ${available ? "bg-muted/50 border border" : "bg-muted/50 border border-dashed border opacity-60"}`}>
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${available ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>{step.order}</span>
                           <div className="flex-1 min-w-0">
                             <span className="font-medium truncate block">{step.label}</span>
                             {step.note && <span className="text-[10px] text-muted-foreground">{step.note}</span>}
                           </div>
                           {available
                             ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            : <span className="text-[9px] text-muted-foreground shrink-0 bg-slate-200 px-1 rounded">bientôt</span>}
+                            : <span className="text-[9px] text-muted-foreground shrink-0 bg-muted px-1 rounded">bientôt</span>}
                         </div>
                       );
                     })}
@@ -409,7 +409,7 @@ export default function MigrationPage() {
                     onDrop={handleDrop}
                     onClick={() => fileRef.current?.click()}
                     className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all
-                      ${isDragging ? "border-primary bg-primary/5" : "border-slate-200 hover:border-primary/50 hover:bg-slate-50"}
+                      ${isDragging ? "border-primary bg-primary/5" : "border hover:border-primary/50 hover:bg-muted/50"}
                       ${uploadMutation.isPending ? "opacity-50 pointer-events-none" : ""}`}
                   >
                     {uploadMutation.isPending ? (
@@ -419,12 +419,12 @@ export default function MigrationPage() {
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                          <Upload className="w-6 h-6 text-slate-400" />
+                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                          <Upload className="w-6 h-6 text-muted-foreground/60" />
                         </div>
                         <p className="font-semibold text-sm">Glisser-déposer votre fichier ici</p>
                         <p className="text-xs text-muted-foreground">ou cliquer pour parcourir</p>
-                        <p className="text-[11px] text-slate-400">.xlsx, .xls, .csv — max 10 Mo</p>
+                        <p className="text-[11px] text-muted-foreground/60">.xlsx, .xls, .csv — max 10 Mo</p>
                       </div>
                     )}
                     <input ref={fileRef} type="file" className="hidden" accept=".xlsx,.xls,.csv"
@@ -564,7 +564,7 @@ export default function MigrationPage() {
                   {/* KPIs */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
-                      { label: "Total lignes", value: validationResult.totalRows, color: "text-slate-700" },
+                      { label: "Total lignes", value: validationResult.totalRows, color: "text-foreground" },
                       { label: "Lignes valides", value: validationResult.validRows, color: "text-emerald-600" },
                       { label: "Lignes en erreur", value: validationResult.errorRows, color: validationResult.errorRows > 0 ? "text-red-600" : "text-emerald-600" },
                     ].map(k => (
@@ -660,9 +660,9 @@ export default function MigrationPage() {
                       <p className="text-3xl font-bold text-emerald-700">{importResult.imported}</p>
                       <p className="text-xs text-emerald-600">ligne(s) importée(s)</p>
                     </div>
-                    <div className="rounded-lg bg-slate-50 p-3">
-                      <p className="text-3xl font-bold text-slate-600">{importResult.skipped}</p>
-                      <p className="text-xs text-slate-500">ligne(s) ignorée(s)</p>
+                    <div className="rounded-lg bg-muted/50 p-3">
+                      <p className="text-3xl font-bold text-muted-foreground">{importResult.skipped}</p>
+                      <p className="text-xs text-muted-foreground">ligne(s) ignorée(s)</p>
                     </div>
                   </div>
 

@@ -2,7 +2,7 @@ import { Sparkles, Crown, Rocket, Building2, Zap } from "lucide-react";
 
 const COLOR_MAP: Record<string, string> = {
   // Plans actuels
-  STARTER:    "bg-white/[0.06] text-slate-200 ring-white/15",
+  STARTER:    "bg-card/[0.06] text-slate-200 ring-white/15",
   BUSINESS:   "bg-[#1B5E5E]/30 text-emerald-200 ring-emerald-400/25",
   PREMIUM:    "bg-[#2563EB]/15 text-[#93c5fd] ring-[#2563EB]/40",
   ENTERPRISE: "bg-[#3E2C5F]/40 text-violet-200 ring-violet-300/30",

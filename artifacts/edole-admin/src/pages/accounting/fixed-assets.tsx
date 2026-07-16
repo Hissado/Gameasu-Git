@@ -43,7 +43,7 @@ type AssetDetail = Asset & {
 type Account = { id: string; code: string; label: string; classNum: number };
 
 const STATUS_LABELS: Record<string, string> = { active: "Actif", disposed: "Cédé/Sorti", fully_depreciated: "Totalement amorti" };
-const STATUS_COLORS: Record<string, string> = { active: "bg-emerald-100 text-emerald-800 border-emerald-200", disposed: "bg-slate-100 text-slate-600 border-slate-200", fully_depreciated: "bg-amber-100 text-amber-700 border-amber-200" };
+const STATUS_COLORS: Record<string, string> = { active: "bg-emerald-100 text-emerald-800 border-emerald-200", disposed: "bg-muted text-muted-foreground border", fully_depreciated: "bg-amber-100 text-amber-700 border-amber-200" };
 
 export default function FixedAssetsPage() {
   const qc = useQueryClient();
@@ -146,7 +146,7 @@ export default function FixedAssetsPage() {
       <Card>
         <CardContent className="p-0">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-muted-foreground border-b">
+            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
               <tr>
                 <th className="text-left px-4 py-3">Code / Désignation</th>
                 <th className="text-left px-4 py-3">Acquisition</th>
@@ -170,7 +170,7 @@ export default function FixedAssetsPage() {
                   ? Math.min((a.accumulatedDepreciation / (a.acquisitionCost - a.residualValue)) * 100, 100)
                   : 0;
                 return (
-                  <tr key={a.id} className="border-t hover:bg-slate-50/60 transition-colors cursor-pointer"
+                  <tr key={a.id} className="border-t hover:bg-muted/60 transition-colors cursor-pointer"
                     onClick={() => setSelectedId(a.id)}>
                     <td className="px-4 py-3">
                       <div className="font-mono text-xs text-muted-foreground">{a.code}</div>
@@ -193,7 +193,7 @@ export default function FixedAssetsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[a.status] ?? "bg-slate-100 text-slate-600"}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[a.status] ?? "bg-muted text-muted-foreground"}`}>
                         {STATUS_LABELS[a.status] ?? a.status}
                       </span>
                     </td>
@@ -353,7 +353,7 @@ export default function FixedAssetsPage() {
                       <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}
                         tickFormatter={(v) => `${(v / 1_000_000).toFixed(1)}M`} />
                       <RTooltip formatter={(v: number) => formatFCFA(v)} />
-                      <Legend iconType="circle" formatter={(v) => <span className="text-xs text-slate-600">{v}</span>} />
+                      <Legend iconType="circle" formatter={(v) => <span className="text-xs text-muted-foreground">{v}</span>} />
                       <Line type="monotone" dataKey="netBookValue" name="VNC" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
                       <Line type="monotone" dataKey="accumulated" name="Cumul amorti" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 2" />
                       {detail.history.length > 0 && (
@@ -364,7 +364,7 @@ export default function FixedAssetsPage() {
                 </div>
 
                 <table className="w-full text-xs mt-3 border rounded overflow-hidden">
-                  <thead className="bg-slate-50 text-muted-foreground uppercase">
+                  <thead className="bg-muted/50 text-muted-foreground uppercase">
                     <tr>
                       <th className="text-left px-3 py-2">Année</th>
                       <th className="text-right px-3 py-2">Dotation annuelle</th>

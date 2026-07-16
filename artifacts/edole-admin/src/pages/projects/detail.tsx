@@ -45,9 +45,9 @@ const RAG_CONFIG: Record<RAGStatus, { label: string; icon: React.ReactNode; cls:
   on_track:  { label: "En bonne voie", icon: <CheckCircle2 className="w-4 h-4" />, cls: "bg-emerald-50 text-emerald-700 border-emerald-200", description: "L'avancement est conforme aux prévisions." },
   at_risk:   { label: "À risque",      icon: <AlertTriangle className="w-4 h-4" />, cls: "bg-amber-50 text-amber-700 border-amber-200",   description: "L'avancement accuse un léger retard sur le calendrier." },
   off_track: { label: "En retard",     icon: <AlertTriangle className="w-4 h-4" />, cls: "bg-red-50 text-red-700 border-red-200",          description: "Le projet est significativement en retard ou la date limite est dépassée." },
-  completed: { label: "Terminé",       icon: <CheckCircle2 className="w-4 h-4" />, cls: "bg-slate-100 text-slate-600 border-slate-200",   description: "Ce projet est marqué comme terminé." },
+  completed: { label: "Terminé",       icon: <CheckCircle2 className="w-4 h-4" />, cls: "bg-muted text-muted-foreground border",   description: "Ce projet est marqué comme terminé." },
   pending:   { label: "En attente",    icon: <Clock className="w-4 h-4" />,         cls: "bg-blue-50 text-blue-700 border-blue-200",       description: "Ce projet n'a pas encore démarré ou manque de dates." },
-  unknown:   { label: "Inconnu",       icon: <CircleDot className="w-4 h-4" />,     cls: "bg-slate-50 text-slate-500 border-slate-200",    description: "Statut indéterminé." },
+  unknown:   { label: "Inconnu",       icon: <CircleDot className="w-4 h-4" />,     cls: "bg-muted/50 text-muted-foreground border",    description: "Statut indéterminé." },
 };
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
@@ -227,7 +227,7 @@ export default function ProjectDetail() {
                         "bg-slate-300";
                       return (
                         <div key={phase.id} className="flex items-center gap-3 border-b border-border pb-3 last:border-0 last:pb-0">
-                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-xs font-bold text-slate-500 shrink-0">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-bold text-muted-foreground shrink-0">
                             {i + 1}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -259,7 +259,7 @@ export default function ProjectDetail() {
               <CardContent className="pt-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    { key: "todo", label: "À faire", cls: "text-slate-600 bg-slate-50" },
+                    { key: "todo", label: "À faire", cls: "text-muted-foreground bg-muted/50" },
                     { key: "in_progress", label: "En cours", cls: "text-primary bg-primary/5" },
                     { key: "review", label: "En revue", cls: "text-blue-700 bg-blue-50" },
                     { key: "done", label: "Terminées", cls: "text-emerald-700 bg-emerald-50" },
@@ -287,7 +287,7 @@ export default function ProjectDetail() {
               {(project as any).documentLinks && (project as any).documentLinks.length > 0 ? (
                 <ul className="space-y-2">
                   {(project as any).documentLinks.map((doc: any, i: number) => (
-                    <li key={i} className="flex items-center justify-between border border-border rounded-md p-3 hover:bg-slate-50/50">
+                    <li key={i} className="flex items-center justify-between border border-border rounded-md p-3 hover:bg-muted/50">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 bg-primary/10 text-primary rounded flex items-center justify-center">
                           <FileText className="w-4 h-4" />

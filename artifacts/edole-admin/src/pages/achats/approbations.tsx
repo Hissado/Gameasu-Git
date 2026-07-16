@@ -58,7 +58,7 @@ const INV_STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 function InvBadge({ status, isOverdue }: { status: string; isOverdue: boolean }) {
-  const s = INV_STATUS[status] ?? { label: status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+  const s = INV_STATUS[status] ?? { label: status, cls: "bg-muted text-muted-foreground border" };
   return (
     <div className="flex items-center gap-1">
       <Badge variant="outline" className={`text-xs ${s.cls}`}>{s.label}</Badge>
@@ -373,7 +373,7 @@ export default function ApprobationsPage() {
               <Icon className={`h-8 w-8 ${color}`} />
               <div>
                 <p className="text-2xl font-bold">{count}</p>
-                <p className="text-xs text-slate-500">{label}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
               </div>
             </CardContent>
           </Card>
@@ -410,7 +410,7 @@ export default function ApprobationsPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
-                    <TableHeader><TableRow className="bg-slate-50">
+                    <TableHeader><TableRow className="bg-muted/50">
                       <TableHead>Référence</TableHead><TableHead>Fournisseur</TableHead>
                       <TableHead>Date</TableHead><TableHead>Échéance</TableHead>
                       <TableHead className="text-right">Montant</TableHead><TableHead>Statut</TableHead>
@@ -421,7 +421,7 @@ export default function ApprobationsPage() {
                         <TableRow key={inv.id}>
                           <TableCell className="font-mono text-xs">{inv.referenceNumber}</TableCell>
                           <TableCell className="font-medium text-sm">{inv.supplierName ?? "—"}</TableCell>
-                          <TableCell className="text-xs text-slate-500">{formatDate(inv.invoiceDate)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatDate(inv.invoiceDate)}</TableCell>
                           <TableCell className="text-xs">{inv.dueDate ? formatDate(inv.dueDate) : "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-sm">{formatFCFA(inv.totalAmount)}</TableCell>
                           <TableCell><InvBadge status={inv.status} isOverdue={inv.isOverdue} /></TableCell>
@@ -445,7 +445,7 @@ export default function ApprobationsPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
-                    <TableHeader><TableRow className="bg-slate-50">
+                    <TableHeader><TableRow className="bg-muted/50">
                       <TableHead>Référence</TableHead><TableHead>Fournisseur</TableHead>
                       <TableHead>Date</TableHead><TableHead>Échéance</TableHead>
                       <TableHead className="text-right">Montant</TableHead><TableHead>Statut</TableHead>
@@ -456,7 +456,7 @@ export default function ApprobationsPage() {
                         <TableRow key={inv.id}>
                           <TableCell className="font-mono text-xs">{inv.referenceNumber}</TableCell>
                           <TableCell className="font-medium text-sm">{inv.supplierName ?? "—"}</TableCell>
-                          <TableCell className="text-xs text-slate-500">{formatDate(inv.invoiceDate)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatDate(inv.invoiceDate)}</TableCell>
                           <TableCell className="text-xs">{inv.dueDate ? formatDate(inv.dueDate) : "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-sm">{formatFCFA(inv.totalAmount)}</TableCell>
                           <TableCell><InvBadge status={inv.status} isOverdue={inv.isOverdue} /></TableCell>
@@ -470,7 +470,7 @@ export default function ApprobationsPage() {
             )}
 
             {invoices.length === 0 && (
-              <Card><CardContent className="py-12 text-center text-slate-500">
+              <Card><CardContent className="py-12 text-center text-muted-foreground">
                 <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-400" />
                 <p>Aucune facture en attente d'approbation</p>
               </CardContent></Card>
@@ -482,13 +482,13 @@ export default function ApprobationsPage() {
             <Card>
               <CardContent className="p-0">
                 {pos.length === 0 ? (
-                  <div className="py-12 text-center text-slate-500">
+                  <div className="py-12 text-center text-muted-foreground">
                     <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-400" />
                     <p>Aucun BC en attente de confirmation</p>
                   </div>
                 ) : (
                   <Table>
-                    <TableHeader><TableRow className="bg-slate-50">
+                    <TableHeader><TableRow className="bg-muted/50">
                       <TableHead>Référence</TableHead><TableHead>Fournisseur</TableHead>
                       <TableHead>Date</TableHead><TableHead>Livraison prévue</TableHead>
                       <TableHead className="text-right">Total</TableHead><TableHead>Actions</TableHead>
@@ -498,7 +498,7 @@ export default function ApprobationsPage() {
                         <TableRow key={po.id}>
                           <TableCell className="font-mono text-xs">{po.reference}</TableCell>
                           <TableCell className="font-medium text-sm">{po.supplierName ?? "—"}</TableCell>
-                          <TableCell className="text-xs text-slate-500">{formatDate(po.orderDate)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatDate(po.orderDate)}</TableCell>
                           <TableCell className="text-xs">{po.expectedDate ? formatDate(po.expectedDate) : "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-sm">{formatFCFA(po.totalFcfa)}</TableCell>
                           <TableCell><PoActions po={po} onRefresh={refresh} /></TableCell>
@@ -516,13 +516,13 @@ export default function ApprobationsPage() {
             <Card>
               <CardContent className="p-0">
                 {expenses.length === 0 ? (
-                  <div className="py-12 text-center text-slate-500">
+                  <div className="py-12 text-center text-muted-foreground">
                     <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-400" />
                     <p>Aucune note de frais en attente d'approbation</p>
                   </div>
                 ) : (
                   <Table>
-                    <TableHeader><TableRow className="bg-slate-50">
+                    <TableHeader><TableRow className="bg-muted/50">
                       <TableHead>Titre</TableHead><TableHead>Collaborateur</TableHead>
                       <TableHead>Soumis le</TableHead>
                       <TableHead className="text-right">Montant</TableHead><TableHead>Actions</TableHead>
@@ -532,7 +532,7 @@ export default function ApprobationsPage() {
                         <TableRow key={exp.id}>
                           <TableCell className="font-medium text-sm">{exp.title}</TableCell>
                           <TableCell className="text-sm">{exp.collaboratorName}</TableCell>
-                          <TableCell className="text-xs text-slate-500">{exp.submittedAt ? formatDate(exp.submittedAt) : "—"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{exp.submittedAt ? formatDate(exp.submittedAt) : "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-sm">{formatFCFA(exp.totalAmount)}</TableCell>
                           <TableCell><ExpenseActions expense={exp} onRefresh={refresh} /></TableCell>
                         </TableRow>

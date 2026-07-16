@@ -32,7 +32,7 @@ export default function DocumentsIntelligence() {
         <KPI label="Taux classement" value={`${o.classificationRate}%`} />
         <KPI label="Signés" value={o.signed} accent="text-emerald-600" />
         <KPI label="En attente sign." value={o.pendingSignature} accent={o.pendingSignature > 0 ? "text-amber-600" : ""} />
-        <KPI label="Non classés" value={o.unclassified} accent={o.unclassified > 0 ? "text-slate-600" : ""} />
+        <KPI label="Non classés" value={o.unclassified} accent={o.unclassified > 0 ? "text-muted-foreground" : ""} />
       </div>
 
       <Tabs defaultValue="categories">
@@ -73,7 +73,7 @@ export default function DocumentsIntelligence() {
           {un.data?.rows?.map((r: any) => (
             <Link key={r.id} href="/documents">
               <Card className="cursor-pointer hover:bg-muted"><CardContent className="p-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2"><AlertCircle className="w-4 h-4 text-slate-500" /><div><p className="text-sm font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.category} · {r.mimeType ?? "?"}</p></div></div>
+                <div className="flex items-center gap-2"><AlertCircle className="w-4 h-4 text-muted-foreground" /><div><p className="text-sm font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.category} · {r.mimeType ?? "?"}</p></div></div>
                 <span className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString("fr-FR")}</span>
               </CardContent></Card>
             </Link>

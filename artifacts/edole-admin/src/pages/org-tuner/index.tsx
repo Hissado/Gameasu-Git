@@ -17,7 +17,7 @@ const KPI = ({ label, value, accent }: { label: string; value: string | number; 
 const sevColor = (s: string) =>
   s === "high" ? "bg-red-50 text-red-700 border-red-200" :
   s === "medium" ? "bg-amber-50 text-amber-700 border-amber-200" :
-  "bg-slate-50 text-slate-700 border-slate-200";
+  "bg-muted/50 text-foreground border";
 
 export default function OrgTuner() {
   const q = useQuery<any>({ queryKey: ["org-tuner"], queryFn: () => apiFetch("/api/org-tuner/audit") });

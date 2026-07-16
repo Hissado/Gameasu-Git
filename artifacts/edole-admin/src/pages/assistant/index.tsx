@@ -95,14 +95,14 @@ export default function KoffiPage() {
       <Card className="shadow-sm">
         <CardContent className="p-0">
           {/* Messages */}
-          <div className="min-h-[450px] max-h-[60vh] overflow-y-auto p-5 space-y-4 bg-slate-50/30 rounded-t-xl">
+          <div className="min-h-[450px] max-h-[60vh] overflow-y-auto p-5 space-y-4 bg-muted/30 rounded-t-xl">
             {messages.length === 0 && (
               <div className="space-y-5 pt-4">
                 <div className="flex gap-3 items-start">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                     <Sparkles className="w-4 h-4 text-primary" />
                   </div>
-                  <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-slate-100 text-sm text-slate-700 leading-relaxed max-w-[85%]">
+                  <div className="bg-card rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border text-sm text-foreground leading-relaxed max-w-[85%]">
                     Bonjour ! Je suis <strong>Koffi</strong>, votre assistant Gameasu. Posez-moi n'importe quelle question sur la plateforme — modules, données en temps réel, navigation, fonctionnalités, et bien plus.
                   </div>
                 </div>
@@ -136,7 +136,7 @@ export default function KoffiPage() {
                   <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     m.role === "user"
                       ? "bg-[#0F1A3A] text-white rounded-br-sm"
-                      : "bg-white text-slate-800 rounded-bl-sm shadow-sm border border-slate-100"
+                      : "bg-card text-foreground rounded-bl-sm shadow-sm border border"
                   }`}>
                     <p className="whitespace-pre-wrap">{m.content}</p>
                   </div>
@@ -144,7 +144,7 @@ export default function KoffiPage() {
                     <div className="mt-2 ml-1 flex flex-wrap items-center gap-1.5">
                       <Badge
                         variant="outline"
-                        className={`text-[9px] uppercase px-1.5 py-0.5 ${m.provider === "openai" ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-slate-50 text-slate-500 border-slate-200"}`}
+                        className={`text-[9px] uppercase px-1.5 py-0.5 ${m.provider === "openai" ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-muted/50 text-muted-foreground border"}`}
                       >
                         {m.provider === "openai" ? "✦ IA" : "heuristique"}
                       </Badge>
@@ -160,7 +160,7 @@ export default function KoffiPage() {
                 </div>
                 {m.role === "user" && (
                   <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mb-0.5">
-                    <User className="w-4 h-4 text-slate-500" />
+                    <User className="w-4 h-4 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -171,7 +171,7 @@ export default function KoffiPage() {
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t border-border bg-white rounded-b-xl">
+          <div className="p-4 border-t border-border bg-card rounded-b-xl">
             <form onSubmit={(e) => { e.preventDefault(); submit(input); }} className="flex gap-2">
               <Input
                 ref={inputRef}
@@ -179,7 +179,7 @@ export default function KoffiPage() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Posez votre question à Koffi…"
                 disabled={ask.isPending}
-                className="flex-1 bg-slate-50 border-slate-200 rounded-xl"
+                className="flex-1 bg-muted/50 border rounded-xl"
                 autoFocus
               />
               <Button

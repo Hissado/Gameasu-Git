@@ -47,7 +47,7 @@ export default function AssignmentsPage() {
   });
 
   const statusBadge = (s: string) => {
-    const map: Record<string, string> = { active: "bg-emerald-100 text-emerald-700", completed: "bg-slate-200 text-slate-700", cancelled: "bg-red-100 text-red-700" };
+    const map: Record<string, string> = { active: "bg-emerald-100 text-emerald-700", completed: "bg-slate-200 text-foreground", cancelled: "bg-red-100 text-red-700" };
     return <Badge className={`${map[s] || "bg-muted"} border-0`}>{s}</Badge>;
   };
 

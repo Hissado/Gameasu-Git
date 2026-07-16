@@ -19,7 +19,7 @@ type Analytics = {
 
 const channelIcon = (c: string) => c === "email" ? <Mail className="w-3 h-3" /> : c === "sms" ? <MessageSquare className="w-3 h-3" /> : c === "whatsapp" ? <Phone className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />;
 
-const TROPHY_COLORS = ["text-amber-500", "text-slate-400", "text-amber-700"];
+const TROPHY_COLORS = ["text-amber-500", "text-muted-foreground/60", "text-amber-700"];
 const CHANNEL_AVG: Record<string, { open: number; click: number }> = {
   email:    { open: 22, click: 3.5 },
   sms:      { open: 90, click: 8 },

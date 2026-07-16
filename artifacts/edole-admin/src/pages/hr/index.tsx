@@ -101,21 +101,21 @@ function MiniCalendar({ events }: { events: { dayOfMonth: number | null; name: s
   return (
     <div className="select-none">
       <div className="flex items-center justify-between mb-3">
-        <span className="font-semibold text-sm capitalize text-slate-800">
+        <span className="font-semibold text-sm capitalize text-foreground">
           {monthNameFr(viewMonth)} {viewYear}
         </span>
         <div className="flex gap-1">
-          <button onClick={prev} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors">
-            <ChevronLeft className="w-4 h-4 text-slate-500" />
+          <button onClick={prev} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-muted transition-colors">
+            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
           </button>
-          <button onClick={next} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors">
-            <ChevronRight className="w-4 h-4 text-slate-500" />
+          <button onClick={next} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-muted transition-colors">
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
       </div>
       <div className="grid grid-cols-7 gap-0">
         {DOW.map((d, i) => (
-          <div key={i} className="text-center text-[10px] font-bold text-slate-400 pb-1.5">{d}</div>
+          <div key={i} className="text-center text-[10px] font-bold text-muted-foreground/60 pb-1.5">{d}</div>
         ))}
         {cells.map((d, i) => (
           <div key={i} className="flex items-center justify-center py-0.5">
@@ -123,7 +123,7 @@ function MiniCalendar({ events }: { events: { dayOfMonth: number | null; name: s
               <div className={cn(
                 "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium relative",
                 isToday(d) && "bg-cyan-700 text-white font-bold",
-                !isToday(d) && "text-slate-700 hover:bg-slate-100",
+                !isToday(d) && "text-foreground hover:bg-muted",
                 eventDays.has(d) && !isToday(d) && "text-orange-600 font-semibold",
               )}>
                 {d}
@@ -162,12 +162,12 @@ function MonthCloseGauge({ daysLeft }: { daysLeft: number }) {
             strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
-          <span className="text-2xl font-extrabold text-slate-800 leading-none">
+          <span className="text-2xl font-extrabold text-foreground leading-none">
             {String(daysLeft).padStart(2, "0")}
           </span>
         </div>
       </div>
-      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 -mt-1">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 -mt-1">
         Jours restants
       </span>
     </div>
@@ -181,9 +181,9 @@ function MonthCloseGauge({ daysLeft }: { daysLeft: number }) {
 function ChargeTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs">
-      <div className="font-semibold text-slate-800">{payload[0].name}</div>
-      <div className="text-slate-600 mt-0.5">{formatFCFA(payload[0].value)}</div>
+    <div className="bg-popover border rounded-lg shadow-lg px-3 py-2 text-xs">
+      <div className="font-semibold text-foreground">{payload[0].name}</div>
+      <div className="text-muted-foreground mt-0.5">{formatFCFA(payload[0].value)}</div>
     </div>
   );
 }
@@ -250,10 +250,10 @@ export default function HrOverview() {
 
         {/* Header */}
         <div>
-          <h2 className="text-xl font-bold text-slate-900">
+          <h2 className="text-xl font-bold text-foreground">
             {greeting}{user?.firstName ? ` ${user.firstName}` : ""} ! 👋
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5 capitalize">{fullDate}</p>
+          <p className="text-sm text-muted-foreground mt-0.5 capitalize">{fullDate}</p>
         </div>
 
         {isLoading ? (
@@ -273,13 +273,13 @@ export default function HrOverview() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
               {/* Collaborateurs */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+              <div className="bg-card rounded-2xl border shadow-sm p-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5" /> Collaborateurs
                     </div>
-                    <div className="text-4xl font-extrabold text-slate-900 mt-2 leading-none">
+                    <div className="text-4xl font-extrabold text-foreground mt-2 leading-none">
                       {kpis.totalCollaborators ?? 0}
                     </div>
                   </div>
@@ -292,7 +292,7 @@ export default function HrOverview() {
                   </span>
                 </div>
                 <div className="mt-3 flex items-center gap-2">
-                  <span className="text-xs text-slate-500">Taux de Turnover</span>
+                  <span className="text-xs text-muted-foreground">Taux de Turnover</span>
                   <span className={cn(
                     "text-xs font-bold px-2 py-0.5 rounded-full",
                     kpis.tauxTurnover > 5 ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
@@ -303,19 +303,19 @@ export default function HrOverview() {
               </div>
 
               {/* Absents */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+              <div className="bg-card rounded-2xl border shadow-sm p-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
                       <UserCheck className="w-3.5 h-3.5" /> Absents
                     </div>
-                    <div className="text-4xl font-extrabold text-slate-900 mt-2 leading-none">
+                    <div className="text-4xl font-extrabold text-foreground mt-2 leading-none">
                       {kpis.absentsToday ?? 0}
                     </div>
                   </div>
                 </div>
                 <div className="mt-3 flex items-center gap-2">
-                  <span className="text-xs text-slate-500">Taux d'absences</span>
+                  <span className="text-xs text-muted-foreground">Taux d'absences</span>
                   <span className={cn(
                     "text-xs font-bold px-2 py-0.5 rounded-full",
                     kpis.tauxAbsence > 10 ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"
@@ -348,11 +348,11 @@ export default function HrOverview() {
               <div className="lg:col-span-2 space-y-5">
 
                 {/* Actions requises */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div className="bg-card rounded-2xl border shadow-sm p-5">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-orange-500" />
-                      <span className="font-semibold text-slate-800 text-sm">Vos actions requises</span>
+                      <span className="font-semibold text-foreground text-sm">Vos actions requises</span>
                       {totalActions > 0 && (
                         <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full">
                           {totalActions}
@@ -364,18 +364,18 @@ export default function HrOverview() {
                     </Link>
                   </div>
                   {totalActions === 0 ? (
-                    <div className="text-center py-4 text-sm text-slate-400">Aucune action requise</div>
+                    <div className="text-center py-4 text-sm text-muted-foreground/60">Aucune action requise</div>
                   ) : (
                     <div className="space-y-2">
                       {contractsExpiring.map((c: any) => (
                         <Link key={c.id} href={`/collaborateurs/${c.collaboratorId}`}>
-                          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
                             <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
                               <FileWarning className="w-4 h-4 text-orange-600" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm font-semibold text-slate-800 truncate">Fin de contrat</div>
-                              <div className="text-xs text-slate-500 truncate">{c.collaboratorName}</div>
+                              <div className="text-sm font-semibold text-foreground truncate">Fin de contrat</div>
+                              <div className="text-xs text-muted-foreground truncate">{c.collaboratorName}</div>
                             </div>
                             <Badge variant="outline" className="text-xs border-orange-200 text-orange-700 bg-orange-50 shrink-0">
                               {c.endDate ? new Date(c.endDate).toLocaleDateString("fr-FR") : "—"}
@@ -385,7 +385,7 @@ export default function HrOverview() {
                       ))}
                       {trialPeriod.map((c: any) => (
                         <Link key={c.id} href={`/collaborateurs/${c.id}`}>
-                          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+                          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
                             <Avatar className="w-8 h-8 shrink-0">
                               <AvatarImage src={c.avatarUrl} />
                               <AvatarFallback className="bg-cyan-100 text-cyan-700 text-xs font-bold">
@@ -393,10 +393,10 @@ export default function HrOverview() {
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm font-semibold text-slate-800 truncate">Fin de période d'essai</div>
-                              <div className="text-xs text-slate-500 truncate">{c.firstName} {c.lastName}</div>
+                              <div className="text-sm font-semibold text-foreground truncate">Fin de période d'essai</div>
+                              <div className="text-xs text-muted-foreground truncate">{c.firstName} {c.lastName}</div>
                             </div>
-                            <Badge variant="outline" className="text-xs border-slate-200 text-slate-600 shrink-0">
+                            <Badge variant="outline" className="text-xs border text-muted-foreground shrink-0">
                               Embauché {c.hireDate ? new Date(c.hireDate).toLocaleDateString("fr-FR") : "—"}
                             </Badge>
                           </div>
@@ -410,13 +410,13 @@ export default function HrOverview() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
                   {/* Charges patronales */}
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                  <div className="bg-card rounded-2xl border shadow-sm p-5">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-slate-800 text-sm">Charges patronales et salariales</span>
-                      {charges?.period && <span className="text-[10px] text-slate-400">{charges.period}</span>}
+                      <span className="font-semibold text-foreground text-sm">Charges patronales et salariales</span>
+                      {charges?.period && <span className="text-[10px] text-muted-foreground/60">{charges.period}</span>}
                     </div>
                     {!charges ? (
-                      <div className="flex flex-col items-center justify-center py-6 text-slate-400 text-sm">Aucun bulletin clôturé</div>
+                      <div className="flex flex-col items-center justify-center py-6 text-muted-foreground/60 text-sm">Aucun bulletin clôturé</div>
                     ) : (
                       <>
                         <div className="flex items-center gap-4 mt-3">
@@ -435,32 +435,32 @@ export default function HrOverview() {
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHARGE_COLORS.salariales }} />
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Salariales</span>
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Salariales</span>
                               </div>
-                              <div className="text-sm font-bold text-slate-800 mt-0.5">{formatFCFACompact(charges.chargesSalariales)}</div>
+                              <div className="text-sm font-bold text-foreground mt-0.5">{formatFCFACompact(charges.chargesSalariales)}</div>
                             </div>
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHARGE_COLORS.patronales }} />
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Patronales</span>
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Patronales</span>
                               </div>
-                              <div className="text-sm font-bold text-slate-800 mt-0.5">{formatFCFACompact(charges.chargesPatronales)}</div>
+                              <div className="text-sm font-bold text-foreground mt-0.5">{formatFCFACompact(charges.chargesPatronales)}</div>
                             </div>
                           </div>
                         </div>
-                        <div className="mt-3 pt-3 border-t border-slate-100">
-                          <div className="text-xs text-slate-500">Charges totales</div>
-                          <div className="text-xl font-extrabold text-slate-900 mt-0.5">{formatFCFA(charges.totalCharges)}</div>
+                        <div className="mt-3 pt-3 border-t border">
+                          <div className="text-xs text-muted-foreground">Charges totales</div>
+                          <div className="text-xl font-extrabold text-foreground mt-0.5">{formatFCFA(charges.totalCharges)}</div>
                         </div>
                       </>
                     )}
                   </div>
 
                   {/* Clôture du mois */}
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col items-center justify-between">
+                  <div className="bg-card rounded-2xl border shadow-sm p-5 flex flex-col items-center justify-between">
                     <div className="w-full">
-                      <span className="font-semibold text-slate-800 text-sm flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-slate-500" />
+                      <span className="font-semibold text-foreground text-sm flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
                         Clôture du mois de {now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
                       </span>
                     </div>
@@ -476,19 +476,19 @@ export default function HrOverview() {
                 </div>
 
                 {/* Dates clés */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div className="bg-card rounded-2xl border shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-4">
-                    <CalendarDays className="w-4 h-4 text-slate-500" />
-                    <span className="font-semibold text-slate-800 text-sm">Dates clés</span>
+                    <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-semibold text-foreground text-sm">Dates clés</span>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-600">Paiement cotisations sociales</span>
+                      <span className="text-muted-foreground">Paiement cotisations sociales</span>
                       <span className="font-semibold text-cyan-700">{cotisationsDate}</span>
                     </div>
-                    <div className="h-px bg-slate-100" />
+                    <div className="h-px bg-muted" />
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-600">Paiement impôts (IRPP/IPTS)</span>
+                      <span className="text-muted-foreground">Paiement impôts (IRPP/IPTS)</span>
                       <span className="font-semibold text-cyan-700">{impotsDate}</span>
                     </div>
                   </div>
@@ -498,11 +498,11 @@ export default function HrOverview() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
                   {/* Répartition des âges */}
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                    <span className="font-semibold text-slate-800 text-sm">Répartition des âges</span>
-                    <p className="text-xs text-slate-400 mt-0.5 mb-3">Ensemble des collaborateurs</p>
+                  <div className="bg-card rounded-2xl border shadow-sm p-5">
+                    <span className="font-semibold text-foreground text-sm">Répartition des âges</span>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5 mb-3">Ensemble des collaborateurs</p>
                     {ageDistribution.length === 0 ? (
-                      <div className="flex items-center justify-center h-32 text-sm text-slate-400">Données insuffisantes</div>
+                      <div className="flex items-center justify-center h-32 text-sm text-muted-foreground/60">Données insuffisantes</div>
                     ) : (
                       <>
                         <div style={{ height: 130 }}>
@@ -519,7 +519,7 @@ export default function HrOverview() {
                           {ageDistribution.map((a: any, i: number) => (
                             <div key={i} className="flex items-center gap-1">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: AGE_COLORS[i % AGE_COLORS.length] }} />
-                              <span className="text-[10px] text-slate-500">{a.name}</span>
+                              <span className="text-[10px] text-muted-foreground">{a.name}</span>
                             </div>
                           ))}
                         </div>
@@ -528,11 +528,11 @@ export default function HrOverview() {
                   </div>
 
                   {/* Évolution effectif */}
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                    <span className="font-semibold text-slate-800 text-sm">Évolution de l'effectif</span>
-                    <p className="text-xs text-slate-400 mt-0.5 mb-3">Les 6 derniers mois</p>
+                  <div className="bg-card rounded-2xl border shadow-sm p-5">
+                    <span className="font-semibold text-foreground text-sm">Évolution de l'effectif</span>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5 mb-3">Les 6 derniers mois</p>
                     {hiresData.length === 0 ? (
-                      <div className="flex items-center justify-center h-32 text-sm text-slate-400">Aucune embauche récente</div>
+                      <div className="flex items-center justify-center h-32 text-sm text-muted-foreground/60">Aucune embauche récente</div>
                     ) : (
                       <div style={{ height: 150 }}>
                         <ResponsiveContainer width="100%" height="100%">
@@ -554,22 +554,22 @@ export default function HrOverview() {
               <div className="space-y-5">
 
                 {/* Mini calendar + events */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div className="bg-card rounded-2xl border shadow-sm p-5">
                   <MiniCalendar events={birthdaysThisMonth} />
 
-                  <div className="mt-4 border-t border-slate-100 pt-4">
-                    <div className="flex rounded-lg border border-slate-200 overflow-hidden mb-3 text-xs font-semibold">
+                  <div className="mt-4 border-t border pt-4">
+                    <div className="flex rounded-lg border border overflow-hidden mb-3 text-xs font-semibold">
                       <button
                         onClick={() => setEventsTab("today")}
                         className={cn("flex-1 py-1.5 transition-colors",
-                          eventsTab === "today" ? "bg-cyan-700 text-white" : "text-slate-500 hover:bg-slate-50")}
+                          eventsTab === "today" ? "bg-cyan-700 text-white" : "text-muted-foreground hover:bg-muted/50")}
                       >
                         Évènements du jour
                       </button>
                       <button
                         onClick={() => setEventsTab("upcoming")}
                         className={cn("flex-1 py-1.5 transition-colors",
-                          eventsTab === "upcoming" ? "bg-cyan-700 text-white" : "text-slate-500 hover:bg-slate-50")}
+                          eventsTab === "upcoming" ? "bg-cyan-700 text-white" : "text-muted-foreground hover:bg-muted/50")}
                       >
                         À venir
                       </button>
@@ -578,11 +578,11 @@ export default function HrOverview() {
                     {eventsTab === "today" && (
                       <div className="space-y-2">
                         {birthdaysToday.length === 0 ? (
-                          <div className="text-center py-4 text-xs text-slate-400">Aucun événement aujourd'hui</div>
+                          <div className="text-center py-4 text-xs text-muted-foreground/60">Aucun événement aujourd'hui</div>
                         ) : (
                           birthdaysToday.map((b: any) => (
                             <Link key={b.id} href={`/collaborateurs/${b.id}`}>
-                              <div className="flex items-center gap-3 py-2 hover:bg-slate-50 rounded-lg px-1 transition-colors cursor-pointer">
+                              <div className="flex items-center gap-3 py-2 hover:bg-muted/50 rounded-lg px-1 transition-colors cursor-pointer">
                                 <Avatar className="w-9 h-9 shrink-0">
                                   <AvatarImage src={b.avatarUrl} />
                                   <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-bold">
@@ -592,10 +592,10 @@ export default function HrOverview() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1">
                                     <Cake className="w-3 h-3 text-orange-500" />
-                                    <span className="text-xs font-semibold text-slate-700">Anniversaire</span>
+                                    <span className="text-xs font-semibold text-foreground">Anniversaire</span>
                                   </div>
-                                  <div className="text-xs text-slate-500 truncate">{b.name}</div>
-                                  <div className="text-[10px] text-slate-400">Aujourd'hui</div>
+                                  <div className="text-xs text-muted-foreground truncate">{b.name}</div>
+                                  <div className="text-[10px] text-muted-foreground/60">Aujourd'hui</div>
                                 </div>
                               </div>
                             </Link>
@@ -607,23 +607,23 @@ export default function HrOverview() {
                     {eventsTab === "upcoming" && (
                       <div className="space-y-2">
                         {birthdaysUpcoming.length === 0 ? (
-                          <div className="text-center py-4 text-xs text-slate-400">Aucun événement à venir ce mois-ci</div>
+                          <div className="text-center py-4 text-xs text-muted-foreground/60">Aucun événement à venir ce mois-ci</div>
                         ) : (
                           birthdaysUpcoming.slice(0, 5).map((b: any) => (
                             <Link key={b.id} href={`/collaborateurs/${b.id}`}>
-                              <div className="flex items-center gap-3 py-2 hover:bg-slate-50 rounded-lg px-1 transition-colors cursor-pointer">
+                              <div className="flex items-center gap-3 py-2 hover:bg-muted/50 rounded-lg px-1 transition-colors cursor-pointer">
                                 <Avatar className="w-8 h-8 shrink-0">
                                   <AvatarImage src={b.avatarUrl} />
-                                  <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-bold">
+                                  <AvatarFallback className="bg-muted text-muted-foreground text-xs font-bold">
                                     {b.name?.split(" ").map((n: string) => n[0]).join("") ?? "?"}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1">
                                     <Cake className="w-3 h-3 text-orange-400" />
-                                    <span className="text-xs font-semibold text-slate-700 truncate">{b.name}</span>
+                                    <span className="text-xs font-semibold text-foreground truncate">{b.name}</span>
                                   </div>
-                                  <div className="text-[10px] text-slate-400">
+                                  <div className="text-[10px] text-muted-foreground/60">
                                     Le {b.dayOfMonth} {now.toLocaleDateString("fr-FR", { month: "long" })}
                                   </div>
                                 </div>
@@ -637,11 +637,11 @@ export default function HrOverview() {
                 </div>
 
                 {/* Contrats à renouveler */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div className="bg-card rounded-2xl border shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <FileWarning className="w-4 h-4 text-orange-500" />
-                    <span className="text-sm font-semibold text-slate-800">Contrats à renouveler</span>
-                    <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded ml-0.5">30j</span>
+                    <span className="text-sm font-semibold text-foreground">Contrats à renouveler</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground/60 bg-muted px-1.5 py-0.5 rounded ml-0.5">30j</span>
                     {contractsExpiring.length > 0 && (
                       <span className="ml-auto text-xs font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
                         {contractsExpiring.length}
@@ -653,7 +653,7 @@ export default function HrOverview() {
                       <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
                         <FileWarning className="w-4 h-4 text-emerald-500" />
                       </div>
-                      <p className="text-xs text-slate-400 text-center">Aucun contrat à renouveler dans les 30 prochains jours</p>
+                      <p className="text-xs text-muted-foreground/60 text-center">Aucun contrat à renouveler dans les 30 prochains jours</p>
                     </div>
                   ) : (
                     <div className="space-y-1.5">
@@ -664,7 +664,7 @@ export default function HrOverview() {
                           <Link key={c.id} href={`/collaborateurs/${c.collaboratorId}`}>
                             <div className={cn(
                               "flex items-center gap-2 text-xs py-2 px-2 rounded-lg cursor-pointer transition-colors",
-                              urgent ? "hover:bg-red-50" : warning ? "hover:bg-orange-50" : "hover:bg-slate-50"
+                              urgent ? "hover:bg-red-50" : warning ? "hover:bg-orange-50" : "hover:bg-muted/50"
                             )}>
                               <div className={cn(
                                 "w-6 h-6 rounded-full flex items-center justify-center shrink-0",
@@ -675,7 +675,7 @@ export default function HrOverview() {
                                   urgent ? "text-red-600" : warning ? "text-orange-500" : "text-amber-500"
                                 )} />
                               </div>
-                              <span className="flex-1 text-slate-700 font-medium truncate">{c.collaboratorName}</span>
+                              <span className="flex-1 text-foreground font-medium truncate">{c.collaboratorName}</span>
                               <div className="shrink-0 text-right">
                                 <div className={cn(
                                   "font-bold",
@@ -683,7 +683,7 @@ export default function HrOverview() {
                                 )}>
                                   {c.daysLeft === 0 ? "Aujourd'hui" : `J−${c.daysLeft}`}
                                 </div>
-                                <div className="text-[10px] text-slate-400">
+                                <div className="text-[10px] text-muted-foreground/60">
                                   {c.endDate ? new Date(c.endDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}
                                 </div>
                               </div>
@@ -695,7 +695,7 @@ export default function HrOverview() {
                   )}
                   {contractsExpiring.length > 0 && (
                     <Link href="/rh/contrats">
-                      <div className="mt-3 pt-3 border-t border-slate-100 text-center text-xs text-cyan-700 font-semibold hover:underline cursor-pointer">
+                      <div className="mt-3 pt-3 border-t border text-center text-xs text-cyan-700 font-semibold hover:underline cursor-pointer">
                         Gérer les contrats →
                       </div>
                     </Link>

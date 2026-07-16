@@ -32,7 +32,7 @@ function StatusBadge({ status }: { status: string }) {
 function TypeLabel({ type }: { type: string }) {
   if (type === "delivery") return <span className="font-bold text-sm text-primary flex items-center gap-1.5"><Truck className="w-4 h-4" /> Livraison</span>;
   if (type === "pickup")   return <span className="font-bold text-sm text-indigo-600 flex items-center gap-1.5"><Truck className="w-4 h-4 scale-x-[-1]" /> Enlèvement</span>;
-  return <span className="font-bold text-sm text-slate-600">{type || "—"}</span>;
+  return <span className="font-bold text-sm text-muted-foreground">{type || "—"}</span>;
 }
 
 // ── Create Logistics Dialog ────────────────────────────────────────────────────
@@ -84,8 +84,8 @@ function CreateLogisticsDialog({ open, onClose }: { open: boolean; onClose: () =
             <Label>Type d'opération *</Label>
             <div className="flex gap-2">
               {[
-                { v: "delivery", label: "Livraison", cls: form.type === "delivery" ? "bg-primary text-white border-primary" : "border-slate-200 text-slate-600" },
-                { v: "pickup",   label: "Enlèvement", cls: form.type === "pickup"  ? "bg-primary text-white border-indigo-600" : "border-slate-200 text-slate-600" },
+                { v: "delivery", label: "Livraison", cls: form.type === "delivery" ? "bg-primary text-white border-primary" : "border text-muted-foreground" },
+                { v: "pickup",   label: "Enlèvement", cls: form.type === "pickup"  ? "bg-primary text-white border-indigo-600" : "border text-muted-foreground" },
               ].map(opt => (
                 <button
                   key={opt.v}
@@ -240,7 +240,7 @@ export default function LogisticsList() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Adresse, responsable…"
-                className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+                className="pl-9 bg-muted/50 focus-visible:ring-primary h-9"
               />
             </div>
           </div>
@@ -250,14 +250,14 @@ export default function LogisticsList() {
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Type</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Responsable</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Destination</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600 text-right">Date Prévue</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Type</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Statut</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Responsable</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-muted-foreground">Destination</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground text-right">Date Prévue</TableHead>
+                  <TableHead className="text-right font-semibold text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -275,19 +275,19 @@ export default function LogisticsList() {
                   </TableRow>
                 ) : (
                   ops.map((op: any) => (
-                    <TableRow key={op.id} className="hover:bg-slate-50/50">
+                    <TableRow key={op.id} className="hover:bg-muted/50">
                       <TableCell><TypeLabel type={op.type} /></TableCell>
                       <TableCell><StatusBadge status={op.status} /></TableCell>
-                      <TableCell className="hidden sm:table-cell font-medium text-slate-800">{op.responsibleName || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell font-medium text-foreground">{op.responsibleName || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell max-w-[250px]">
                         <div className="flex items-start gap-1.5 text-sm">
-                          <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                          <span className="truncate text-slate-700">{op.address || "—"}</span>
+                          <MapPin className="w-4 h-4 text-muted-foreground/60 shrink-0 mt-0.5" />
+                          <span className="truncate text-foreground">{op.address || "—"}</span>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-right">
-                        <div className="flex items-center justify-end gap-1.5 text-sm font-medium text-slate-600">
-                          <Calendar className="w-4 h-4 text-slate-400" />
+                        <div className="flex items-center justify-end gap-1.5 text-sm font-medium text-muted-foreground">
+                          <Calendar className="w-4 h-4 text-muted-foreground/60" />
                           {op.scheduledAt ? formatDate(op.scheduledAt) : "—"}
                         </div>
                       </TableCell>

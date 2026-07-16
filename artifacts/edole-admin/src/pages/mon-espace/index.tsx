@@ -106,11 +106,11 @@ const LEAVE_STATUS_MAP: Record<string, { label: string; cls: string; icon: React
   pending: { label: "En attente", cls: "bg-amber-50 text-amber-700 border-amber-200", icon: <Clock className="w-3 h-3" /> },
   approved: { label: "Approuvé", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: <CheckCircle2 className="w-3 h-3" /> },
   rejected: { label: "Refusé", cls: "bg-red-50 text-red-700 border-red-200", icon: <XCircle className="w-3 h-3" /> },
-  cancelled: { label: "Annulé", cls: "bg-slate-100 text-slate-500 border-slate-200", icon: <XCircle className="w-3 h-3" /> },
+  cancelled: { label: "Annulé", cls: "bg-muted text-muted-foreground border", icon: <XCircle className="w-3 h-3" /> },
 };
 
 const PAYSLIP_STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  draft: { label: "Brouillon", cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  draft: { label: "Brouillon", cls: "bg-muted text-muted-foreground border" },
   validated: { label: "Validé", cls: "bg-blue-50 text-blue-700 border-blue-200" },
   paid: { label: "Payé", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
 };
@@ -222,54 +222,54 @@ function DashboardTab({ profile, balance, payslips }: { profile: Profile | null;
         <div>
           <p className="text-[#2563EB] text-sm font-medium">Bienvenue,</p>
           <h2 className="text-xl font-bold">{profile ? `${profile.firstName} ${profile.lastName}` : "—"}</h2>
-          <p className="text-slate-400 text-sm">{profile?.jobTitle ?? "—"}</p>
+          <p className="text-muted-foreground/60 text-sm">{profile?.jobTitle ?? "—"}</p>
         </div>
       </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-slate-200">
+        <Card className="border">
           <CardContent className="pt-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-slate-600">Congés restants</span>
+              <span className="text-sm font-medium text-muted-foreground">Congés restants</span>
               <CalendarDays className="w-4 h-4 text-emerald-500" />
             </div>
-            <div className="text-2xl font-bold text-slate-900">
+            <div className="text-2xl font-bold text-foreground">
               {congePayeBalance ? congePayeBalance.remaining : "—"}
-              <span className="text-base font-normal text-slate-400"> / {congePayeBalance?.right ?? 26} j</span>
+              <span className="text-base font-normal text-muted-foreground/60"> / {congePayeBalance?.right ?? 26} j</span>
             </div>
             {congePayeBalance && (
-              <Progress value={(congePayeBalance.taken / congePayeBalance.right) * 100} className="mt-2 h-1.5 bg-slate-100 [&>div]:bg-emerald-500" />
+              <Progress value={(congePayeBalance.taken / congePayeBalance.right) * 100} className="mt-2 h-1.5 bg-muted [&>div]:bg-emerald-500" />
             )}
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground/60 mt-1">
               {congePayeBalance ? `${congePayeBalance.taken} j pris • ${congePayeBalance.pending} j en attente` : "Aucune donnée"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200">
+        <Card className="border">
           <CardContent className="pt-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-slate-600">Dernier net à payer</span>
+              <span className="text-sm font-medium text-muted-foreground">Dernier net à payer</span>
               <Banknote className="w-4 h-4 text-[#2563EB]" />
             </div>
-            <div className="text-2xl font-bold text-slate-900">
+            <div className="text-2xl font-bold text-foreground">
               {latestPayslip ? fmt(latestPayslip.netSalary) : "—"}
             </div>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground/60 mt-1">
               {latestPayslip ? `Période ${latestPayslip.period}` : "Aucun bulletin disponible"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200">
+        <Card className="border">
           <CardContent className="pt-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-slate-600">Bulletins disponibles</span>
+              <span className="text-sm font-medium text-muted-foreground">Bulletins disponibles</span>
               <FileText className="w-4 h-4 text-blue-500" />
             </div>
-            <div className="text-2xl font-bold text-slate-900">{payslips.length}</div>
-            <p className="text-xs text-slate-400 mt-1">
+            <div className="text-2xl font-bold text-foreground">{payslips.length}</div>
+            <p className="text-xs text-muted-foreground/60 mt-1">
               {payslips.length > 0 ? `Dernier : ${payslips[0].period}` : "Aucun bulletin"}
             </p>
           </CardContent>
@@ -278,16 +278,16 @@ function DashboardTab({ profile, balance, payslips }: { profile: Profile | null;
 
       {/* Soldes congés rapides */}
       {balance && Object.keys(balance.byType).length > 0 && (
-        <Card className="border-slate-200">
+        <Card className="border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-slate-700">Soldes de congés {balance.year}</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Soldes de congés {balance.year}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {Object.entries(balance.byType).filter(([, v]) => v.right > 0).map(([type, data]) => (
-                <div key={type} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                  <p className="text-xs text-slate-500 mb-1">{LEAVE_TYPE_LABELS[type] ?? type}</p>
-                  <p className="text-lg font-bold text-slate-900">{data.remaining} <span className="text-xs font-normal text-slate-400">/ {data.right} j</span></p>
+                <div key={type} className="bg-muted/50 rounded-lg p-3 border border">
+                  <p className="text-xs text-muted-foreground mb-1">{LEAVE_TYPE_LABELS[type] ?? type}</p>
+                  <p className="text-lg font-bold text-foreground">{data.remaining} <span className="text-xs font-normal text-muted-foreground/60">/ {data.right} j</span></p>
                   <Progress value={data.right > 0 ? (data.taken / data.right) * 100 : 0} className="mt-1 h-1 bg-slate-200 [&>div]:bg-[#2563EB]" />
                 </div>
               ))}
@@ -304,7 +304,7 @@ function DashboardTab({ profile, balance, payslips }: { profile: Profile | null;
 function BulletinsTab({ payslips, loading }: { payslips: Payslip[]; loading: boolean }) {
   if (loading) return <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>;
   if (payslips.length === 0) return (
-    <div className="text-center py-16 text-slate-400">
+    <div className="text-center py-16 text-muted-foreground/60">
       <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
       <p className="text-sm">Aucun bulletin de paie disponible pour le moment.</p>
     </div>
@@ -313,25 +313,25 @@ function BulletinsTab({ payslips, loading }: { payslips: Payslip[]; loading: boo
   return (
     <div className="space-y-2">
       {payslips.map(p => {
-        const st = PAYSLIP_STATUS_MAP[p.status] ?? { label: p.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+        const st = PAYSLIP_STATUS_MAP[p.status] ?? { label: p.status, cls: "bg-muted text-muted-foreground border" };
         const [yr, mo] = p.period.split("-");
         const moisFr = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
         const moisLabel = moisFr[parseInt(mo, 10) - 1] ?? mo;
         return (
-          <div key={p.id} className="flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all">
+          <div key={p.id} className="flex items-center justify-between px-4 py-3 bg-card border border rounded-lg hover:border hover:shadow-sm transition-all">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[#0f172a] flex items-center justify-center">
                 <FileText className="w-4 h-4 text-[#2563EB]" />
               </div>
               <div>
-                <p className="font-semibold text-sm text-slate-900">{moisLabel} {yr}</p>
-                <p className="text-xs text-slate-400">Brut : {fmt(p.grossSalary)}</p>
+                <p className="font-semibold text-sm text-foreground">{moisLabel} {yr}</p>
+                <p className="text-xs text-muted-foreground/60">Brut : {fmt(p.grossSalary)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-slate-900">{fmt(p.netSalary)}</p>
-                <p className="text-xs text-slate-400">Net à payer</p>
+                <p className="text-sm font-bold text-foreground">{fmt(p.netSalary)}</p>
+                <p className="text-xs text-muted-foreground/60">Net à payer</p>
               </div>
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${st.cls}`}>{st.label}</span>
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
@@ -366,10 +366,10 @@ function CongesTab({ leaves, balance, loading, onRefresh }: { leaves: LeaveReque
       {balance && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {Object.entries(balance.byType).filter(([, v]) => v.right > 0).map(([type, data]) => (
-            <div key={type} className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-              <p className="text-xs text-slate-500">{LEAVE_TYPE_LABELS[type] ?? type}</p>
-              <p className="text-xl font-bold text-slate-900 mt-1">{data.remaining}<span className="text-xs font-normal text-slate-400"> j restants</span></p>
-              <p className="text-xs text-slate-400">{data.taken} pris • {data.pending} en attente</p>
+            <div key={type} className="bg-muted/50 border border rounded-xl p-3">
+              <p className="text-xs text-muted-foreground">{LEAVE_TYPE_LABELS[type] ?? type}</p>
+              <p className="text-xl font-bold text-foreground mt-1">{data.remaining}<span className="text-xs font-normal text-muted-foreground/60"> j restants</span></p>
+              <p className="text-xs text-muted-foreground/60">{data.taken} pris • {data.pending} en attente</p>
             </div>
           ))}
         </div>
@@ -377,7 +377,7 @@ function CongesTab({ leaves, balance, loading, onRefresh }: { leaves: LeaveReque
 
       {/* Actions */}
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-800">Mes demandes</h3>
+        <h3 className="font-semibold text-foreground">Mes demandes</h3>
         <Button size="sm" className="h-8 gap-1.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white" onClick={() => setShowNew(true)}>
           <Plus className="w-3.5 h-3.5" /> Nouvelle demande
         </Button>
@@ -385,7 +385,7 @@ function CongesTab({ leaves, balance, loading, onRefresh }: { leaves: LeaveReque
 
       {/* Liste */}
       {leaves.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">
+        <div className="text-center py-12 text-muted-foreground/60">
           <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm">Aucune demande de congé pour le moment.</p>
           <Button variant="link" size="sm" className="text-[#2563EB] mt-2" onClick={() => setShowNew(true)}>Faire une demande</Button>
@@ -393,14 +393,14 @@ function CongesTab({ leaves, balance, loading, onRefresh }: { leaves: LeaveReque
       ) : (
         <div className="space-y-2">
           {leaves.map(l => {
-            const st = LEAVE_STATUS_MAP[l.status] ?? { label: l.status, cls: "bg-slate-100 text-slate-600 border-slate-200", icon: null };
+            const st = LEAVE_STATUS_MAP[l.status] ?? { label: l.status, cls: "bg-muted text-muted-foreground border", icon: null };
             return (
-              <div key={l.id} className="flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm transition-all">
+              <div key={l.id} className="flex items-center justify-between px-4 py-3 bg-card border border rounded-lg hover:shadow-sm transition-all">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-10 rounded-full" style={{ backgroundColor: l.status === "approved" ? "#10b981" : l.status === "pending" ? "#f59e0b" : "#94a3b8" }} />
                   <div>
-                    <p className="font-semibold text-sm text-slate-900">{LEAVE_TYPE_LABELS[l.type] ?? l.type}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-semibold text-sm text-foreground">{LEAVE_TYPE_LABELS[l.type] ?? l.type}</p>
+                    <p className="text-xs text-muted-foreground">
                       {formatDate(l.startDate)} → {formatDate(l.endDate)}
                       <span className="ml-2 font-medium">{Number(l.days)} j</span>
                     </p>
@@ -436,7 +436,7 @@ function CongesTab({ leaves, balance, loading, onRefresh }: { leaves: LeaveReque
 function ContratTab({ contract, loading }: { contract: Contract | null; loading: boolean }) {
   if (loading) return <Skeleton className="h-48 rounded-xl" />;
   if (!contract) return (
-    <div className="text-center py-16 text-slate-400">
+    <div className="text-center py-16 text-muted-foreground/60">
       <Briefcase className="w-10 h-10 mx-auto mb-3 opacity-30" />
       <p className="text-sm">Aucun contrat actif trouvé sur votre profil.</p>
     </div>
@@ -446,14 +446,14 @@ function ContratTab({ contract, loading }: { contract: Contract | null; loading:
     ["Type de contrat", <span className="font-semibold">{CONTRACT_TYPE_LABELS[contract.type] ?? contract.type}</span>],
     ["Statut", <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 border font-medium text-xs">Actif</Badge>],
     ["Date de début", formatDate(contract.startDate)],
-    ["Date de fin", contract.endDate ? formatDate(contract.endDate) : <span className="text-slate-400">Indéterminée (CDI)</span>],
+    ["Date de fin", contract.endDate ? formatDate(contract.endDate) : <span className="text-muted-foreground/60">Indéterminée (CDI)</span>],
     ["Fin de période d'essai", contract.trialEndDate ? formatDate(contract.trialEndDate) : "—"],
-    ["Rémunération mensuelle", contract.monthlySalary ? fmt(contract.monthlySalary) : <span className="text-slate-400">Non renseigné</span>],
+    ["Rémunération mensuelle", contract.monthlySalary ? fmt(contract.monthlySalary) : <span className="text-muted-foreground/60">Non renseigné</span>],
     ["Horaires de travail", contract.workSchedule ?? "—"],
   ];
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Briefcase className="w-4 h-4 text-[#2563EB]" />
@@ -462,11 +462,11 @@ function ContratTab({ contract, loading }: { contract: Contract | null; loading:
         <CardDescription>Les informations de votre contrat actif.</CardDescription>
       </CardHeader>
       <CardContent>
-        <dl className="divide-y divide-slate-100">
+        <dl className="divide-y divide-border">
           {rows.map(([label, value]) => (
             <div key={label} className="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
-              <dt className="text-sm font-medium text-slate-500">{label}</dt>
-              <dd className="mt-1 text-sm text-slate-900 sm:mt-0 sm:col-span-2">{value}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
+              <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">{value}</dd>
             </div>
           ))}
         </dl>
@@ -480,7 +480,7 @@ function ContratTab({ contract, loading }: { contract: Contract | null; loading:
 function DocumentsTab({ documents, loading }: { documents: HrDocument[]; loading: boolean }) {
   if (loading) return <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>;
   if (documents.length === 0) return (
-    <div className="text-center py-16 text-slate-400">
+    <div className="text-center py-16 text-muted-foreground/60">
       <FolderArchive className="w-10 h-10 mx-auto mb-3 opacity-30" />
       <p className="text-sm">Aucun document RH disponible pour le moment.</p>
     </div>
@@ -494,14 +494,14 @@ function DocumentsTab({ documents, loading }: { documents: HrDocument[]; loading
   return (
     <div className="space-y-2">
       {documents.map(d => (
-        <div key={d.id} className="flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm transition-all">
+        <div key={d.id} className="flex items-center justify-between px-4 py-3 bg-card border border rounded-lg hover:shadow-sm transition-all">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
               <FolderArchive className="w-4 h-4 text-blue-500" />
             </div>
             <div>
-              <p className="font-semibold text-sm text-slate-900">{d.title}</p>
-              <p className="text-xs text-slate-400">
+              <p className="font-semibold text-sm text-foreground">{d.title}</p>
+              <p className="text-xs text-muted-foreground/60">
                 {KIND_LABELS[d.kind] ?? d.kind} • Ajouté le {formatDate(d.createdAt)}
                 {d.expiresAt && ` • Expire le ${formatDate(d.expiresAt)}`}
               </p>
@@ -524,7 +524,7 @@ function DocumentsTab({ documents, loading }: { documents: HrDocument[]; loading
 
 function FormationsTab({ trainings, evaluations, loadingT, loadingE }: { trainings: Training[]; evaluations: Evaluation[]; loadingT: boolean; loadingE: boolean }) {
   const PART_STATUS: Record<string, { label: string; cls: string }> = {
-    registered: { label: "Inscrit", cls: "bg-slate-100 text-slate-600 border-slate-200" },
+    registered: { label: "Inscrit", cls: "bg-muted text-muted-foreground border" },
     confirmed: { label: "Confirmé", cls: "bg-blue-50 text-blue-700 border-blue-200" },
     attended: { label: "Présent", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     absent: { label: "Absent", cls: "bg-red-50 text-red-700 border-red-200" },
@@ -535,24 +535,24 @@ function FormationsTab({ trainings, evaluations, loadingT, loadingE }: { trainin
     <div className="space-y-6">
       {/* Formations */}
       <div>
-        <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-[#2563EB]" /> Mes formations
         </h3>
         {loadingT ? <Skeleton className="h-24 rounded-lg" /> : trainings.length === 0 ? (
-          <p className="text-sm text-slate-400 py-6 text-center">Aucune formation enregistrée.</p>
+          <p className="text-sm text-muted-foreground/60 py-6 text-center">Aucune formation enregistrée.</p>
         ) : (
           <div className="space-y-2">
             {trainings.map(t => {
-              const st = PART_STATUS[t.participantStatus] ?? { label: t.participantStatus, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+              const st = PART_STATUS[t.participantStatus] ?? { label: t.participantStatus, cls: "bg-muted text-muted-foreground border" };
               return (
-                <div key={t.sessionId} className="flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm">
+                <div key={t.sessionId} className="flex items-center justify-between px-4 py-3 bg-card border border rounded-lg hover:shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
                       <GraduationCap className="w-4 h-4 text-amber-500" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-slate-900">{t.title}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="font-semibold text-sm text-foreground">{t.title}</p>
+                      <p className="text-xs text-muted-foreground/60">
                         {t.startDate ? formatDate(t.startDate) : "—"}
                         {t.location && ` • ${t.location}`}
                         {t.score && ` • Score : ${t.score}/100`}
@@ -572,28 +572,28 @@ function FormationsTab({ trainings, evaluations, loadingT, loadingE }: { trainin
 
       {/* Évaluations */}
       <div>
-        <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
           <Star className="w-4 h-4 text-[#2563EB]" /> Mes évaluations
         </h3>
         {loadingE ? <Skeleton className="h-24 rounded-lg" /> : evaluations.length === 0 ? (
-          <p className="text-sm text-slate-400 py-6 text-center">Aucune évaluation disponible.</p>
+          <p className="text-sm text-muted-foreground/60 py-6 text-center">Aucune évaluation disponible.</p>
         ) : (
           <div className="space-y-2">
             {evaluations.map(e => (
-              <div key={e.id} className="px-4 py-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm">
+              <div key={e.id} className="px-4 py-3 bg-card border border rounded-lg hover:shadow-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold text-sm text-slate-900">Période {e.period}</span>
+                  <span className="font-semibold text-sm text-foreground">Période {e.period}</span>
                   {e.overallRating && (
                     <div className="flex items-center gap-1">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`w-3.5 h-3.5 ${i < e.overallRating! ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}`} />
+                        <Star key={i} className={`w-3.5 h-3.5 ${i < e.overallRating! ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30 fill-slate-200"}`} />
                       ))}
-                      <span className="text-xs text-slate-500 ml-1">{e.overallRating}/5</span>
+                      <span className="text-xs text-muted-foreground ml-1">{e.overallRating}/5</span>
                     </div>
                   )}
                 </div>
-                {e.reviewDate && <p className="text-xs text-slate-400">Entretien : {formatDate(e.reviewDate)}</p>}
-                {e.strengths && <p className="text-xs text-slate-500 mt-1">Points forts : {e.strengths}</p>}
+                {e.reviewDate && <p className="text-xs text-muted-foreground/60">Entretien : {formatDate(e.reviewDate)}</p>}
+                {e.strengths && <p className="text-xs text-muted-foreground mt-1">Points forts : {e.strengths}</p>}
               </div>
             ))}
           </div>
@@ -612,7 +612,7 @@ const TASK_PRIORITY_CONFIG: Record<string, { label: string; cls: string }> = {
   urgent: { label: "Urgent", cls: "bg-red-100 text-red-700 border-red-200" },
   high:   { label: "Haute",  cls: "bg-orange-100 text-orange-700 border-orange-200" },
   medium: { label: "Normale", cls: "bg-blue-100 text-blue-700 border-blue-200" },
-  low:    { label: "Basse",  cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  low:    { label: "Basse",  cls: "bg-muted text-muted-foreground border" },
 };
 const PROJECT_STATUS_LABELS: Record<string, string> = {
   planning: "Planification", active: "Actif", on_hold: "En pause",
@@ -652,7 +652,7 @@ function MesTravauxTab({ userId }: { userId?: string }) {
     { key: "overdue", label: "En retard", icon: <Flame className="w-4 h-4 text-red-500" />, tasks: overdue, emptyMsg: null, accent: "border-l-red-500" },
     { key: "today",   label: "Aujourd'hui", icon: <Timer className="w-4 h-4 text-amber-500" />, tasks: dueToday, emptyMsg: "Aucune tâche due aujourd'hui.", accent: "border-l-amber-500" },
     { key: "week",    label: "Cette semaine", icon: <Calendar className="w-4 h-4 text-blue-500" />, tasks: dueWeek, emptyMsg: "Aucune tâche pour cette semaine.", accent: "border-l-blue-400" },
-    { key: "upcoming",label: "À venir / Sans date", icon: <Clock className="w-4 h-4 text-slate-400" />, tasks: upcoming, emptyMsg: "Aucune tâche à venir.", accent: "border-l-slate-200" },
+    { key: "upcoming",label: "À venir / Sans date", icon: <Clock className="w-4 h-4 text-muted-foreground/60" />, tasks: upcoming, emptyMsg: "Aucune tâche à venir.", accent: "border-l-slate-200" },
   ];
 
   return (
@@ -666,7 +666,7 @@ function MesTravauxTab({ userId }: { userId?: string }) {
           { label: "Projets actifs", value: activeProjects.length, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
         ].map(k => (
           <div key={k.label} className={`rounded-xl border px-4 py-3 ${k.bg}`}>
-            <p className="text-xs text-slate-500 mb-0.5">{k.label}</p>
+            <p className="text-xs text-muted-foreground mb-0.5">{k.label}</p>
             <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
           </div>
         ))}
@@ -675,7 +675,7 @@ function MesTravauxTab({ userId }: { userId?: string }) {
       {/* Mes tâches */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
             <ListTodo className="w-4 h-4 text-[#2563EB]" /> Mes tâches
           </h3>
           <Link href="/tasks">
@@ -688,7 +688,7 @@ function MesTravauxTab({ userId }: { userId?: string }) {
         {loadingTasks ? (
           <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
         ) : myTasks.length === 0 ? (
-          <div className="text-center py-10 text-slate-400">
+          <div className="text-center py-10 text-muted-foreground/60">
             <CheckSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p className="text-sm">Aucune tâche assignée.</p>
           </div>
@@ -696,28 +696,28 @@ function MesTravauxTab({ userId }: { userId?: string }) {
           <div className="space-y-5">
             {taskSections.filter(s => s.tasks.length > 0 || (s.key === "today" && !loadingTasks)).map(section => (
               <div key={section.key}>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                   {section.icon} {section.label}
-                  <span className="ml-1 bg-slate-200 text-slate-600 rounded-full px-1.5 text-[10px]">{section.tasks.length}</span>
+                  <span className="ml-1 bg-slate-200 text-muted-foreground rounded-full px-1.5 text-[10px]">{section.tasks.length}</span>
                 </p>
                 {section.tasks.length === 0 ? (
-                  section.emptyMsg && <p className="text-xs text-slate-400 pl-5">{section.emptyMsg}</p>
+                  section.emptyMsg && <p className="text-xs text-muted-foreground/60 pl-5">{section.emptyMsg}</p>
                 ) : (
                   <div className="space-y-1.5">
                     {section.tasks.map(task => {
                       const prio = TASK_PRIORITY_CONFIG[task.priority] ?? TASK_PRIORITY_CONFIG.medium;
                       return (
                         <Link key={task.id} href={`/tasks/${task.id}`}>
-                          <a className={`flex items-center gap-3 px-4 py-2.5 bg-white border border-l-4 ${section.accent} rounded-lg hover:shadow-sm transition-all group`}>
-                            <Circle className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
-                            <span className="flex-1 text-sm text-slate-800 truncate group-hover:text-[#2563EB] transition-colors">{task.title}</span>
+                          <a className={`flex items-center gap-3 px-4 py-2.5 bg-card border border-l-4 ${section.accent} rounded-lg hover:shadow-sm transition-all group`}>
+                            <Circle className="w-3.5 h-3.5 text-muted-foreground/40 flex-shrink-0" />
+                            <span className="flex-1 text-sm text-foreground truncate group-hover:text-[#2563EB] transition-colors">{task.title}</span>
                             {task.dueDate && (
-                              <span className={`text-[10px] font-medium ${section.key === "overdue" ? "text-red-500" : "text-slate-400"}`}>
+                              <span className={`text-[10px] font-medium ${section.key === "overdue" ? "text-red-500" : "text-muted-foreground/60"}`}>
                                 {new Date(task.dueDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                               </span>
                             )}
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${prio.cls}`}>{prio.label}</span>
-                            <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-slate-500 flex-shrink-0" />
+                            <ExternalLink className="w-3 h-3 text-muted-foreground/40 group-hover:text-muted-foreground flex-shrink-0" />
                           </a>
                         </Link>
                       );
@@ -733,7 +733,7 @@ function MesTravauxTab({ userId }: { userId?: string }) {
       {/* Mes projets actifs */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
             <FolderKanban className="w-4 h-4 text-[#2563EB]" /> Projets actifs
           </h3>
           <Link href="/projets">
@@ -746,7 +746,7 @@ function MesTravauxTab({ userId }: { userId?: string }) {
         {loadingProjects ? (
           <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
         ) : activeProjects.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-muted-foreground/60">
             <FolderKanban className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p className="text-sm">Aucun projet actif.</p>
           </div>
@@ -757,17 +757,17 @@ function MesTravauxTab({ userId }: { userId?: string }) {
               const prog = project.progress ?? 0;
               return (
                 <Link key={project.id} href={`/projets/${project.id}`}>
-                  <a className="flex items-center gap-4 px-4 py-3 bg-white border border-slate-200 rounded-lg hover:shadow-sm hover:border-slate-300 transition-all group">
+                  <a className="flex items-center gap-4 px-4 py-3 bg-card border border rounded-lg hover:shadow-sm hover:border transition-all group">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${rag.dot}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-slate-800 truncate group-hover:text-[#2563EB] transition-colors">{project.name}</span>
-                        <span className="text-xs text-slate-500 ml-2 flex-shrink-0">{prog}%</span>
+                        <span className="text-sm font-medium text-foreground truncate group-hover:text-[#2563EB] transition-colors">{project.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">{prog}%</span>
                       </div>
-                      <Progress value={prog} className="h-1.5 bg-slate-100 [&>div]:bg-[#2563EB]" />
+                      <Progress value={prog} className="h-1.5 bg-muted [&>div]:bg-[#2563EB]" />
                     </div>
                     <div className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${rag.cls}`}>{rag.label}</div>
-                    <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-slate-500 flex-shrink-0" />
+                    <ExternalLink className="w-3 h-3 text-muted-foreground/40 group-hover:text-muted-foreground flex-shrink-0" />
                   </a>
                 </Link>
               );
@@ -785,7 +785,7 @@ const BANK_REQUEST_STATUS: Record<string, { label: string; cls: string; icon: Re
   pending: { label: "En attente de validation", cls: "bg-amber-50 text-amber-700 border-amber-200", icon: <Clock className="w-3 h-3" /> },
   approved: { label: "Approuvé", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: <CheckCircle2 className="w-3 h-3" /> },
   rejected: { label: "Refusé", cls: "bg-red-50 text-red-700 border-red-200", icon: <XCircle className="w-3 h-3" /> },
-  cancelled: { label: "Annulé", cls: "bg-slate-100 text-slate-500 border-slate-200", icon: <XCircle className="w-3 h-3" /> },
+  cancelled: { label: "Annulé", cls: "bg-muted text-muted-foreground border", icon: <XCircle className="w-3 h-3" /> },
 };
 
 function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onRefreshProfile: () => void }) {
@@ -835,9 +835,9 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
   return (
     <div className="space-y-5">
       {/* Coordonnées bancaires actuelles */}
-      <Card className="border-slate-200">
+      <Card className="border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+          <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Landmark className="w-4 h-4 text-[#2563EB]" /> Coordonnées bancaires enregistrées
           </CardTitle>
           <CardDescription className="text-xs">
@@ -849,17 +849,17 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
             <div className="space-y-2 text-sm">
               {profile?.bankName && (
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Banque</span>
-                  <span className="font-medium text-slate-800">
+                  <span className="text-muted-foreground">Banque</span>
+                  <span className="font-medium text-foreground">
                     {profile.bankName}
-                    {profile.bankCode && <span className="text-xs text-slate-400 ml-1.5">(code {profile.bankCode})</span>}
+                    {profile.bankCode && <span className="text-xs text-muted-foreground/60 ml-1.5">(code {profile.bankCode})</span>}
                   </span>
                 </div>
               )}
               {profile?.bankAccountNumber && (
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">N° de compte</span>
-                  <span className="font-mono font-medium text-slate-800">{profile.bankAccountNumber}</span>
+                  <span className="text-muted-foreground">N° de compte</span>
+                  <span className="font-mono font-medium text-foreground">{profile.bankAccountNumber}</span>
                 </div>
               )}
             </div>
@@ -874,10 +874,10 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
 
       {/* Statut de la dernière demande */}
       {bankRequest && (
-        <Card className="border-slate-200">
+        <Card className="border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Send className="w-4 h-4 text-slate-500" /> Dernière demande de modification
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Send className="w-4 h-4 text-muted-foreground" /> Dernière demande de modification
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -892,11 +892,11 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
                   );
                 })()}
               </div>
-              <span className="text-xs text-slate-400">{formatDate(bankRequest.createdAt)}</span>
+              <span className="text-xs text-muted-foreground/60">{formatDate(bankRequest.createdAt)}</span>
             </div>
-            <div className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded-lg p-3 space-y-1">
-              {bankRequest.bankName && <p><span className="text-slate-400">Banque :</span> <span className="font-medium">{bankRequest.bankName}{bankRequest.bankCode && ` (code ${bankRequest.bankCode})`}</span></p>}
-              {bankRequest.bankAccountNumber && <p><span className="text-slate-400">Compte :</span> <span className="font-mono font-medium">{bankRequest.bankAccountNumber}</span></p>}
+            <div className="text-xs text-muted-foreground bg-muted/50 border border rounded-lg p-3 space-y-1">
+              {bankRequest.bankName && <p><span className="text-muted-foreground/60">Banque :</span> <span className="font-medium">{bankRequest.bankName}{bankRequest.bankCode && ` (code ${bankRequest.bankCode})`}</span></p>}
+              {bankRequest.bankAccountNumber && <p><span className="text-muted-foreground/60">Compte :</span> <span className="font-mono font-medium">{bankRequest.bankAccountNumber}</span></p>}
             </div>
             {bankRequest.status === "rejected" && bankRequest.rejectionReason && (
               <div className="flex items-start gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -920,7 +920,7 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
         </Button>
       </div>
       {pendingRequest && (
-        <p className="text-xs text-slate-400 text-right -mt-3">
+        <p className="text-xs text-muted-foreground/60 text-right -mt-3">
           Une demande est déjà en attente de validation. Attendez la réponse du manager avant de resoumettre.
         </p>
       )}
@@ -949,7 +949,7 @@ function ProfilTab({ profile, onRefreshProfile }: { profile: Profile | null; onR
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="bankCode">Code banque BCEAO <span className="text-xs text-slate-400">(3 chiffres)</span></Label>
+              <Label htmlFor="bankCode">Code banque BCEAO <span className="text-xs text-muted-foreground/60">(3 chiffres)</span></Label>
               <Input
                 id="bankCode"
                 value={bankCode}
@@ -1005,14 +1005,14 @@ const CLAIM_CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CLAIM_STATUS: Record<string, { label: string; cls: string }> = {
-  brouillon:             { label: "Brouillon",         cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  brouillon:             { label: "Brouillon",         cls: "bg-muted text-muted-foreground border" },
   soumise:               { label: "Soumise",           cls: "bg-blue-100 text-blue-700 border-blue-200" },
   en_cours:              { label: "En cours",          cls: "bg-amber-100 text-amber-700 border-amber-200" },
   infos_complementaires: { label: "Infos requises",    cls: "bg-orange-100 text-orange-700 border-orange-200" },
   en_traitement:         { label: "En traitement",     cls: "bg-purple-100 text-purple-700 border-purple-200" },
   resolue:               { label: "Résolue",           cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   refusee:               { label: "Refusée",           cls: "bg-red-100 text-red-700 border-red-200" },
-  cloturee:              { label: "Clôturée",          cls: "bg-slate-200 text-slate-700 border-slate-300" },
+  cloturee:              { label: "Clôturée",          cls: "bg-slate-200 text-foreground border" },
 };
 
 function ReclamationsTab() {
@@ -1069,7 +1069,7 @@ function ReclamationsTab() {
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
         </div>
       ) : claims.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
+        <div className="text-center py-16 text-muted-foreground/60">
           <MessageSquareWarning className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm font-medium">Aucune réclamation soumise</p>
           <p className="text-xs mt-1">Cliquez sur « Nouvelle réclamation » pour soumettre un signalement.</p>
@@ -1077,12 +1077,12 @@ function ReclamationsTab() {
       ) : (
         <div className="space-y-2">
           {claims.map((c: any) => {
-            const st = CLAIM_STATUS[c.status] ?? { label: c.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+            const st = CLAIM_STATUS[c.status] ?? { label: c.status, cls: "bg-muted text-muted-foreground border" };
             return (
               <Link key={c.id} href={`/rh/reclamations/${c.id}`}>
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="py-3 px-4 flex items-center gap-3">
-                    <MessageSquareWarning className="w-5 h-5 text-slate-400 shrink-0" />
+                    <MessageSquareWarning className="w-5 h-5 text-muted-foreground/60 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{c.subject}</p>
                       <p className="text-xs text-muted-foreground">
@@ -1090,7 +1090,7 @@ function ReclamationsTab() {
                       </p>
                     </div>
                     <Badge className={`text-xs border font-medium shrink-0 ${st.cls}`}>{st.label}</Badge>
-                    <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
                   </CardContent>
                 </Card>
               </Link>
@@ -1185,13 +1185,13 @@ type AdvancePolicy = {
 };
 
 const ADVANCE_STATUS: Record<string, { label: string; cls: string }> = {
-  draft:            { label: "Brouillon",  cls: "bg-slate-100 text-slate-600 border-slate-200" },
+  draft:            { label: "Brouillon",  cls: "bg-muted text-muted-foreground border" },
   pending_approval: { label: "En attente", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   approved:         { label: "Approuvée",  cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   rejected:         { label: "Rejetée",    cls: "bg-red-50 text-red-700 border-red-200" },
   disbursed:        { label: "Décaissée",  cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  closed:           { label: "Soldée",     cls: "bg-slate-50 text-slate-500 border-slate-200" },
-  cancelled:        { label: "Annulée",    cls: "bg-slate-100 text-slate-400 border-slate-200" },
+  closed:           { label: "Soldée",     cls: "bg-muted/50 text-muted-foreground border" },
+  cancelled:        { label: "Annulée",    cls: "bg-muted text-muted-foreground/60 border" },
 };
 
 function AvancesTab() {
@@ -1267,7 +1267,7 @@ function AvancesTab() {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">En cours</p>
               {active.map(a => {
-                const s = ADVANCE_STATUS[a.status] ?? { label: a.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                const s = ADVANCE_STATUS[a.status] ?? { label: a.status, cls: "bg-muted text-muted-foreground border" };
                 return (
                   <Card key={a.id} className="border">
                     <CardContent className="p-4 flex items-center justify-between gap-4">
@@ -1303,7 +1303,7 @@ function AvancesTab() {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-4">Historique</p>
               {history.map(a => {
-                const s = ADVANCE_STATUS[a.status] ?? { label: a.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                const s = ADVANCE_STATUS[a.status] ?? { label: a.status, cls: "bg-muted text-muted-foreground border" };
                 return (
                   <Card key={a.id} className="border opacity-70">
                     <CardContent className="p-3 flex items-center justify-between gap-4">
@@ -1457,35 +1457,35 @@ export default function MonEspace() {
       </div>
 
       <Tabs defaultValue="travaux">
-        <TabsList className="grid grid-cols-5 sm:grid-cols-10 h-auto p-1 bg-slate-100 rounded-xl mb-2">
-          <TabsTrigger value="travaux" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+        <TabsList className="grid grid-cols-5 sm:grid-cols-10 h-auto p-1 bg-muted rounded-xl mb-2">
+          <TabsTrigger value="travaux" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <ListTodo className="w-4 h-4" /> Mes Travaux <SectionHelp id="monespace.travaux" side="bottom" />
           </TabsTrigger>
-          <TabsTrigger value="dashboard" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+          <TabsTrigger value="dashboard" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <TrendingUp className="w-4 h-4" /> Tableau RH <SectionHelp id="monespace.dashboard" side="bottom" />
           </TabsTrigger>
-          <TabsTrigger value="payslips" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+          <TabsTrigger value="payslips" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <FileText className="w-4 h-4" /> Bulletins <SectionHelp id="monespace.payslips" side="bottom" />
           </TabsTrigger>
-          <TabsTrigger value="leaves" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+          <TabsTrigger value="leaves" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <CalendarDays className="w-4 h-4" /> Congés <SectionHelp id="monespace.leaves" side="bottom" />
           </TabsTrigger>
-          <TabsTrigger value="contract" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+          <TabsTrigger value="contract" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <Briefcase className="w-4 h-4" /> Contrat <SectionHelp id="monespace.contract" side="bottom" />
           </TabsTrigger>
-          <TabsTrigger value="documents" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+          <TabsTrigger value="documents" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <FolderArchive className="w-4 h-4" /> Documents <SectionHelp id="monespace.documents" side="bottom" />
           </TabsTrigger>
-          <TabsTrigger value="training" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+          <TabsTrigger value="training" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <GraduationCap className="w-4 h-4" /> Formations <SectionHelp id="monespace.training" side="bottom" />
           </TabsTrigger>
-          <TabsTrigger value="reclamations" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+          <TabsTrigger value="reclamations" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <MessageSquareWarning className="w-4 h-4" /> Réclamations <SectionHelp id="monespace.reclamations" side="bottom" />
           </TabsTrigger>
-          <TabsTrigger value="profil" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+          <TabsTrigger value="profil" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <Landmark className="w-4 h-4" /> Profil <SectionHelp id="monespace.profil" side="bottom" />
           </TabsTrigger>
-          <TabsTrigger value="avances" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">
+          <TabsTrigger value="avances" className="flex flex-col items-center gap-1 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-lg">
             <Banknote className="w-4 h-4" /> Avances
           </TabsTrigger>
         </TabsList>

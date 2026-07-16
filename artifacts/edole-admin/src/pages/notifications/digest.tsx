@@ -79,7 +79,7 @@ export default function NotificationsDigestPage() {
           <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-600" />À traiter en priorité</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {d.highlights.map((h) => (
-              <div key={h.id} className="border bg-white rounded p-2.5">
+              <div key={h.id} className="border bg-card rounded p-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <p className="font-medium text-sm">{h.title}</p>

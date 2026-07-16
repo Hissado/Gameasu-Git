@@ -370,7 +370,7 @@ export default function CollaboratorsList() {
       )}
 
       {/* ── Search + filters ── */}
-      <div data-tour="collab-search" className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+      <div data-tour="collab-search" className="bg-card rounded-2xl border shadow-sm p-4 space-y-3">
         {/* Search bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -475,7 +475,7 @@ export default function CollaboratorsList() {
 
       {/* ── List ── */}
       {isLoading ? (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100">
+        <div className="bg-card rounded-2xl border shadow-sm divide-y">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 px-5 py-3.5">
               <Skeleton className="w-10 h-10 rounded-full shrink-0" />
@@ -501,7 +501,7 @@ export default function CollaboratorsList() {
         <div
           data-tour="collab-list"
           ref={listRef}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden"
+          className="bg-card rounded-2xl border shadow-sm divide-y overflow-hidden"
         >
           {filtered.map((c: any, index: number) => {
             const status = getCollabStatus(c);
@@ -518,7 +518,7 @@ export default function CollaboratorsList() {
                   "border-l-2",
                   isFocused
                     ? "bg-primary/5 border-l-primary dark:bg-primary/10"
-                    : "border-l-transparent hover:bg-slate-50",
+                    : "border-l-transparent hover:bg-muted/50",
                 )}
               >
                 <Avatar className="w-10 h-10 shrink-0">
@@ -534,7 +534,7 @@ export default function CollaboratorsList() {
                 <div className="flex-1 min-w-0">
                   <p className={cn(
                     "text-sm font-semibold truncate leading-tight",
-                    isFocused ? "text-primary dark:text-primary" : "text-slate-800",
+                    isFocused ? "text-primary dark:text-primary" : "text-foreground",
                   )}>
                     {c.firstName} {c.lastName}
                   </p>
@@ -545,7 +545,7 @@ export default function CollaboratorsList() {
 
                 <div className="flex items-center gap-2 shrink-0">
                   {c.department && (
-                    <span className="hidden sm:inline text-xs text-slate-400 font-medium truncate max-w-[120px]">
+                    <span className="hidden sm:inline text-xs text-muted-foreground/60 font-medium truncate max-w-[120px]">
                       {c.department}
                     </span>
                   )}

@@ -66,27 +66,27 @@ function getMethodBadge(method: string | null, txStatus?: string | null) {
   const m = method ?? "other";
   const isMobile = MOBILE_MONEY_METHODS.includes(m);
   const icons: Record<string, React.ReactNode> = {
-    bank: <Landmark className="w-4 h-4 text-slate-400" />,
-    bank_transfer: <Landmark className="w-4 h-4 text-slate-400" />,
-    cash: <CreditCard className="w-4 h-4 text-slate-400" />,
+    bank: <Landmark className="w-4 h-4 text-muted-foreground/60" />,
+    bank_transfer: <Landmark className="w-4 h-4 text-muted-foreground/60" />,
+    cash: <CreditCard className="w-4 h-4 text-muted-foreground/60" />,
     card: <CreditCard className="w-4 h-4 text-blue-400" />,
     mobile_money: <Smartphone className="w-4 h-4 text-amber-400" />,
     mixx: <Smartphone className="w-4 h-4 text-emerald-500" />,
     flooz: <Smartphone className="w-4 h-4 text-orange-400" />,
-    check: <FileText className="w-4 h-4 text-slate-400" />,
+    check: <FileText className="w-4 h-4 text-muted-foreground/60" />,
   };
   const label = METHODS[m] ?? "Autre";
-  const colorClass = m === "card" ? "text-blue-700" : isMobile ? "text-amber-700" : "text-slate-600";
+  const colorClass = m === "card" ? "text-blue-700" : isMobile ? "text-amber-700" : "text-muted-foreground";
   const statusBadge = isMobile && txStatus && txStatus !== "confirmed" ? (
     <Badge variant="outline" className={`text-[9px] h-4 px-1 ml-1 ${
       txStatus === "pending" ? "border-amber-300 text-amber-600" :
       txStatus === "failed" ? "border-red-300 text-red-600" :
-      txStatus === "cancelled" ? "border-slate-300 text-slate-500" : ""
+      txStatus === "cancelled" ? "border text-muted-foreground" : ""
     }`}>{TX_STATUSES[txStatus] ?? txStatus}</Badge>
   ) : null;
   return (
     <span className={`flex items-center gap-1.5 text-sm font-medium ${colorClass}`}>
-      {icons[m] ?? <CreditCard className="w-4 h-4 text-slate-400" />}
+      {icons[m] ?? <CreditCard className="w-4 h-4 text-muted-foreground/60" />}
       {label}
       {statusBadge}
     </span>
@@ -110,7 +110,7 @@ type SuggestMatch = {
 const CONFIDENCE_CFG: Record<string, { label: string; cls: string }> = {
   exact:   { label: "Correspondance exacte", cls: "bg-emerald-50 border-emerald-300 text-emerald-700" },
   partial: { label: "Correspondance partielle", cls: "bg-amber-50 border-amber-300 text-amber-700" },
-  low:     { label: "Faible correspondance", cls: "bg-slate-50 border-slate-200 text-slate-500" },
+  low:     { label: "Faible correspondance", cls: "bg-muted/50 border text-muted-foreground" },
 };
 
 // ─── RecordPaymentDialog ──────────────────────────────────────────────────────
@@ -499,7 +499,7 @@ export default function PaymentsList() {
                 <Input
                   type="search"
                   placeholder="N° Facture, Référence…"
-                  className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+                  className="pl-9 bg-muted/50 focus-visible:ring-primary h-9"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -518,14 +518,14 @@ export default function PaymentsList() {
             </div>
           ) : (
             <Table data-tour="pay-table">
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Date</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Client</TableHead>
-                  <TableHead className="font-semibold text-slate-600">N° Facture</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Moyen de paiement</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Réf. transaction</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Montant encaissé</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Date</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Client</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">N° Facture</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Moyen de paiement</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-muted-foreground">Réf. transaction</TableHead>
+                  <TableHead className="text-right font-semibold text-muted-foreground">Montant encaissé</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -543,16 +543,16 @@ export default function PaymentsList() {
                   </TableRow>
                 ) : (
                   payments.map((payment) => (
-                    <TableRow key={payment.id} className="hover:bg-slate-50/50">
+                    <TableRow key={payment.id} className="hover:bg-muted/50">
                       <TableCell>
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                          <Calendar className="w-4 h-4 text-slate-400" />
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                          <Calendar className="w-4 h-4 text-muted-foreground/60" />
                           {formatDate(payment.paidAt || payment.createdAt)}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5 text-sm">
-                          <Landmark className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <Landmark className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
                           <span className="font-medium">{payment.clientName ?? "—"}</span>
                         </div>
                       </TableCell>
@@ -568,7 +568,7 @@ export default function PaymentsList() {
                       <TableCell className="hidden sm:table-cell">
                         {getMethodBadge(payment.method, payment.transactionStatus)}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell font-mono text-xs text-slate-500">
+                      <TableCell className="hidden md:table-cell font-mono text-xs text-muted-foreground">
                         {payment.reference || "—"}
                       </TableCell>
                       <TableCell className="text-right">

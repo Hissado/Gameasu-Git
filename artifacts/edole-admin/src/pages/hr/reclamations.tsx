@@ -43,18 +43,18 @@ const CATEGORY_LABELS: Record<string, string> = {
 const CATEGORY_VALUES = Object.keys(CATEGORY_LABELS);
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  brouillon:              { label: "Brouillon",             color: "bg-slate-100 text-slate-600 border-slate-200",    icon: <Clock className="w-3 h-3" /> },
+  brouillon:              { label: "Brouillon",             color: "bg-muted text-muted-foreground border",    icon: <Clock className="w-3 h-3" /> },
   soumise:                { label: "Soumise",               color: "bg-blue-100 text-blue-700 border-blue-200",       icon: <MessageSquareWarning className="w-3 h-3" /> },
   en_cours:               { label: "En cours d'analyse",   color: "bg-amber-100 text-amber-700 border-amber-200",    icon: <Search className="w-3 h-3" /> },
   infos_complementaires:  { label: "Infos requises",        color: "bg-orange-100 text-orange-700 border-orange-200", icon: <AlertTriangle className="w-3 h-3" /> },
   en_traitement:          { label: "En traitement",         color: "bg-purple-100 text-purple-700 border-purple-200", icon: <TrendingUp className="w-3 h-3" /> },
   resolue:                { label: "Résolue",               color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: <CheckCircle2 className="w-3 h-3" /> },
   refusee:                { label: "Refusée",               color: "bg-red-100 text-red-700 border-red-200",          icon: <AlertTriangle className="w-3 h-3" /> },
-  cloturee:               { label: "Clôturée",              color: "bg-slate-200 text-slate-700 border-slate-300",    icon: <CheckCircle2 className="w-3 h-3" /> },
+  cloturee:               { label: "Clôturée",              color: "bg-slate-200 text-foreground border",    icon: <CheckCircle2 className="w-3 h-3" /> },
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
-  faible:   { label: "Faible",   color: "text-slate-500" },
+  faible:   { label: "Faible",   color: "text-muted-foreground" },
   normale:  { label: "Normale",  color: "text-blue-600" },
   haute:    { label: "Haute",    color: "text-amber-600" },
   urgente:  { label: "Urgente",  color: "text-red-600" },
@@ -252,7 +252,7 @@ export default function ReclamationsPage() {
                   {stats.byDepartment.slice(0, 5).map(d => (
                     <div key={d.deptId ?? "none"} className="flex items-center gap-2">
                       <span className="text-xs w-32 truncate text-muted-foreground">{d.deptName}</span>
-                      <div className="flex-1 bg-slate-100 rounded-full h-2">
+                      <div className="flex-1 bg-muted rounded-full h-2">
                         <div
                           className="bg-orange-400 h-2 rounded-full"
                           style={{ width: `${stats.total ? Math.round((d.count / stats.total) * 100) : 0}%` }}
@@ -492,7 +492,7 @@ export default function ReclamationsPage() {
               {attachLinks.length > 0 && (
                 <div className="space-y-1 mb-2">
                   {attachLinks.map((a, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-slate-50 border rounded px-2 py-1">
+                    <div key={i} className="flex items-center gap-2 bg-muted/50 border rounded px-2 py-1">
                       <Paperclip className="w-3 h-3 text-muted-foreground shrink-0" />
                       <span className="text-xs flex-1 truncate">{a.name}</span>
                       <button

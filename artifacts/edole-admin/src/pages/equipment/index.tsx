@@ -34,7 +34,7 @@ function StatusBadge({ status }: { status: string }) {
     case "available":   return <Badge className="bg-green-100 text-green-800 border-green-200">Disponible</Badge>;
     case "rented":      return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">En location</Badge>;
     case "maintenance": return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">En maintenance</Badge>;
-    case "retired":     return <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300">Hors service</Badge>;
+    case "retired":     return <Badge variant="outline" className="bg-muted text-muted-foreground border">Hors service</Badge>;
     default:            return <Badge variant="outline">Inconnu</Badge>;
   }
 }
@@ -249,7 +249,7 @@ export default function EquipmentList() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: "Parc Total",     value: availability?.totalItems || 0, color: "border-l-slate-400",  icon: <Wrench className="w-5 h-5 text-slate-400" />,    cls: "text-slate-800" },
+          { label: "Parc Total",     value: availability?.totalItems || 0, color: "border-l-slate-400",  icon: <Wrench className="w-5 h-5 text-muted-foreground/60" />,    cls: "text-foreground" },
           { label: "Disponibles",    value: availability?.available || 0,  color: "border-l-green-500",  icon: null,                                               cls: "text-green-600" },
           { label: "Sur Projets",    value: availability?.rented || 0,     color: "border-l-blue-500",   icon: <Truck className="w-5 h-5 text-blue-400" />,      cls: "text-blue-600" },
           { label: "En Maintenance", value: availability?.maintenance || 0, color: "border-l-yellow-500", icon: <AlertTriangle className="w-5 h-5 text-yellow-500" />, cls: "text-yellow-600" },
@@ -282,7 +282,7 @@ export default function EquipmentList() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Référence, nom, catégorie…"
-                  className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+                  className="pl-9 bg-muted/50 focus-visible:ring-primary h-9"
                 />
               </div>
               <Link href="/equipements/categories">
@@ -299,15 +299,15 @@ export default function EquipmentList() {
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600 w-24">Réf.</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Désignation</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Catégorie</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead className="font-semibold text-slate-600 text-center">Qté</TableHead>
-                  <TableHead className="hidden sm:table-cell text-right font-semibold text-slate-600">Taux Journalier</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground w-24">Réf.</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Désignation</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Catégorie</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Statut</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground text-center">Qté</TableHead>
+                  <TableHead className="hidden sm:table-cell text-right font-semibold text-muted-foreground">Taux Journalier</TableHead>
+                  <TableHead className="text-right font-semibold text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -325,18 +325,18 @@ export default function EquipmentList() {
                   </TableRow>
                 ) : (
                   items.map((item: any) => (
-                    <TableRow key={item.id} className="hover:bg-slate-50/50">
-                      <TableCell className="font-mono text-xs font-bold text-slate-500 bg-slate-100/50">{item.code || "—"}</TableCell>
-                      <TableCell className="font-bold text-slate-800">{item.name}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm font-medium text-slate-600">{item.categoryName || "—"}</TableCell>
+                    <TableRow key={item.id} className="hover:bg-muted/50">
+                      <TableCell className="font-mono text-xs font-bold text-muted-foreground bg-muted/50">{item.code || "—"}</TableCell>
+                      <TableCell className="font-bold text-foreground">{item.name}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm font-medium text-muted-foreground">{item.categoryName || "—"}</TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
                       <TableCell className="text-center font-bold">
                         <span className={item.availableQuantity === 0 ? "text-red-500" : "text-green-600"}>{item.availableQuantity}</span>
-                        <span className="text-slate-400 font-normal mx-1">/</span>
+                        <span className="text-muted-foreground/60 font-normal mx-1">/</span>
                         {item.quantity}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-right font-bold text-slate-700">
-                        {item.dailyRate ? formatFCFA(item.dailyRate) : <span className="text-slate-400 italic text-xs">—</span>}
+                      <TableCell className="hidden sm:table-cell text-right font-bold text-foreground">
+                        {item.dailyRate ? formatFCFA(item.dailyRate) : <span className="text-muted-foreground/60 italic text-xs">—</span>}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

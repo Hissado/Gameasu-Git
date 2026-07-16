@@ -33,7 +33,7 @@ type CreditNote = {
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   issued:    { label: "Émis",    cls: "bg-amber-50 text-amber-700 border-amber-200" },
   applied:   { label: "Appliqué", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  cancelled: { label: "Annulé",  cls: "bg-slate-100 text-slate-500 border-slate-200" },
+  cancelled: { label: "Annulé",  cls: "bg-muted text-muted-foreground border" },
 };
 
 export default function CreditNotesList() {
@@ -129,7 +129,7 @@ export default function CreditNotesList() {
             <div className="p-8 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
                   <TableHead>Réf. Avoir</TableHead>
                   <TableHead>Client</TableHead>
@@ -153,13 +153,13 @@ export default function CreditNotesList() {
                     </TableCell>
                   </TableRow>
                 ) : notes.map(cn => {
-                  const st = STATUS_MAP[cn.status] ?? { label: cn.status, cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                  const st = STATUS_MAP[cn.status] ?? { label: cn.status, cls: "bg-muted text-muted-foreground border" };
                   return (
-                    <TableRow key={cn.id} className={`hover:bg-slate-50/50 ${cn.status === "cancelled" ? "opacity-60" : ""}`}>
+                    <TableRow key={cn.id} className={`hover:bg-muted/50 ${cn.status === "cancelled" ? "opacity-60" : ""}`}>
                       <TableCell className="font-mono text-sm font-bold">{cn.referenceNumber}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <Building className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
                           <span className="font-medium text-sm">{cn.clientName ?? "—"}</span>
                         </div>
                       </TableCell>

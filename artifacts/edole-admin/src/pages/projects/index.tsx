@@ -65,9 +65,9 @@ const RAG_CONFIG: Record<RAGStatus, { label: string; icon: React.ReactNode; cls:
   on_track:  { label: "En bonne voie", icon: <CheckCircle2 className="w-3 h-3" />, cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
   at_risk:   { label: "À risque",      icon: <AlertTriangle className="w-3 h-3" />, cls: "bg-amber-50 text-amber-700 border-amber-200",   dot: "bg-amber-500" },
   off_track: { label: "En retard",     icon: <AlertTriangle className="w-3 h-3" />, cls: "bg-red-50 text-red-700 border-red-200",          dot: "bg-red-500" },
-  completed: { label: "Terminé",       icon: <CheckCircle2 className="w-3 h-3" />, cls: "bg-slate-100 text-slate-600 border-slate-200",   dot: "bg-slate-400" },
+  completed: { label: "Terminé",       icon: <CheckCircle2 className="w-3 h-3" />, cls: "bg-muted text-muted-foreground border",   dot: "bg-slate-400" },
   pending:   { label: "En attente",    icon: <Clock className="w-3 h-3" />,         cls: "bg-blue-50 text-blue-700 border-blue-200",       dot: "bg-blue-400" },
-  unknown:   { label: "Inconnu",       icon: <CircleDot className="w-3 h-3" />,     cls: "bg-slate-50 text-slate-500 border-slate-200",    dot: "bg-slate-300" },
+  unknown:   { label: "Inconnu",       icon: <CircleDot className="w-3 h-3" />,     cls: "bg-muted/50 text-muted-foreground border",    dot: "bg-slate-300" },
 };
 
 function RAGBadge({ project }: { project: any }) {
@@ -426,19 +426,19 @@ export default function ProjectsList() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Rechercher un projet…"
-                  className="pl-9 bg-slate-50 focus-visible:ring-primary h-9"
+                  className="pl-9 bg-muted/50 focus-visible:ring-primary h-9"
                 />
               </div>
               <div className="flex border border-border rounded-md overflow-hidden h-9 shrink-0">
                 <button
                   onClick={() => setView("list")}
-                  className={`px-2.5 flex items-center transition-colors ${view === "list" ? "bg-primary text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}
+                  className={`px-2.5 flex items-center transition-colors ${view === "list" ? "bg-primary text-white" : "bg-card text-muted-foreground hover:bg-muted/50"}`}
                 >
                   <List className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setView("cards")}
-                  className={`px-2.5 flex items-center border-l border-border transition-colors ${view === "cards" ? "bg-primary text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}
+                  className={`px-2.5 flex items-center border-l border-border transition-colors ${view === "cards" ? "bg-primary text-white" : "bg-card text-muted-foreground hover:bg-muted/50"}`}
                 >
                   <LayoutGrid className="w-4 h-4" />
                 </button>
@@ -463,22 +463,22 @@ export default function ProjectsList() {
             />
           ) : view === "list" ? (
             <Table data-tour="proj-table">
-              <TableHeader className="bg-slate-50/80">
+              <TableHeader className="bg-muted/80">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">Nom du Projet</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Client</TableHead>
-                  <TableHead className="font-semibold text-slate-600">Statut</TableHead>
-                  <TableHead data-tour="proj-rag" className="font-semibold text-slate-600">RAG</TableHead>
-                  <TableHead className="hidden md:table-cell font-semibold text-slate-600">Avancement</TableHead>
-                  <TableHead className="hidden sm:table-cell font-semibold text-slate-600">Budget</TableHead>
-                  <TableHead className="hidden lg:table-cell font-semibold text-slate-600">Responsable</TableHead>
-                  <TableHead className="text-right font-semibold text-slate-600">Actions</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Nom du Projet</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Client</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Statut</TableHead>
+                  <TableHead data-tour="proj-rag" className="font-semibold text-muted-foreground">RAG</TableHead>
+                  <TableHead className="hidden md:table-cell font-semibold text-muted-foreground">Avancement</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-muted-foreground">Budget</TableHead>
+                  <TableHead className="hidden lg:table-cell font-semibold text-muted-foreground">Responsable</TableHead>
+                  <TableHead className="text-right font-semibold text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {projects.map((project: any) => (
-                  <TableRow key={project.id} className="hover:bg-slate-50/50 transition-colors">
-                    <TableCell className="font-bold text-slate-800">
+                  <TableRow key={project.id} className="hover:bg-muted/50 transition-colors">
+                    <TableCell className="font-bold text-foreground">
                       <Link href={`/projets/${project.id}`} className="hover:text-primary transition-colors flex items-center gap-1.5">
                         {project.name}
                         <ChevronRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
@@ -490,7 +490,7 @@ export default function ProjectsList() {
                     <TableCell className="hidden md:table-cell">
                       <div className="flex flex-col gap-1.5 w-32">
                         <div className="flex justify-between text-xs">
-                          <span className="font-medium text-slate-600">{project.progress || 0}%</span>
+                          <span className="font-medium text-muted-foreground">{project.progress || 0}%</span>
                         </div>
                         <Progress value={project.progress || 0} className={`h-2 ${project.progress === 100 ? "[&>div]:bg-green-500" : ""}`} />
                       </div>
@@ -500,7 +500,7 @@ export default function ProjectsList() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -570,7 +570,7 @@ export default function ProjectsList() {
                     </Link>
                     {!perms.isReadOnly && (
                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7 bg-white shadow-sm border" onClick={e => { e.preventDefault(); setEditProject(project); }}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 bg-card shadow-sm border" onClick={e => { e.preventDefault(); setEditProject(project); }}>
                           <Edit className="w-3 h-3" />
                         </Button>
                       </div>
