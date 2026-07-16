@@ -33,3 +33,4 @@
 - [Static route-link guard](route-link-guard.md) — `pnpm run check-routes` catches broken internal nav links (wrong route literals, links to non-existent detail pages) app-wide.
 - [Salary advances + fiscal engine schema](salary-advances-fiscal-engine.md) — 8 tables (3 avances, 5 fiscal); seed-hissado extends idempotently via existingRates/existing length guard; patente needs separate brackets table (no inline rate).
 - [Compliance module table naming](compliance-table-naming.md) — benefits.ts owns signatureRequestsTable; compliance tables use docSigRequestsTable/docSigSignersTable to avoid esbuild ambiguous-import; drizzle push blocks on rename prompts → use tsx migration script.
+- [Payroll engine formulas](payroll-engine-formulas.md) — single source of truth in lib/payroll-engine.ts; 8-tranche CGI Togo barème; base = floor(brut×91%×72%/1000)×1000

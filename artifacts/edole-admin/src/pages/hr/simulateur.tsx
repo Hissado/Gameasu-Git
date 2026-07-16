@@ -44,20 +44,23 @@ const DEFAULT_RATES: SalaryRates = {
   tauxSalarial: 9,
   tauxPatronal: 22.5,
   tauxConges: 10.22,
-  abattementFraisPro: 20,
+  abattementFraisPro: 28,  // abattement combiné CGI Togo : frais pro 20 % + déductions légales 8 %
   reductionParPart: 15_000,
   smig: 35_000,
 };
 
-// Barème IRPP Togo — annuel en XOF (configurer via Paramètres > Paie)
+// Barème IRPP Togo — 8 tranches CGI Togo — annuel en XOF
+// Conforme au moteur paie centralisé (payroll-engine.ts)
+// Validé : base 1 032 000 FCFA/an → IRPP 330 FCFA/mois ✓
 const IRPP_BRACKETS = [
   { up: 900_000,    rate: 0    },
-  { up: 1_500_000,  rate: 0.07 },
-  { up: 2_500_000,  rate: 0.11 },
-  { up: 4_000_000,  rate: 0.15 },
-  { up: 6_000_000,  rate: 0.20 },
-  { up: 10_000_000, rate: 0.25 },
-  { up: Infinity,   rate: 0.35 },
+  { up: 1_200_000,  rate: 0.03 },
+  { up: 2_500_000,  rate: 0.07 },
+  { up: 4_000_000,  rate: 0.11 },
+  { up: 6_000_000,  rate: 0.15 },
+  { up: 10_000_000, rate: 0.20 },
+  { up: 15_000_000, rate: 0.25 },
+  { up: Infinity,   rate: 0.30 },
 ];
 
 interface IrppTranche {
@@ -121,8 +124,12 @@ function calcIrpp(revenuAnnuelImposable: number, nbParts: number, reductionParPa
 
 function brutVersNetCalc(brut: number, rates: SalaryRates, nbParts: number): Omit<PayrollResult, "convergenceEcart"> {
   const cotisationsSalariales = Math.round(brut * rates.tauxSalarial / 100);
-  const baseImposable = brut - cotisationsSalariales;
-  const baseApresAbattement = Math.round(baseImposable * (1 - rates.abattementFraisPro / 100));
+  // Base imposable mensuelle : floor(Brut × (1-CNSS%) × (1-abattement%) / 1 000) × 1 000
+  // Conforme au CGI Togo : abattement combiné 28 % → Brut × 91 % × 72 % arrondi au millier inférieur
+  const baseImposable = brut - cotisationsSalariales;  // pour affichage "avant abattement"
+  const baseApresAbattement = Math.floor(
+    brut * (1 - rates.tauxSalarial / 100) * (1 - rates.abattementFraisPro / 100) / 1000,
+  ) * 1000;
   const { irpp: irppAn, detail } = calcIrpp(baseApresAbattement * 12, nbParts, rates.reductionParPart);
   const irppMens = Math.round(irppAn / 12);
   const net = brut - cotisationsSalariales - irppMens;
@@ -261,7 +268,7 @@ function RatesPanel({ rates, setRates }: { rates: SalaryRates; setRates: (r: Sal
           <RateField label="Cotisations salariales" value={rates.tauxSalarial} onChange={v => set("tauxSalarial", v)} min={0} max={30} />
           <RateField label="Charges patronales" value={rates.tauxPatronal} onChange={v => set("tauxPatronal", v)} min={0} max={50} />
           <RateField label="Provision congés payés" value={rates.tauxConges} onChange={v => set("tauxConges", v)} min={0} max={20} step={0.01} />
-          <RateField label="Abattement frais professionnels (IRPP)" value={rates.abattementFraisPro} onChange={v => set("abattementFraisPro", v)} min={0} max={40} />
+          <RateField label="Abattement base imposable IRPP (combiné CGI Togo)" value={rates.abattementFraisPro} onChange={v => set("abattementFraisPro", v)} min={0} max={50} />
           <div className="space-y-1">
             <Label className="text-[11px] text-muted-foreground">Réduction par part fiscale (FCFA/an)</Label>
             <Input type="number" value={rates.reductionParPart} onChange={e => set("reductionParPart", Number(e.target.value) || 0)} className="h-8 text-xs" step={5000} />

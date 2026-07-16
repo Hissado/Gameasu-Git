@@ -36,42 +36,23 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 import { generatePayslipPdf } from "../lib/payslip-pdf";
 import { sendEmail } from "../lib/email";
+import { brutVersNet } from "../lib/payroll-engine";
 
 const router = Router();
 router.use(requireAuth);
 
 // ──────────────────────────────────────────────────────────
-// Barème IRPP Togo (annuel, en XOF)
+// Calcul des montants du bulletin — délégué au moteur unique
 // ──────────────────────────────────────────────────────────
-function computeIrppAnnuel(revenuImposableAnnuel: number): number {
-  const tranches = [
-    { plafond: 900_000, taux: 0 },
-    { plafond: 1_500_000, taux: 0.07 },
-    { plafond: 2_500_000, taux: 0.11 },
-    { plafond: 4_000_000, taux: 0.15 },
-    { plafond: 6_000_000, taux: 0.20 },
-    { plafond: 10_000_000, taux: 0.25 },
-    { plafond: Infinity, taux: 0.35 },
-  ];
-  let irpp = 0;
-  let prev = 0;
-  for (const { plafond, taux } of tranches) {
-    if (revenuImposableAnnuel <= prev) break;
-    const base = Math.min(revenuImposableAnnuel, plafond) - prev;
-    irpp += base * taux;
-    prev = plafond;
-  }
-  return Math.round(irpp);
-}
-
 function computePayslipAmounts(grossSalary: number) {
-  const cnssEmployee = Math.round(grossSalary * 0.04);
-  const cnssEmployer = Math.round(grossSalary * 0.164);
-  const ipts = Math.round(grossSalary * 0.02);
-  const revenuImposableMensuel = Math.max(0, grossSalary - cnssEmployee);
-  const irppMensuel = Math.round(computeIrppAnnuel(revenuImposableMensuel * 12) / 12);
-  const netSalary = Math.round(grossSalary - cnssEmployee - irppMensuel - ipts);
-  return { cnssEmployee, cnssEmployer, irpp: irppMensuel, ipts, netSalary };
+  const r = brutVersNet(grossSalary);
+  return {
+    cnssEmployee: r.cnssEmployee,
+    cnssEmployer: r.cnssEmployer,
+    irpp: r.irppMensuel,
+    ipts: 0,                    // IPTS intégré dans l'abattement base imposable
+    netSalary: r.net,
+  };
 }
 
 const toNum = (v: string | number | null | undefined) => (v == null ? 0 : Number(v));

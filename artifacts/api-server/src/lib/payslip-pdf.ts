@@ -186,16 +186,18 @@ export function generatePayslipPdf(
   y += 18;
 
   const retenues: [string, string, string, number][] = [
-    ["CNSS — retraite salarié", fcfa(payslip.grossSalary), "4,00 %", payslip.cnssEmployee],
-    ["IRPP (barème progressif)", fcfa(payslip.grossSalary - payslip.cnssEmployee), "", payslip.irpp],
-    ["IPTS — impôt proportionnel", fcfa(payslip.grossSalary), "2,00 %", payslip.ipts],
+    ["Cotisations salariales (CNSS)", fcfa(payslip.grossSalary), "9,00 %", payslip.cnssEmployee],
+    ["IRPP (barème progressif 8 tranches CGI)", "Base imposable mensuelle", "", payslip.irpp],
   ];
+  if (payslip.ipts > 0) {
+    retenues.push(["IPTS — impôt proportionnel", fcfa(payslip.grossSalary), "", payslip.ipts]);
+  }
   const deductions = (payslip.deductions as { label: string; amount: number }[] | null) ?? [];
   for (const d of deductions) {
     if (d.amount > 0) retenues.push([d.label, "", "", d.amount]);
   }
 
-  const totalRetenues = payslip.cnssEmployee + payslip.irpp + payslip.ipts
+  const totalRetenues = payslip.cnssEmployee + payslip.irpp + (payslip.ipts ?? 0)
     + deductions.reduce((s, d) => s + (d.amount ?? 0), 0);
 
   retenues.forEach(([label, base, taux, montant], i) => {

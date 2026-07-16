@@ -1,0 +1,230 @@
+Audit complet des calculs RH et Paie – Validation de la cohérence avec le modèle de référence
+
+Pouvez-vous réaliser un audit complet de tous les calculs du module Ressources Humaines et Paie en utilisant le fichier Excel joint comme modèle de référence ?
+
+J’ai constaté une incohérence importante entre les résultats obtenus dans le fichier Excel et ceux affichés dans Gameasu.
+
+Exemple constaté
+
+Pour un salaire net souhaité de 120 000 FCFA :
+
+Dans le fichier Excel
+
+* Salaire brut : 132 231 FCFA
+* Cotisations salariales : 11 901 FCFA
+* Base imposable : 86 000 FCFA
+* IRPP : 330 FCFA
+* Salaire net : 120 000 FCFA
+
+Dans Gameasu
+
+Pour les mêmes paramètres :
+
+* Salaire brut : 133 478 FCFA
+* Cotisations salariales : 12 013 FCFA
+* IRPP : 1 465 FCFA
+* Charges patronales : 30 033 FCFA
+* Coût total employeur : 177 152 FCFA
+
+Les résultats sont différents alors que les paramètres de départ sont identiques.
+
+⸻
+
+1. Vérifier toute la logique de calcul
+
+Merci de revoir en détail toutes les formules utilisées par Gameasu afin d’identifier l’origine des écarts.
+
+Contrôler notamment :
+
+* le calcul Net → Brut ;
+* le calcul Brut → Net ;
+* les cotisations salariales ;
+* les cotisations patronales ;
+* les provisions pour congés ;
+* l’IRPP ;
+* la base imposable ;
+* les personnes à charge ;
+* les arrondis ;
+* les plafonds ;
+* les exonérations ;
+* les avantages en nature ;
+* les primes ;
+* les bonus ;
+* les retenues diverses ;
+* les avances sur salaire.
+
+⸻
+
+2. Comparer avec le modèle Excel
+
+Pour chaque étape du calcul, comparer :
+
+* la formule du fichier Excel ;
+* la formule implémentée dans Gameasu ;
+* le résultat obtenu ;
+* l’écart éventuel ;
+* la raison de cet écart.
+
+Ne pas comparer uniquement le résultat final.
+
+Comparer chaque étape intermédiaire.
+
+⸻
+
+3. Vérifier les paramètres
+
+Merci de vérifier également que les paramètres utilisés par le simulateur sont cohérents :
+
+* taux de cotisations ;
+* barème IRPP ;
+* nombre de personnes à charge ;
+* plafonds ;
+* seuils ;
+* provisions ;
+* règles d’arrondi ;
+* paramètres du pays.
+
+Identifier si certains taux ont été modifiés ou appliqués différemment.
+
+⸻
+
+4. Vérifier tout le module RH
+
+L’audit ne doit pas se limiter au simulateur.
+
+Merci de contrôler également :
+
+Collaborateurs
+
+* coût employeur ;
+* salaire contractuel ;
+* rémunérations ;
+* primes ;
+* avantages.
+
+Paie
+
+* génération des bulletins ;
+* retenues ;
+* cotisations ;
+* écritures comptables ;
+* paiements.
+
+Avances sur salaire
+
+* retenues mensuelles ;
+* impact sur le net ;
+* impact sur la paie.
+
+Simulateur
+
+* Net → Brut ;
+* Brut → Net ;
+* scénarios d’augmentation ;
+* promotions ;
+* bonus ;
+* recrutements.
+
+Budgets RH
+
+Vérifier que les simulations alimentent correctement :
+
+* les budgets ;
+* la masse salariale ;
+* les prévisions ;
+* les rapports.
+
+⸻
+
+5. Vérifier les synchronisations
+
+Les résultats du simulateur doivent être cohérents avec :
+
+* la fiche collaborateur ;
+* la paie ;
+* la comptabilité ;
+* la trésorerie ;
+* les budgets ;
+* les tableaux de bord RH ;
+* les rapports financiers.
+
+Aucun module ne doit utiliser une logique différente.
+
+Une seule source de calcul doit être utilisée dans toute l’application.
+
+⸻
+
+6. Vérifier les scénarios
+
+Tester plusieurs cas :
+
+* salarié sans personne à charge ;
+* salarié avec plusieurs personnes à charge ;
+* salaire faible ;
+* salaire élevé ;
+* primes ;
+* bonus ;
+* avantages en nature ;
+* heures supplémentaires ;
+* avances sur salaire ;
+* promotion ;
+* augmentation.
+
+Les résultats doivent rester cohérents dans tous les cas.
+
+⸻
+
+7. Centraliser les règles de calcul
+
+Les formules utilisées par la paie et le simulateur ne doivent pas être dupliquées.
+
+Créer un moteur de calcul unique utilisé par :
+
+* le simulateur RH ;
+* la paie ;
+* les rapports ;
+* les budgets ;
+* les tableaux de bord ;
+* la comptabilité.
+
+Toute modification d’un taux ou d’une règle doit être répercutée automatiquement dans tous les modules concernés.
+
+⸻
+
+8. Vérifier les rapports
+
+Les rapports RH et de paie doivent afficher exactement les mêmes montants que ceux calculés par le moteur de paie.
+
+Aucune différence ne doit apparaître entre :
+
+* le simulateur ;
+* la paie ;
+* les bulletins ;
+* les rapports ;
+* les tableaux de bord.
+
+⸻
+
+9. Produire un rapport d’audit
+
+À la fin de la vérification, merci de produire un rapport présentant :
+
+* les écarts identifiés ;
+* leur origine ;
+* les corrections apportées ;
+* les hypothèses retenues ;
+* les impacts sur les autres modules.
+
+Si les différences proviennent volontairement de règles de calcul différentes (nouvelle réglementation, nouveaux taux, configuration spécifique, etc.), merci de l’expliquer clairement et de documenter ces différences.
+
+⸻
+
+Résultat attendu
+
+Je souhaite que tous les calculs du module Ressources Humaines, de la Paie, du Simulateur salarial, des Budgets RH, de la Comptabilité et des Rapports soient parfaitement cohérents, utilisent le même moteur de calcul et produisent des résultats fiables.
+
+Le simulateur doit refléter exactement les règles de calcul configurées pour le pays concerné, avec une transparence totale sur les formules appliquées.
+
+Objectif final
+
+Faire de Gameasu une référence en matière de gestion de la paie, avec un moteur de calcul unique, précis, auditable et conforme aux réglementations en vigueur, garantissant une parfaite cohérence entre le simulateur, la paie, la comptabilité, les budgets et l’ensemble des modules de l’ERP.

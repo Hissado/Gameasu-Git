@@ -5,6 +5,7 @@
  *  #14 Ordres de virement bancaire
  */
 import { Router } from "express";
+import { DEFAULT_IRPP_BRACKETS_API } from "../lib/payroll-engine";
 import { db } from "@workspace/db";
 import {
   offCyclePaymentsTable,
@@ -31,17 +32,10 @@ const toNum = (v: unknown) => (v == null ? 0 : Number(v));
 const formatFCFA = (v: number) => `${Math.round(v).toLocaleString("fr-FR")} FCFA`;
 
 // ─────────────────────────────────────────────────────────
-// IRPP par défaut Togo (barème annuel XOF)
+// IRPP par défaut Togo — 8 tranches CGI Togo (barème annuel XOF)
+// Source : moteur paie centralisé (payroll-engine.ts)
 // ─────────────────────────────────────────────────────────
-const DEFAULT_BRACKETS = [
-  { fromAmount: 0, toAmount: 900_000, rate: 0 },
-  { fromAmount: 900_000, toAmount: 1_500_000, rate: 0.07 },
-  { fromAmount: 1_500_000, toAmount: 2_500_000, rate: 0.11 },
-  { fromAmount: 2_500_000, toAmount: 4_000_000, rate: 0.15 },
-  { fromAmount: 4_000_000, toAmount: 6_000_000, rate: 0.20 },
-  { fromAmount: 6_000_000, toAmount: 10_000_000, rate: 0.25 },
-  { fromAmount: 10_000_000, toAmount: null, rate: 0.35 },
-];
+const DEFAULT_BRACKETS = DEFAULT_IRPP_BRACKETS_API;
 
 // ══════════════════════════════════════════════════════════
 // #9 — TRANCHES IRPP
