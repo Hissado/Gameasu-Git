@@ -1,6 +1,7 @@
 import { Router } from "express";
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
+import { calcIrppMensuel, brutVersNet } from "../lib/payroll-engine";
 import { db } from "@workspace/db";
 import {
   departmentsTable,
@@ -1747,51 +1748,26 @@ router.get("/hr/me/contributions", async (req, res, next) => {
       .where(and(eq(irppBracketsTable.organizationId, orgId), eq(irppBracketsTable.isActive, true)))
       .orderBy(asc(irppBracketsTable.sortOrder));
 
-    const brackets = bracketRows.length > 0
-      ? bracketRows.map(r => ({ fromAmount: toN(r.fromAmount), toAmount: r.toAmount != null ? toN(r.toAmount) : null, rate: toN(r.rate) }))
-      : [
-          { fromAmount: 0, toAmount: 900_000, rate: 0 },
-          { fromAmount: 900_000, toAmount: 1_500_000, rate: 0.07 },
-          { fromAmount: 1_500_000, toAmount: 2_500_000, rate: 0.11 },
-          { fromAmount: 2_500_000, toAmount: 4_000_000, rate: 0.15 },
-          { fromAmount: 4_000_000, toAmount: 6_000_000, rate: 0.20 },
-          { fromAmount: 6_000_000, toAmount: 10_000_000, rate: 0.25 },
-          { fromAmount: 10_000_000, toAmount: null, rate: 0.35 },
-        ];
-
-    function computeIrppDetail(revenuAnnuel: number): Array<{ label: string; base: number; rate: number; irppAnnuel: number; irppMensuel: number }> {
-      const detail: Array<{ label: string; base: number; rate: number; irppAnnuel: number; irppMensuel: number }> = [];
-      let prev = 0;
-      for (const b of brackets) {
-        const upper = b.toAmount ?? Infinity;
-        if (revenuAnnuel <= prev) break;
-        const base = Math.min(revenuAnnuel, upper) - prev;
-        const irppAnnuel = Math.round(base * b.rate);
-        if (base > 0) {
-          const label = b.toAmount != null
-            ? `${Math.round(b.fromAmount).toLocaleString("fr-FR")} – ${Math.round(b.toAmount).toLocaleString("fr-FR")} FCFA`
-            : `Au-delà de ${Math.round(b.fromAmount).toLocaleString("fr-FR")} FCFA`;
-          detail.push({ label, base, rate: b.rate, irppAnnuel, irppMensuel: Math.round(irppAnnuel / 12) });
-        }
-        prev = upper;
-      }
-      return detail;
-    }
-
     const data = payslips.map(p => {
       const gross = toN(p.grossSalary);
-      const cnssEmp = toN(p.cnssEmployee);
-      const revenuAnnuel = Math.max(0, (gross - cnssEmp) * 12);
+      // Recalcul du détail IRPP via le moteur centralisé (barème mensuel CGI Togo)
+      const engineDetail = brutVersNet(gross).irppDetail;
       return {
         id: p.id,
         period: p.period,
         grossSalary: gross,
-        cnssEmployee: cnssEmp,
+        cnssEmployee: toN(p.cnssEmployee),
         cnssEmployer: toN(p.cnssEmployer),
         irpp: toN(p.irpp),
         ipts: toN(p.ipts),
         status: p.status,
-        irppDetail: computeIrppDetail(revenuAnnuel),
+        irppDetail: engineDetail.map(d => ({
+          label: d.label,
+          base: d.base,
+          rate: d.taux / 100,
+          irppMensuel: d.montant,
+          irppAnnuel: d.montant * 12,
+        })),
       };
     });
 

@@ -1,36 +1,60 @@
 ---
 name: Payroll engine formulas
-description: Canonical Togo CGI payroll formulas — where they live and why they diverged
+description: Canonical Togo CGI payroll formulas (column-by-column vs Excel SALAIRES sheet)
 ---
 
 ## Source unique : artifacts/api-server/src/lib/payroll-engine.ts
 
 All payroll calculations must import from this file. Never duplicate formulas.
 
-## Formules canoniques (CGI Togo, validées vs Excel de référence)
+## Chaîne de calcul exacte (feuille SALAIRES — validée colonne par colonne)
 
-- CNSS salarial : **9 %** du brut (pas 4 % — le 4 % était le vieux taux CNSS-retraite seul)
-- IPTS : **0 FCFA séparé** — intégré dans l'abattement base imposable (28 % combiné)
-- Base imposable mensuelle : `Math.floor(brut × 0.91 × 0.72 / 1000) × 1000`
-  - 91 % = après CNSS 9 %
-  - 72 % = après abattement combiné 28 % (frais pro 20 % + déductions légales 8 %)
-  - Arrondi au **millier inférieur** (Math.floor, pas Math.round)
-- Barème IRPP : **8 tranches** (pas 7)
-  - 0–900K : 0 %
-  - 900K–1.2M : **3 %** (ancien code avait 7 % → bug principal)
-  - 1.2M–2.5M : 7 %
-  - 2.5M–4M : 11 %
-  - 4M–6M : 15 %
-  - 6M–10M : 20 %
-  - 10M–15M : 25 %
-  - >15M : 30 %
-- Net = Brut − CNSS − IRPP mensuel (pas d'IPTS séparé)
+| Colonne Excel | Nom           | Formule                                              |
+|---------------|---------------|------------------------------------------------------|
+| AX            | CNSS salarié  | Brut × 9 %                                          |
+| AY            | Après CNSS    | Brut − AX                                           |
+| AZ            | Abattement    | AY × 28 % (frais pro 20% + légal 8%)               |
+| BA            | Base avant arr| AY − AZ − (nbPersonnes × 10 000 FCFA/mois)         |
+| BB            | Base arrondie | ROUNDDOWN(BA, −3) = Math.floor(BA/1000)×1000        |
+| BC            | IRPP mensuel  | barème progressif mensuel 8 tranches CGI Togo        |
+| BD            | Total retenues| AX + BC                                              |
+| BE            | Salaire net   | Brut − BD                                           |
+| BF            | CNSS patronal | Brut × 22,5 %                                       |
+| BG            | Prov. congés  | (Brut + BF) / 30 × 2,5                             |
+| BH            | Coût total    | Brut + BF + BG                                      |
 
-## Why: source of divergence
-The old code had 3 separate implementations (simulateur.tsx, payroll.ts, payroll-extended.ts)
-with different rates and barèmes. payroll.ts used 4% CNSS (official CNSS-retraite only).
-The simulator used 9% (combined social contributions) and 20% abattement (not 28%).
-payroll-extended.ts had wrong 7-bracket table. All now delegate to payroll-engine.ts.
+## Barème IRPP — seuils MENSUELS (annuels CGI ÷ 12)
 
-## Validation (Net=120 000, 0 part → Brut=132 231 ✓)
-Brut: 132,231 | CNSS: 11,901 | Base: 86,000 | IRPP/mois: 330 | Net: 120,000
+| Mensuel           | Taux  | Annuel équivalent    |
+|-------------------|-------|----------------------|
+| ≤ 75 000          | 0 %   | ≤ 900 000            |
+| 75 001–250 000    | 3 %   | 900K–3M              |
+| 250 001–500 000   | 10 %  | 3M–6M                |
+| 500 001–750 000   | 15 %  | 6M–9M                |
+| 750 001–1 000 000 | 20 %  | 9M–12M               |
+| 1M–1 250 000      | 25 %  | 12M–15M              |
+| 1,25M–1 666 667   | 30 %  | 15M–20M              |
+| > 1 666 667       | 35 %  | > 20M                |
+
+## Points-clés non-évidents
+
+1. **IRPP s'applique sur base MENSUELLE** (BB), pas sur un revenu annualisé × 12.
+   L'ancien code annualisait BB × 12 → résultats identiques pour petits salaires
+   (même tranche) mais diverge pour les salaires moyens/élevés.
+
+2. **Déduction personnes à charge = 10 000 FCFA/MOIS/personne** (max 6),
+   déduite de BA AVANT l'arrondi. Pas de "parts fiscales" × réduction annuelle.
+
+3. **Provision congés = (Brut + CNSS patronal) / 30 × 2,5** — formule exacte Excel.
+   NE PAS utiliser un taux forfaitaire (ex: 10,22% est une approximation).
+
+4. **CNSS patronal = 22,5 %** (CNSS + AT/MP + Famille) — pas 16,4 %.
+
+## Validations numériques
+- Net=120 000, 0 charge → Brut=132 231, CNSS=11 901, BB=86 000, IRPP=330, Net=120 000 ✓
+- Brut=500 000, 2 charges → BB=307 000, IRPP=10 950, Net=444 050 ✓
+- Brut=1 000 000, 0 charge → BB=655 000, IRPP=53 500 ✓
+
+**Why:** The formulas come from the user's Excel reference (feuille SALAIRES) validated
+against Togolese CGI code. Previous implementations had 3 different engines with wrong
+brackets (7 tranches instead of 8), wrong order of deductions, and approximate congés rate.

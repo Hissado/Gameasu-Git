@@ -32,35 +32,33 @@ import { cn } from "@/lib/utils";
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface SalaryRates {
-  tauxSalarial: number;       // % cotisations salariales (ex: 9)
-  tauxPatronal: number;       // % charges patronales (ex: 22.5)
-  tauxConges: number;         // % provision congés payés (ex: 10.22)
-  abattementFraisPro: number; // % abattement base imposable IRPP (ex: 20)
-  reductionParPart: number;   // FCFA/an de réduction par part fiscale (ex: 15000)
+  tauxSalarial: number;       // % cotisations salariales CNSS (ex: 9)
+  tauxPatronal: number;       // % charges patronales totales (ex: 22.5)
+  abattementFraisPro: number; // % abattement base imposable IRPP (ex: 28)
+  deductionParCharge: number; // FCFA/mois/personne à charge (ex: 10 000)
   smig: number;               // SMIG mensuel en FCFA (ex: 35000)
 }
 
 const DEFAULT_RATES: SalaryRates = {
   tauxSalarial: 9,
   tauxPatronal: 22.5,
-  tauxConges: 10.22,
-  abattementFraisPro: 28,  // abattement combiné CGI Togo : frais pro 20 % + déductions légales 8 %
-  reductionParPart: 15_000,
+  abattementFraisPro: 28,      // abattement combiné CGI Togo : frais pro 20 % + déductions légales 8 %
+  deductionParCharge: 10_000,  // 10 000 FCFA/mois/personne à charge — feuille SALAIRES col. BA
   smig: 35_000,
 };
 
-// Barème IRPP Togo — 8 tranches CGI Togo — annuel en XOF
-// Conforme au moteur paie centralisé (payroll-engine.ts)
-// Validé : base 1 032 000 FCFA/an → IRPP 330 FCFA/mois ✓
+// Barème IRPP Togo — 8 tranches — seuils MENSUELS (XOF)
+// Source : feuille SALAIRES col. BC — "seuils annuels CGI ÷ 12"
+// Validé : base 86 000 FCFA/mois → IRPP = (86 000 − 75 000) × 3 % = 330 FCFA ✓
 const IRPP_BRACKETS = [
-  { up: 900_000,    rate: 0    },
-  { up: 1_200_000,  rate: 0.03 },
-  { up: 2_500_000,  rate: 0.07 },
-  { up: 4_000_000,  rate: 0.11 },
-  { up: 6_000_000,  rate: 0.15 },
-  { up: 10_000_000, rate: 0.20 },
-  { up: 15_000_000, rate: 0.25 },
-  { up: Infinity,   rate: 0.30 },
+  { up:          75_000, rate: 0    },  // ≤ 75 000 : exonéré
+  { up:         250_000, rate: 0.03 },  // 3 %
+  { up:         500_000, rate: 0.10 },  // 10 %
+  { up:         750_000, rate: 0.15 },  // 15 %
+  { up:       1_000_000, rate: 0.20 },  // 20 %
+  { up:       1_250_000, rate: 0.25 },  // 25 %
+  { up:       1_666_667, rate: 0.30 },  // 30 %
+  { up: Infinity,        rate: 0.35 },  // 35 %
 ];
 
 interface IrppTranche {
@@ -99,9 +97,12 @@ type ScenarioId = "recrutement" | "augmentation" | "promotion" | "bonus_ponctuel
 // MOTEUR FISCAL (fonctions pures)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function calcIrpp(revenuAnnuelImposable: number, nbParts: number, reductionParPart: number) {
-  const reduction = nbParts * reductionParPart;
-  const base = Math.max(0, revenuAnnuelImposable - reduction);
+/**
+ * IRPP mensuel selon le barème progressif CGI Togo (seuils mensuels).
+ * Appliqué directement sur la base mensuelle arrondie (BB du modèle Excel).
+ */
+function calcIrpp(baseMensuelle: number) {
+  const base = Math.max(0, baseMensuelle);
   let tax = 0; let prev = 0;
   const detail: IrppTranche[] = [];
   for (const { up, rate } of IRPP_BRACKETS) {
@@ -122,22 +123,41 @@ function calcIrpp(revenuAnnuelImposable: number, nbParts: number, reductionParPa
   return { irpp: Math.round(tax), detail };
 }
 
-function brutVersNetCalc(brut: number, rates: SalaryRates, nbParts: number): Omit<PayrollResult, "convergenceEcart"> {
+/**
+ * Brut → Net — conforme au modèle Excel (feuille SALAIRES) :
+ *   AX = Brut × tauxSalarial%                    (CNSS salarié)
+ *   AY = Brut − AX                               (après CNSS)
+ *   AZ = AY × abattementFraisPro%               (abattement 28 %)
+ *   BA = AY − AZ − (nbPersonnesCharge × 10 000) (base avant arrondi)
+ *   BB = ROUNDDOWN(BA, −3)                       (base imposable mensuelle)
+ *   BC = barème mensuel appliqué à BB            (IRPP)
+ *   BF = Brut × tauxPatronal%                   (CNSS patronal)
+ *   BG = (Brut + BF) / 30 × 2,5                 (provision congés)
+ */
+function brutVersNetCalc(brut: number, rates: SalaryRates, nbPersonnesCharge: number): Omit<PayrollResult, "convergenceEcart"> {
+  // AX — cotisations salariales
   const cotisationsSalariales = Math.round(brut * rates.tauxSalarial / 100);
-  // Base imposable mensuelle : floor(Brut × (1-CNSS%) × (1-abattement%) / 1 000) × 1 000
-  // Conforme au CGI Togo : abattement combiné 28 % → Brut × 91 % × 72 % arrondi au millier inférieur
-  const baseImposable = brut - cotisationsSalariales;  // pour affichage "avant abattement"
-  const baseApresAbattement = Math.floor(
-    brut * (1 - rates.tauxSalarial / 100) * (1 - rates.abattementFraisPro / 100) / 1000,
-  ) * 1000;
-  const { irpp: irppAn, detail } = calcIrpp(baseApresAbattement * 12, nbParts, rates.reductionParPart);
-  const irppMens = Math.round(irppAn / 12);
+  // AY — après CNSS
+  const ay = brut - cotisationsSalariales;
+  // AZ — abattement 28 %
+  const az = ay * rates.abattementFraisPro / 100;
+  // BA — base avant arrondi (déduction charges AVANT le floor)
+  const deductionCharges = Math.min(6, Math.max(0, nbPersonnesCharge)) * rates.deductionParCharge;
+  const ba = ay - az - deductionCharges;
+  // BB — base imposable mensuelle (ROUNDDOWN au millier)
+  const baseApresAbattement = Math.max(0, Math.floor(ba / 1000) * 1000);
+  const baseImposable = Math.round(ay - az); // pour affichage "avant arrondi"
+  // BC — IRPP mensuel (barème progressif mensuel)
+  const { irpp: irppMens, detail } = calcIrpp(baseApresAbattement);
+  const irppAn = irppMens * 12; // annualisé pour affichage uniquement
   const net = brut - cotisationsSalariales - irppMens;
+  // BF — charges patronales
   const chargesPatronales = Math.round(brut * rates.tauxPatronal / 100);
-  const provisionConges = Math.round(brut * rates.tauxConges / 100);
+  // BG — provision congés : (Brut + BF) / 30 × 2,5
+  const provisionConges = Math.round((brut + chargesPatronales) / 30 * 2.5);
   const coutEmployeurMensuel = brut + chargesPatronales + provisionConges;
   const alerts: string[] = [];
-  if (brut < rates.smig) alerts.push(`Salaire brut inférieur au SMIG configuré (${formatFCFA(rates.smig)}/mois).`);
+  if (brut > 0 && brut < rates.smig) alerts.push(`Salaire brut inférieur au SMIG configuré (${formatFCFA(rates.smig)}/mois).`);
   return {
     brut, cotisationsSalariales, baseImposable, baseApresAbattement,
     irppAnnuel: irppAn, irppMensuel: irppMens, autresRetenues: 0, net,
@@ -147,18 +167,16 @@ function brutVersNetCalc(brut: number, rates: SalaryRates, nbParts: number): Omi
   };
 }
 
-function netVersBrutCalc(netSouhaite: number, rates: SalaryRates, nbParts: number): PayrollResult {
-  // Itération convergente : ajustement amorti pour éviter les oscillations
+function netVersBrutCalc(netSouhaite: number, rates: SalaryRates, nbPersonnesCharge: number): PayrollResult {
   let brut = netSouhaite / (1 - rates.tauxSalarial / 100);
-  let ecart = 0;
   for (let i = 0; i < 300; i++) {
-    const r = brutVersNetCalc(brut, rates, nbParts);
-    ecart = netSouhaite - r.net;
+    const r = brutVersNetCalc(brut, rates, nbPersonnesCharge);
+    const ecart = netSouhaite - r.net;
     if (Math.abs(ecart) < 0.5) break;
     brut += ecart * 0.9;
   }
   brut = Math.round(brut);
-  const result = brutVersNetCalc(brut, rates, nbParts);
+  const result = brutVersNetCalc(brut, rates, nbPersonnesCharge);
   return { ...result, convergenceEcart: Math.abs(netSouhaite - result.net) };
 }
 
@@ -265,18 +283,19 @@ function RatesPanel({ rates, setRates }: { rates: SalaryRates; setRates: (r: Sal
           <p className="text-[10px] text-muted-foreground pt-2">
             Ces taux sont basés sur la législation Togo / Afrique de l'Ouest (CNSS, IRPP). Modifiez-les selon le pays ou régime applicable.
           </p>
-          <RateField label="Cotisations salariales" value={rates.tauxSalarial} onChange={v => set("tauxSalarial", v)} min={0} max={30} />
-          <RateField label="Charges patronales" value={rates.tauxPatronal} onChange={v => set("tauxPatronal", v)} min={0} max={50} />
-          <RateField label="Provision congés payés" value={rates.tauxConges} onChange={v => set("tauxConges", v)} min={0} max={20} step={0.01} />
+          <RateField label="Cotisations salariales CNSS (salarié)" value={rates.tauxSalarial} onChange={v => set("tauxSalarial", v)} min={0} max={30} />
+          <RateField label="Charges patronales totales (CNSS + AT/MP + Famille)" value={rates.tauxPatronal} onChange={v => set("tauxPatronal", v)} min={0} max={50} />
           <RateField label="Abattement base imposable IRPP (combiné CGI Togo)" value={rates.abattementFraisPro} onChange={v => set("abattementFraisPro", v)} min={0} max={50} />
           <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Réduction par part fiscale (FCFA/an)</Label>
-            <Input type="number" value={rates.reductionParPart} onChange={e => set("reductionParPart", Number(e.target.value) || 0)} className="h-8 text-xs" step={5000} />
+            <Label className="text-[11px] text-muted-foreground">Déduction mensuelle par personne à charge (FCFA/mois)</Label>
+            <Input type="number" value={rates.deductionParCharge} onChange={e => set("deductionParCharge", Number(e.target.value) || 0)} className="h-8 text-xs" step={1000} />
+            <p className="text-[10px] text-muted-foreground">Col. BA feuille SALAIRES — 10 000 FCFA/mois/personne (max 6)</p>
           </div>
           <div className="space-y-1">
             <Label className="text-[11px] text-muted-foreground">SMIG mensuel (FCFA)</Label>
             <Input type="number" value={rates.smig} onChange={e => set("smig", Number(e.target.value) || 0)} className="h-8 text-xs" step={5000} />
           </div>
+          <p className="text-[10px] text-muted-foreground pt-1">Provision congés calculée automatiquement : (Brut + Charges patron) / 30 × 2,5 jours</p>
           <button
             type="button" onClick={() => setRates(DEFAULT_RATES)}
             className="text-[10px] text-muted-foreground hover:text-foreground underline"
@@ -387,7 +406,7 @@ function ResultsPanel({ result, mode, avances = 0 }: {
             <DecompRow
               label="Provision congés payés"
               value={result.provisionConges}
-              sub={`${DEFAULT_RATES.tauxConges}% × ${formatFCFA(result.brut)}`}
+              sub={`(Brut + Charges patron) / 30 × 2,5 j`}
               indent
             />
             <div className="py-1" />
@@ -524,11 +543,11 @@ function NetVersBrutTab() {
             />
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium">Nombre de parts fiscales</Label>
-                <Badge variant="secondary" className="text-[10px]">{nbParts} part{nbParts > 1 ? "s" : ""}</Badge>
+                <Label className="text-xs font-medium">Personnes à charge</Label>
+                <Badge variant="secondary" className="text-[10px]">{nbParts} pers.</Badge>
               </div>
-              <Slider value={[nbParts]} onValueChange={([v]) => setNbParts(v)} min={1} max={10} step={1} />
-              <p className="text-[10px] text-muted-foreground">Personnes à charge influençant le calcul de l'IRPP</p>
+              <Slider value={[nbParts]} onValueChange={([v]) => setNbParts(v)} min={0} max={6} step={1} />
+              <p className="text-[10px] text-muted-foreground">Déduction de {(10000).toLocaleString("fr-FR")} FCFA/mois/personne sur la base IRPP (max 6 — col. G feuille SALAIRES)</p>
             </div>
             <NumInput
               label="Avance sur salaire à retenir (FCFA)"
@@ -621,10 +640,11 @@ function BrutVersNetTab() {
 
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium">Nombre de parts fiscales</Label>
-                <Badge variant="secondary" className="text-[10px]">{nbParts} part{nbParts > 1 ? "s" : ""}</Badge>
+                <Label className="text-xs font-medium">Personnes à charge</Label>
+                <Badge variant="secondary" className="text-[10px]">{nbParts} pers.</Badge>
               </div>
-              <Slider value={[nbParts]} onValueChange={([v]) => setNbParts(v)} min={1} max={10} step={1} />
+              <Slider value={[nbParts]} onValueChange={([v]) => setNbParts(v)} min={0} max={6} step={1} />
+              <p className="text-[10px] text-muted-foreground">Déduction de {(10000).toLocaleString("fr-FR")} FCFA/mois/personne sur la base IRPP (max 6)</p>
             </div>
 
             <NumInput
@@ -861,10 +881,10 @@ function ScenariosTab() {
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Parts fiscales</Label>
-                  <Badge variant="secondary" className="text-[10px]">{params.nbParts}</Badge>
+                  <Label className="text-xs font-medium">Personnes à charge</Label>
+                  <Badge variant="secondary" className="text-[10px]">{params.nbParts} pers.</Badge>
                 </div>
-                <Slider value={[params.nbParts]} onValueChange={([v]) => set("nbParts", v)} min={1} max={10} step={1} />
+                <Slider value={[params.nbParts]} onValueChange={([v]) => set("nbParts", v)} min={0} max={6} step={1} />
               </div>
 
               {!isBonus && !isPrimeRec && (
@@ -958,7 +978,7 @@ function ScenariosTab() {
                   { label: "IRPP mensuel", actuel: result.actuel.irppMensuel, propose: result.propose.irppMensuel },
                   { label: "Salaire net", actuel: result.actuel.net, propose: result.propose.net },
                   { label: `Charges patronales (${rates.tauxPatronal}%)`, actuel: result.actuel.chargesPatronales, propose: result.propose.chargesPatronales },
-                  { label: `Provision congés (${rates.tauxConges}%)`, actuel: result.actuel.provisionConges, propose: result.propose.provisionConges },
+                  { label: "Provision congés payés", actuel: result.actuel.provisionConges, propose: result.propose.provisionConges },
                   { label: "Primes mensuelles", actuel: params.primesActuelles, propose: params.primesProposees },
                   { label: "Avantages", actuel: params.avantages, propose: params.avantages },
                 ].filter(r => r.actuel > 0 || r.propose > 0).map(row => {
