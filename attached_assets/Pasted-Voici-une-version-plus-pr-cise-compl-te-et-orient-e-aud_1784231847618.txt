@@ -1,0 +1,391 @@
+Voici une version plus précise, complète et orientée audit trail fonctionnel :
+
+Pouvez-vous revoir entièrement la logique du Journal d’audit de Gameasu ?
+
+Problème constaté
+
+Actuellement, le filtre Action contient principalement des catégories génériques comme :
+
+* Création ;
+* Modification ;
+* Suppression ;
+* Archivage ;
+* Restauration ;
+* Consultation ;
+* Export ;
+* Import ;
+* Téléchargement ;
+* Impression ;
+* Validation ;
+* Approbation ;
+* Rejet ;
+* Annulation.
+
+Ces catégories sont utiles, mais elles sont trop générales et ne permettent pas de comprendre précisément ce que l’utilisateur a réellement fait dans l’application.
+
+Je veux que le Journal d’audit puisse retracer de manière détaillée le parcours et les actions de chaque utilisateur.
+
+⸻
+
+1. Enregistrer les actions réelles et précises
+
+Le journal doit pouvoir afficher des événements compréhensibles comme :
+
+* L’utilisateur a consulté la fiche du client ABC SARL ;
+* L’utilisateur a créé la facture FAC-2026-0045 ;
+* L’utilisateur a modifié le montant d’une facture ;
+* L’utilisateur a visité le module Paie ;
+* L’utilisateur a ouvert la section Collaborateurs ;
+* L’utilisateur a consulté le bulletin de paie d’un collaborateur ;
+* L’utilisateur a téléchargé un rapport ;
+* L’utilisateur a exporté la liste des clients ;
+* L’utilisateur a approuvé une demande de congé ;
+* L’utilisateur a rejeté une avance sur salaire ;
+* L’utilisateur a changé d’organisation ;
+* L’utilisateur a modifié un rôle ou une permission ;
+* L’utilisateur a activé ou désactivé un module ;
+* L’utilisateur a modifié un paramètre comptable ;
+* L’utilisateur a consulté une déclaration fiscale ;
+* L’utilisateur a lancé une simulation salariale ;
+* L’utilisateur a créé un fournisseur ;
+* L’utilisateur a ouvert une facture fournisseur ;
+* L’utilisateur a importé un document ;
+* L’utilisateur a validé une écriture comptable ;
+* L’utilisateur a effectué un rapprochement bancaire.
+
+Le journal ne doit pas afficher uniquement Consultation ou Création. Il doit préciser :
+
+* ce qui a été consulté ou créé ;
+* dans quel module ;
+* sur quel élément ;
+* pour quelle organisation ;
+* à quelle date ;
+* avec quel résultat.
+
+⸻
+
+2. Ajouter une catégorie « Navigation »
+
+Créer une catégorie spécifique :
+
+Navigation / Accès aux modules
+
+Elle doit enregistrer les sections visitées par l’utilisateur.
+
+Exemples :
+
+* Module Ventes ouvert ;
+* Section Clients visitée ;
+* Module Paie ouvert ;
+* Plan comptable consulté ;
+* Tableau de bord RH affiché ;
+* Page Abonnement & Facturation ouverte ;
+* Cockpit Gameasu consulté ;
+* Portail Expert ouvert.
+
+Cela permettra de reconstituer le parcours de l’utilisateur dans l’application.
+
+⸻
+
+3. Ajouter des actions métier détaillées
+
+Le système doit proposer des actions plus précises par module.
+
+Clients et CRM
+
+* Client consulté ;
+* Client créé ;
+* Client modifié ;
+* Client archivé ;
+* Contact ajouté ;
+* Opportunité créée ;
+* Étape du pipeline modifiée ;
+* Relance programmée.
+
+Ventes
+
+* Devis créé ;
+* Devis envoyé ;
+* Devis accepté ;
+* Devis converti en facture ;
+* Facture créée ;
+* Facture envoyée ;
+* Facture modifiée ;
+* Facture annulée ;
+* Encaissement enregistré ;
+* Relance envoyée.
+
+Achats
+
+* Fournisseur consulté ;
+* Fournisseur créé ;
+* Demande d’achat créée ;
+* Bon de commande approuvé ;
+* Facture fournisseur importée ;
+* Facture fournisseur vérifiée ;
+* Anomalie détectée ;
+* Justification ajoutée ;
+* Paiement fournisseur validé.
+
+Comptabilité
+
+* Écriture créée ;
+* Écriture modifiée ;
+* Écriture validée ;
+* Écriture contre-passée ;
+* Journal consulté ;
+* Grand livre consulté ;
+* Balance générée ;
+* Plan comptable modifié ;
+* Période clôturée ;
+* Période réouverte ;
+* Rapprochement bancaire effectué.
+
+Ressources humaines
+
+* Collaborateur consulté ;
+* Collaborateur créé ;
+* Salaire modifié ;
+* Contrat ajouté ;
+* Congé approuvé ;
+* Congé rejeté ;
+* Avance sur salaire demandée ;
+* Avance sur salaire approuvée ;
+* Paie lancée ;
+* Bulletin généré ;
+* Bulletin téléchargé ;
+* Simulation de coût réalisée.
+
+Administration
+
+* Utilisateur invité ;
+* Utilisateur activé ;
+* Utilisateur désactivé ;
+* Rôle modifié ;
+* Permission ajoutée ;
+* Permission retirée ;
+* Module activé ;
+* Module désactivé ;
+* Pack modifié ;
+* Add-on activé ;
+* Paramètre de l’organisation modifié.
+
+⸻
+
+4. Revoir le filtre « Action »
+
+Le filtre ne doit pas être limité à une simple liste générique.
+
+Je recommande une structure hiérarchique.
+
+Niveau 1 — Catégorie
+
+* Navigation ;
+* Consultation ;
+* Création ;
+* Modification ;
+* Validation ;
+* Approbation ;
+* Paiement ;
+* Export ;
+* Administration ;
+* Sécurité ;
+* Suppression ;
+* Restauration.
+
+Niveau 2 — Action détaillée
+
+Exemple sous Création :
+
+* Client créé ;
+* Fournisseur créé ;
+* Facture créée ;
+* Devis créé ;
+* Collaborateur créé ;
+* Projet créé ;
+* Écriture comptable créée.
+
+Exemple sous Navigation :
+
+* Module ouvert ;
+* Sous-section visitée ;
+* Fiche consultée ;
+* Tableau de bord affiché.
+
+Le filtre doit aussi permettre de rechercher directement une action par mot-clé.
+
+⸻
+
+5. Afficher une phrase lisible dans chaque événement
+
+Chaque événement doit être présenté sous forme d’une phrase claire.
+
+Exemple
+
+Passama Pissang a consulté la fiche du client ABC SARL dans le module Ventes.
+
+Passama Pissang a créé la facture FAC-2026-0045 pour un montant de 350 000 FCFA.
+
+Passama Pissang a ouvert la section Paie dans Ressources Humaines.
+
+Passama Pissang a modifié le salaire de Komi Adzoa de 250 000 FCFA à 300 000 FCFA.
+
+Passama Pissang a exporté le rapport de trésorerie de juillet 2026.
+
+Ces phrases doivent être compréhensibles sans devoir ouvrir les détails techniques.
+
+⸻
+
+6. Ajouter les détails de contexte
+
+Pour chaque action, enregistrer :
+
+* utilisateur ;
+* email ;
+* rôle actif ;
+* organisation ;
+* module ;
+* sous-module ;
+* page ;
+* type d’action ;
+* élément concerné ;
+* référence ou nom de l’élément ;
+* date et heure ;
+* statut : succès, échec ou refus ;
+* adresse IP ;
+* appareil ;
+* navigateur ;
+* session.
+
+Pour une modification, ajouter :
+
+* ancienne valeur ;
+* nouvelle valeur ;
+* champ modifié ;
+* motif si applicable.
+
+⸻
+
+7. Ajouter une chronologie utilisateur
+
+Créer une vue permettant de sélectionner un utilisateur et de voir son activité chronologique complète.
+
+Exemple :
+
+* 08:01 — Connexion réussie ;
+* 08:02 — Organisation Hissado Consulting sélectionnée ;
+* 08:04 — Module Ventes ouvert ;
+* 08:06 — Client ABC SARL consulté ;
+* 08:10 — Devis DEV-2026-004 créé ;
+* 08:14 — Devis envoyé par email ;
+* 08:20 — Module Paie ouvert ;
+* 08:22 — Simulation salariale effectuée ;
+* 08:35 — Déconnexion.
+
+Cette vue doit permettre de reconstituer facilement tout le parcours de l’utilisateur.
+
+⸻
+
+8. Éviter un journal trop générique
+
+Ne pas se limiter à afficher :
+
+* Consultation ;
+* Création ;
+* Modification.
+
+Ces catégories doivent rester disponibles pour filtrer, mais la ligne d’événement doit toujours être plus précise.
+
+Exemple :
+
+Au lieu de :
+
+Consultation
+
+Afficher :
+
+Consultation de la fiche client ABC SARL
+
+Au lieu de :
+
+Création
+
+Afficher :
+
+Création de la facture FAC-2026-0045
+
+⸻
+
+9. Séparer les événements importants des événements de navigation
+
+Pour éviter un journal trop chargé, prévoir deux vues :
+
+Journal d’audit
+
+Pour les actions métier, financières, RH, administratives et sensibles.
+
+Activité de navigation
+
+Pour les modules, pages et sous-sections visités.
+
+Ajouter un bouton permettant d’afficher :
+
+* tout ;
+* uniquement les actions sensibles ;
+* uniquement la navigation ;
+* uniquement les modifications ;
+* uniquement les créations ;
+* uniquement les exports ;
+* uniquement les actions échouées.
+
+⸻
+
+10. Audit global de l’application
+
+Merci de parcourir tous les modules afin d’identifier les événements qui doivent être enregistrés :
+
+* Accueil ;
+* Ventes ;
+* CRM ;
+* Marketing ;
+* Achats ;
+* Logistique ;
+* Finance ;
+* Comptabilité ;
+* Fiscalité ;
+* Trésorerie ;
+* Ressources Humaines ;
+* Paie ;
+* Projets ;
+* Documents ;
+* Rapports ;
+* Administration ;
+* Paramètres ;
+* Abonnement ;
+* Add-ons ;
+* Cockpit ;
+* Portail Expert.
+
+Chaque action importante doit avoir un libellé clair et spécifique.
+
+⸻
+
+Résultat attendu
+
+Je veux que le Journal d’audit permette réellement de comprendre tout ce que fait un utilisateur dans Gameasu.
+
+Il doit pouvoir indiquer précisément :
+
+* les modules visités ;
+* les pages ouvertes ;
+* les clients ou fournisseurs consultés ;
+* les factures, devis ou documents créés ;
+* les modifications apportées ;
+* les validations effectuées ;
+* les données exportées ;
+* les permissions modifiées ;
+* les actions réussies ou refusées.
+
+Objectif final
+
+Transformer le Journal d’audit en un outil complet de traçabilité, capable de reconstituer clairement le parcours et les actions de chaque utilisateur dans l’ERP, le Cockpit et le Portail Expert, avec des événements précis, lisibles et exploitables.

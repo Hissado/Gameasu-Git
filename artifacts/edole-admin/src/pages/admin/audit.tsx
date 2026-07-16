@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -107,16 +107,251 @@ const MODULE_LABELS: Record<string, string> = {
   administration: "Administration", kiosk: "Kiosk",
 };
 
+// ─── Groupes d'actions (filter hiérarchique) ─────────────────────────────────
+
+const ACTION_GROUPS: Array<{ key: string; label: string; actions: Array<{ key: string; label: string }> }> = [
+  { key: "group:navigation", label: "Navigation", actions: [] },
+  { key: "group:auth", label: "Authentification & Sécurité", actions: [
+    { key: "login",              label: "Connexion réussie" },
+    { key: "logout",             label: "Déconnexion" },
+    { key: "login_failed",       label: "Connexion échouée" },
+    { key: "login_2fa_locked",   label: "2FA bloqué" },
+    { key: "2fa_enabled",        label: "2FA activé" },
+    { key: "2fa_disabled",       label: "2FA désactivé" },
+    { key: "password_change",    label: "Mot de passe modifié" },
+    { key: "org_switch",         label: "Organisation changée" },
+  ]},
+  { key: "group:consultation", label: "Consultation", actions: [
+    { key: "view",         label: "Consultation" },
+    { key: "salary_view",  label: "Salaire consulté" },
+    { key: "audit_view",   label: "Événement d'audit consulté" },
+  ]},
+  { key: "group:creation", label: "Création", actions: [
+    { key: "create",              label: "Création" },
+    { key: "invite",              label: "Invitation envoyée" },
+    { key: "journal_entry_create",label: "Écriture comptable créée" },
+    { key: "kiosk_create",        label: "Kiosk créé" },
+    { key: "expert_firm_create",  label: "Cabinet expert créé" },
+  ]},
+  { key: "group:modification", label: "Modification", actions: [
+    { key: "update",             label: "Modification" },
+    { key: "role_change",        label: "Rôle modifié" },
+    { key: "permission_change",  label: "Permissions modifiées" },
+    { key: "salary_change",      label: "Salaire modifié" },
+    { key: "contract_change",    label: "Contrat modifié" },
+    { key: "org_settings_change",label: "Paramètres org modifiés" },
+    { key: "banking_change",     label: "Coordonnées bancaires" },
+    { key: "fiscal_param_change",label: "Paramètre fiscal" },
+    { key: "status_change",      label: "Statut modifié" },
+  ]},
+  { key: "group:validation", label: "Validation & Approbation", actions: [
+    { key: "validate",            label: "Validation" },
+    { key: "approve",             label: "Approbation" },
+    { key: "reject",              label: "Rejet" },
+    { key: "journal_entry_validate", label: "Écriture validée" },
+    { key: "payroll_validate",    label: "Paie validée" },
+    { key: "advance_approve",     label: "Avance approuvée" },
+    { key: "leave_approve",       label: "Congé approuvé" },
+    { key: "payment_validate",    label: "Paiement validé" },
+    { key: "declaration_validate",label: "Déclaration fiscale validée" },
+  ]},
+  { key: "group:suppression", label: "Suppression & Archivage", actions: [
+    { key: "delete",   label: "Suppression" },
+    { key: "archive",  label: "Archivage" },
+    { key: "restore",  label: "Restauration" },
+    { key: "cancel",   label: "Annulation" },
+    { key: "deactivate",label: "Désactivation" },
+    { key: "kiosk_delete", label: "Kiosk supprimé" },
+  ]},
+  { key: "group:export", label: "Export & Téléchargement", actions: [
+    { key: "export",          label: "Export" },
+    { key: "audit_export",    label: "Export journal d'audit" },
+    { key: "download",        label: "Téléchargement" },
+    { key: "print",           label: "Impression" },
+    { key: "payslip_download",label: "Bulletin de paie" },
+    { key: "import",          label: "Import" },
+    { key: "send_email",      label: "Email envoyé" },
+  ]},
+  { key: "group:finance", label: "Finance & Comptabilité", actions: [
+    { key: "journal_entry_create",  label: "Écriture créée" },
+    { key: "journal_entry_validate",label: "Écriture validée" },
+    { key: "journal_entry_reverse", label: "Contre-passation" },
+    { key: "period_close",          label: "Période clôturée" },
+    { key: "period_reopen",         label: "Période réouverte" },
+    { key: "bank_reconciliation",   label: "Rapprochement bancaire" },
+    { key: "payment_record",        label: "Paiement enregistré" },
+    { key: "payment_validate",      label: "Paiement validé" },
+  ]},
+  { key: "group:rh", label: "Ressources Humaines & Paie", actions: [
+    { key: "salary_view",    label: "Salaire consulté" },
+    { key: "salary_change",  label: "Salaire modifié" },
+    { key: "payroll_generate",label: "Paie générée" },
+    { key: "payroll_validate",label: "Paie validée" },
+    { key: "payslip_download",label: "Bulletin téléchargé" },
+    { key: "advance_approve", label: "Avance approuvée" },
+    { key: "leave_approve",   label: "Congé approuvé" },
+    { key: "contract_change", label: "Contrat modifié" },
+  ]},
+  { key: "group:admin", label: "Administration", actions: [
+    { key: "module_activate",  label: "Module activé" },
+    { key: "module_deactivate",label: "Module désactivé" },
+    { key: "subscription_change",label: "Abonnement modifié" },
+    { key: "addon_activate",   label: "Add-on activé" },
+    { key: "activate",         label: "Utilisateur activé" },
+    { key: "deactivate",       label: "Utilisateur désactivé" },
+    { key: "invite",           label: "Invitation envoyée" },
+  ]},
+  { key: "group:security", label: "Alertes sécurité", actions: [
+    { key: "security_alert",      label: "Alerte sécurité" },
+    { key: "unauthorized_access", label: "Accès non autorisé" },
+    { key: "access_denied",       label: "Accès refusé" },
+  ]},
+];
+
+// ─── Description lisible par événement ────────────────────────────────────────
+
+function entityLabel(entityType?: string | null): string {
+  const map: Record<string, string> = {
+    client: "Client", invoice: "Facture", order: "Commande",
+    proforma: "Devis", project: "Projet", task: "Tâche",
+    collaborator: "Collaborateur", equipment: "Équipement",
+    user: "Utilisateur", rental: "Location", payment: "Paiement",
+    journal_entry: "Écriture", budget: "Budget", contract: "Contrat",
+    payroll: "Fiche de paie", leave: "Congé", advance: "Avance",
+    declaration: "Déclaration", document: "Document", supplier: "Fournisseur",
+    opportunity: "Opportunité", contact: "Contact", kiosk: "Kiosk",
+    category: "Catégorie", organisation: "Organisation",
+  };
+  return entityType ? (map[entityType] ?? entityType) : "Élément";
+}
+
+function getDescription(log: AuditLog): string {
+  const n = log.entityName ? `« ${log.entityName} »` : "";
+  const mod = log.module ? (MODULE_LABELS[log.module] ?? log.module) : "";
+
+  if (log.category === "navigation") {
+    if (log.subModule) return `Section « ${log.subModule} » ouverte${mod ? ` — ${mod}` : ""}`;
+    if (log.module) return `Module ${mod} ouvert`;
+    return "Navigation dans l'application";
+  }
+
+  switch (log.action) {
+    case "login":               return "Connexion réussie";
+    case "logout":              return "Déconnexion";
+    case "login_failed":        return "Tentative de connexion échouée";
+    case "login_2fa_sent":      return "Code 2FA envoyé";
+    case "login_2fa_success":   return "Authentification 2FA réussie";
+    case "login_2fa_failed":    return "Code 2FA incorrect";
+    case "login_2fa_locked":    return "Compte verrouillé — trop de tentatives 2FA";
+    case "2fa_enabled":         return "Double authentification activée";
+    case "2fa_disabled":        return "Double authentification désactivée";
+    case "org_switch":          return n ? `Organisation changée → ${n}` : "Changement d'organisation";
+    case "password_change":     return "Mot de passe modifié";
+    case "password_reset_request": return n ? `Réinitialisation MDP demandée pour ${n}` : "Réinitialisation de mot de passe demandée";
+    case "password_reset_complete": return "Mot de passe réinitialisé";
+
+    case "create":     return n ? `${entityLabel(log.entityType)} ${n} créé(e)` : `Création dans ${mod || "l'application"}`;
+    case "update":     return n ? `${entityLabel(log.entityType)} ${n} modifié(e)` : `Modification dans ${mod || "l'application"}`;
+    case "delete":     return n ? `${entityLabel(log.entityType)} ${n} supprimé(e)` : `Suppression dans ${mod || "l'application"}`;
+    case "view":       return n ? `${entityLabel(log.entityType)} ${n} consulté(e)` : `Consultation dans ${mod || "l'application"}`;
+    case "archive":    return n ? `${entityLabel(log.entityType)} ${n} archivé(e)` : "Archivage";
+    case "restore":    return n ? `${entityLabel(log.entityType)} ${n} restauré(e)` : "Restauration";
+    case "duplicate":  return n ? `${entityLabel(log.entityType)} ${n} dupliqué(e)` : "Duplication";
+    case "export":     return n ? `Export de ${n}` : `Export depuis ${mod || "l'application"}`;
+    case "import":     return `Import de données${mod ? ` — ${mod}` : ""}`;
+    case "download":   return n ? `Téléchargement de ${n}` : "Téléchargement";
+    case "print":      return n ? `Impression de ${n}` : "Impression";
+    case "send_email": return n ? `Email envoyé pour ${n}` : "Email envoyé";
+    case "validate":   return n ? `Validation de ${n}` : `Validation${mod ? ` — ${mod}` : ""}`;
+    case "approve":    return n ? `Approbation de ${n}` : `Approbation${mod ? ` — ${mod}` : ""}`;
+    case "reject":     return n ? `Rejet de ${n}` : `Rejet${mod ? ` — ${mod}` : ""}`;
+    case "cancel":     return n ? `Annulation de ${n}` : "Annulation";
+    case "status_change": return n ? `Statut de ${n} modifié` : "Changement de statut";
+
+    case "invite":              return n ? `Invitation envoyée à ${n}` : "Invitation envoyée";
+    case "invitation_sent":     return n ? `Invitation envoyée à ${n}` : "Invitation envoyée";
+    case "invitation_accept":   return "Invitation acceptée";
+    case "invitation_revoke":   return n ? `Invitation révoquée pour ${n}` : "Invitation révoquée";
+    case "activate":            return n ? `Compte de ${n} activé` : "Compte activé";
+    case "deactivate":          return n ? `Compte de ${n} désactivé` : "Compte désactivé";
+    case "user_activated":      return n ? `Compte de ${n} activé` : "Compte activé";
+
+    case "role_change":        return n ? `Rôle de ${n} modifié` : "Modification de rôle";
+    case "permission_change":  return n ? `Permissions de ${n} modifiées` : "Modification de permissions";
+    case "department_change":  return n ? `Département de ${n} modifié` : "Changement de département";
+    case "project_access_grant":  return n ? `Accès projet accordé à ${n}` : "Accès projet accordé";
+    case "project_access_revoke": return n ? `Accès projet retiré à ${n}` : "Accès projet retiré";
+    case "client_access_grant":   return n ? `Accès client accordé à ${n}` : "Accès client accordé";
+    case "client_access_revoke":  return n ? `Accès client retiré à ${n}` : "Accès client retiré";
+
+    case "invoice_edit":     return n ? `Facture ${n} modifiée` : "Facture modifiée";
+    case "invoice_cancel":   return n ? `Facture ${n} annulée` : "Facture annulée";
+    case "order_edit":       return n ? `Commande ${n} modifiée` : "Commande modifiée";
+    case "order_cancel":     return n ? `Commande ${n} annulée` : "Commande annulée";
+    case "payment_record":   return n ? `Paiement enregistré — ${n}` : "Paiement enregistré";
+    case "payment_validate": return n ? `Paiement validé — ${n}` : "Paiement validé";
+
+    case "journal_entry_create":   return n ? `Écriture comptable créée : ${n}` : "Écriture comptable créée";
+    case "journal_entry_validate": return n ? `Écriture comptable validée : ${n}` : "Écriture comptable validée";
+    case "journal_entry_reverse":  return n ? `Contre-passation de ${n}` : "Contre-passation";
+    case "period_close":           return n ? `Période clôturée : ${n}` : "Période comptable clôturée";
+    case "period_reopen":          return n ? `Période réouverte : ${n}` : "Période comptable réouverte";
+    case "bank_reconciliation":    return "Rapprochement bancaire effectué";
+
+    case "salary_view":      return n ? `Salaire de ${n} consulté` : "Consultation de salaire";
+    case "salary_change":    return n ? `Salaire de ${n} modifié` : "Modification de salaire";
+    case "payroll_generate": return n ? `Paie générée : ${n}` : "Paie générée";
+    case "payroll_validate": return n ? `Paie validée : ${n}` : "Paie validée";
+    case "payslip_download": return n ? `Bulletin de paie téléchargé : ${n}` : "Bulletin de paie téléchargé";
+    case "advance_approve":  return n ? `Avance sur salaire approuvée — ${n}` : "Avance sur salaire approuvée";
+    case "leave_approve":    return n ? `Congé approuvé — ${n}` : "Congé approuvé";
+    case "contract_change":  return n ? `Contrat de ${n} modifié` : "Contrat modifié";
+
+    case "module_activate":    return n ? `Module « ${n} » activé` : "Module activé";
+    case "module_deactivate":  return n ? `Module « ${n} » désactivé` : "Module désactivé";
+    case "subscription_change":return "Abonnement modifié";
+    case "addon_activate":     return n ? `Add-on « ${n} » activé` : "Add-on activé";
+    case "org_settings_change":return "Paramètres de l'organisation modifiés";
+    case "banking_change":     return "Coordonnées bancaires modifiées";
+    case "fiscal_param_change":return n ? `Paramètre fiscal modifié : ${n}` : "Paramètre fiscal modifié";
+    case "declaration_validate":return n ? `Déclaration fiscale validée : ${n}` : "Déclaration fiscale validée";
+
+    case "audit_export":       return "Export du journal d'audit";
+    case "audit_view":         return "Événement d'audit consulté";
+    case "security_alert":     return "Alerte de sécurité générée";
+    case "unauthorized_access":return n ? `Accès non autorisé à ${n}` : "Tentative d'accès non autorisé";
+    case "access_denied":      return n ? `Accès refusé à ${n}` : "Accès refusé";
+
+    case "kiosk_create":         return n ? `Kiosk « ${n} » créé` : "Kiosk créé";
+    case "kiosk_delete":         return n ? `Kiosk « ${n} » supprimé` : "Kiosk supprimé";
+    case "kiosk_token_generate": return "Jeton d'accès kiosk généré";
+    case "kiosk_token_revoke":   return "Jeton d'accès kiosk révoqué";
+    case "kiosk_token_access":   return "Accès kiosk via jeton";
+
+    case "expert_firm_create":         return n ? `Cabinet expert créé : ${n}` : "Cabinet expert créé";
+    case "expert_firm_update":         return n ? `Cabinet expert modifié : ${n}` : "Cabinet expert modifié";
+    case "expert_client_link":         return n ? `Client lié au cabinet : ${n}` : "Client lié au cabinet";
+    case "expert_client_unlink":       return n ? `Client délié du cabinet : ${n}` : "Client délié du cabinet";
+    case "expert_doc_request_create":  return n ? `Demande de document créée : ${n}` : "Demande de document créée";
+    case "expert_doc_request_update":  return n ? `Demande de document mise à jour : ${n}` : "Demande de document mise à jour";
+    case "expert_member_invite":       return n ? `Membre expert invité : ${n}` : "Membre expert invité";
+    case "expert_member_remove":       return n ? `Membre expert retiré : ${n}` : "Membre expert retiré";
+
+    default: return ACTION_LABELS[log.action] ?? log.action;
+  }
+}
+
 const QUICK_FILTERS = [
-  { key: "_all", label: "Tout", icon: <Activity className="w-3.5 h-3.5" /> },
-  { key: "today", label: "Aujourd'hui", icon: <Clock className="w-3.5 h-3.5" /> },
-  { key: "7d", label: "7 jours", icon: <Clock className="w-3.5 h-3.5" /> },
-  { key: "sensitive", label: "Sensibles", icon: <AlertTriangle className="w-3.5 h-3.5" /> },
-  { key: "deletions", label: "Suppressions", icon: <Trash2 className="w-3.5 h-3.5" /> },
-  { key: "failures", label: "Échecs", icon: <XCircle className="w-3.5 h-3.5" /> },
-  { key: "exports", label: "Exports", icon: <Download className="w-3.5 h-3.5" /> },
-  { key: "logins", label: "Connexions", icon: <LogIn className="w-3.5 h-3.5" /> },
-  { key: "permissions", label: "Permissions", icon: <Shield className="w-3.5 h-3.5" /> },
+  { key: "_all",       label: "Tout",         icon: <Activity className="w-3.5 h-3.5" /> },
+  { key: "today",      label: "Aujourd'hui",  icon: <Clock className="w-3.5 h-3.5" /> },
+  { key: "7d",         label: "7 jours",      icon: <Clock className="w-3.5 h-3.5" /> },
+  { key: "navigation", label: "Navigation",   icon: <Globe className="w-3.5 h-3.5" /> },
+  { key: "sensitive",  label: "Sensibles",    icon: <AlertTriangle className="w-3.5 h-3.5" /> },
+  { key: "deletions",  label: "Suppressions", icon: <Trash2 className="w-3.5 h-3.5" /> },
+  { key: "failures",   label: "Échecs",       icon: <XCircle className="w-3.5 h-3.5" /> },
+  { key: "exports",    label: "Exports",      icon: <Download className="w-3.5 h-3.5" /> },
+  { key: "logins",     label: "Connexions",   icon: <LogIn className="w-3.5 h-3.5" /> },
+  { key: "permissions",label: "Permissions",  icon: <Shield className="w-3.5 h-3.5" /> },
 ];
 
 const SEVERITY_COLORS_CHART = ["#38bdf8","#34d399","#60a5fa","#fbbf24","#f87171"];
@@ -541,14 +776,11 @@ function LogRow({ log, onDetail, onTimeline }: {
         <StatusBadge status={log.status} />
       </div>
       <div className="flex-1 min-w-0 text-sm">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="font-medium">{ACTION_LABELS[log.action] ?? log.action}</span>
-          {log.module && <span className="text-xs text-muted-foreground">· {MODULE_LABELS[log.module] ?? log.module}</span>}
-          {log.entityName && <span className="text-xs text-muted-foreground">· {log.entityName}</span>}
-        </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="font-medium leading-snug">{getDescription(log)}</div>
+        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
           <span className="font-medium text-foreground">{log.userEmail || "(système)"}</span>
-          {log.userRole && <span> · {log.userRole}</span>}
+          {log.userRole && <span>· {log.userRole}</span>}
+          {log.module && <span>· {MODULE_LABELS[log.module] ?? log.module}</span>}
         </div>
         {log.changes && log.changes.length > 0 && (
           <div className="text-xs text-blue-600 mt-0.5">
@@ -734,13 +966,25 @@ export default function AdminAuditPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="w-44">
+                  <div className="w-56">
                     <Label className="text-xs mb-1 block">Action</Label>
                     <Select value={action} onValueChange={v => { setAction(v); resetPage(); }}>
-                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Toutes les actions" /></SelectTrigger>
+                      <SelectContent className="max-h-[400px]">
                         <SelectItem value="_all">Toutes les actions</SelectItem>
-                        {Object.entries(ACTION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                        {ACTION_GROUPS.map(group => (
+                          <SelectGroup key={group.key}>
+                            <SelectLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-2 pb-0.5">
+                              {group.label}
+                            </SelectLabel>
+                            <SelectItem value={group.key} className="text-xs font-medium pl-3">
+                              ↳ Tout : {group.label}
+                            </SelectItem>
+                            {group.actions.map(a => (
+                              <SelectItem key={a.key} value={a.key} className="text-xs pl-5">{a.label}</SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

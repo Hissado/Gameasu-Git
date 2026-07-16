@@ -13,9 +13,35 @@ const isUuid = (v: any) => typeof v === "string" && UUID_RE.test(v);
 
 function getOrgId(req: any) { return getCurrentOrganizationId(req.authUser?.id); }
 
+const GROUP_ACTIONS: Record<string, string[]> = {
+  auth:        ["login","logout","login_failed","login_2fa_sent","login_2fa_success","login_2fa_failed","login_2fa_locked","trusted_device_added","trusted_device_revoked","password_change","password_reset_request","password_reset_complete","2fa_enabled","2fa_disabled","org_switch"],
+  consultation:["view","audit_view","salary_view"],
+  creation:    ["create","invite","invitation_sent","journal_entry_create","kiosk_create","expert_firm_create","expert_doc_request_create"],
+  modification:["update","role_change","permission_change","org_settings_change","banking_change","fiscal_param_change","salary_change","contract_change","department_change","invoice_edit","order_edit","proforma_edit","expert_firm_update","status_change"],
+  validation:  ["validate","approve","reject","journal_entry_validate","payroll_validate","advance_approve","leave_approve","declaration_validate","payment_validate"],
+  suppression: ["delete","archive","restore","cancel","kiosk_delete","deactivate","invitation_revoke"],
+  export:      ["export","audit_export","download","print","payslip_download","import","send_email"],
+  finance:     ["journal_entry_create","journal_entry_validate","journal_entry_reverse","period_close","period_reopen","bank_reconciliation","payment_record","payment_validate"],
+  rh:          ["salary_view","salary_change","payroll_generate","payroll_validate","payslip_download","advance_approve","leave_approve","contract_change"],
+  admin:       ["module_activate","module_deactivate","subscription_change","addon_activate","activate","deactivate","invite","user_activated"],
+  security:    ["security_alert","unauthorized_access","access_denied","2fa_disabled","login_failed","login_2fa_locked"],
+};
+
 function buildAuditWhere(orgId: string, q: Record<string, string>) {
   const conds: any[] = [eq(auditLogsTable.organizationId, orgId)];
-  if (q.action)     conds.push(eq(auditLogsTable.action, q.action));
+  if (q.action) {
+    if (q.action.startsWith("group:")) {
+      const gKey = q.action.slice(6);
+      if (gKey === "navigation") {
+        conds.push(eq(auditLogsTable.category, "navigation"));
+      } else {
+        const acts = GROUP_ACTIONS[gKey];
+        if (acts && acts.length > 0) conds.push(inArray(auditLogsTable.action, acts));
+      }
+    } else {
+      conds.push(eq(auditLogsTable.action, q.action));
+    }
+  }
   if (q.category)   conds.push(eq(auditLogsTable.category, q.category));
   if (q.severity)   conds.push(eq(auditLogsTable.severity, q.severity));
   if (q.status)     conds.push(eq(auditLogsTable.status, q.status));
@@ -51,6 +77,8 @@ function buildAuditWhere(orgId: string, q: Record<string, string>) {
     conds.push(inArray(auditLogsTable.action, ["login", "logout", "login_failed"]));
   } else if (q.quick === "permissions") {
     conds.push(inArray(auditLogsTable.action, ["role_change", "permission_change"]));
+  } else if (q.quick === "navigation") {
+    conds.push(eq(auditLogsTable.category, "navigation"));
   }
   // Date range
   if (q.from) { const d = new Date(q.from); if (!isNaN(d.getTime())) conds.push(gte(auditLogsTable.createdAt, d)); }
