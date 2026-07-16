@@ -6,6 +6,7 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { InactivityWarningDialog } from "@/components/InactivityWarningDialog";
 import Layout from "@/components/Layout";
 
 /* ── Lazy import avec rechargement automatique si chunk introuvable (cache périmé) ── */
@@ -217,6 +218,7 @@ export default function App() {
             </WouterRouter>
             <Toaster />
             <SonnerToaster richColors position="top-right" />
+            <InactivityWarningDialog />
           </TooltipProvider>
         </AuthProvider>
       </QueryClientProvider>

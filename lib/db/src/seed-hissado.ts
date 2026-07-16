@@ -91,11 +91,11 @@ export async function seedHissado() {
   console.log(`  ✓ Org créée : ${orgId}`);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 2. ABONNEMENT PROFESSIONAL + MODULES
+  // 2. ABONNEMENT PREMIUM + MODULES
   // ══════════════════════════════════════════════════════════════════════════
-  console.log("  • Abonnement Professional…");
+  console.log("  • Abonnement Premium…");
   const [plan] = await db.select().from(subscriptionPlansTable)
-    .where(eq(subscriptionPlansTable.code, "PROFESSIONAL")).limit(1);
+    .where(eq(subscriptionPlansTable.code, "PREMIUM")).limit(1);
 
   let subId: string | null = null;
   if (plan) {
@@ -130,7 +130,7 @@ export async function seedHissado() {
       await db.insert(billingEventsTable).values({
         organizationId: orgId, subscriptionId: subId,
         kind: "invoice",
-        label: `Abonnement Professional — ${d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`,
+        label: `Abonnement Premium — ${d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`,
         amount: 35_000 * 12, status: "paid", currency: "XOF",
         reference: `HC-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}-001`,
         occurredAt: d,

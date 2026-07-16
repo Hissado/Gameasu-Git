@@ -3,7 +3,8 @@ import { useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
-const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;  // 30 minutes
+const INACTIVITY_WARNING_MS =  2 * 60 * 1000;  // avertissement 2 min avant expiration
 const INACTIVITY_FLAG_KEY = "gameasu_session_expired";
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "click"] as const;
 
@@ -40,14 +41,18 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   switchOrg: (orgId: string) => Promise<void>;
+  showInactivityWarning: boolean;
+  extendSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("auth_token"));
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
   const [_, setLocation] = useLocation();
-  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warnTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expireTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
   const { data: user } = useGetMe({
@@ -58,25 +63,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       gcTime: 30 * 60 * 1000,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
-      // Relance automatique toutes les 5 s quand le paiement est en attente,
-      // pour que le blocage se lève dès que l'abonnement passe à "active"
       refetchInterval: (query: any) =>
         query.state.data?.subscriptionStatus === "pending_payment" ? 5000 : false,
       queryKey: ["auth-me"] as const,
     },
   });
 
-  const login = useCallback((newToken: string) => {
-    localStorage.removeItem(INACTIVITY_FLAG_KEY);
-    localStorage.setItem("auth_token", newToken);
-    setToken(newToken);
+  const clearTimers = useCallback(() => {
+    if (warnTimerRef.current)   { clearTimeout(warnTimerRef.current);   warnTimerRef.current   = null; }
+    if (expireTimerRef.current) { clearTimeout(expireTimerRef.current); expireTimerRef.current = null; }
   }, []);
 
   const logout = useCallback((reason?: "inactivity") => {
-    if (inactivityTimer.current) {
-      clearTimeout(inactivityTimer.current);
-      inactivityTimer.current = null;
-    }
+    clearTimers();
+    setShowInactivityWarning(false);
     const t = localStorage.getItem("auth_token");
     if (t) {
       fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${t}` } }).catch(() => {});
@@ -87,7 +87,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("auth_token");
     setToken(null);
     setLocation("/login");
-  }, [setLocation]);
+  }, [setLocation, clearTimers]);
+
+  const startTimers = useCallback(() => {
+    clearTimers();
+    setShowInactivityWarning(false);
+    warnTimerRef.current = setTimeout(
+      () => setShowInactivityWarning(true),
+      INACTIVITY_TIMEOUT_MS - INACTIVITY_WARNING_MS,
+    );
+    expireTimerRef.current = setTimeout(
+      () => logout("inactivity"),
+      INACTIVITY_TIMEOUT_MS,
+    );
+  }, [clearTimers, logout]);
+
+  const extendSession = useCallback(() => {
+    startTimers();
+  }, [startTimers]);
+
+  const login = useCallback((newToken: string) => {
+    localStorage.removeItem(INACTIVITY_FLAG_KEY);
+    localStorage.setItem("auth_token", newToken);
+    setToken(newToken);
+  }, []);
 
   const switchOrg = useCallback(async (orgId: string) => {
     const t = localStorage.getItem("auth_token");
@@ -101,11 +124,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const j = await res.json().catch(() => ({})) as any;
       throw new Error(j.error ?? "Erreur lors du changement d'organisation");
     }
-    // Invalider toutes les données — elles sont toutes liées à l'org active
     await queryClient.invalidateQueries();
   }, [queryClient]);
 
-  // Déconnexion automatique si l'API renvoie 401.
+  // Déconnexion automatique si l'API renvoie 401
   useEffect(() => {
     const handler = () => {
       if (localStorage.getItem("auth_token")) logout();
@@ -114,30 +136,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener("auth:unauthorized", handler);
   }, [logout]);
 
-  // ── Timer d'inactivité ────────────────────────────────────────────────────
+  // Timer d'inactivité : avertissement à 28 min, déconnexion à 30 min
   useEffect(() => {
-    if (!token) return;
-
-    const resetTimer = () => {
-      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-      inactivityTimer.current = setTimeout(() => {
-        logout("inactivity");
-      }, INACTIVITY_TIMEOUT_MS);
-    };
-
-    resetTimer();
-
+    if (!token) {
+      clearTimers();
+      setShowInactivityWarning(false);
+      return;
+    }
+    startTimers();
     const opts: AddEventListenerOptions = { passive: true };
-    ACTIVITY_EVENTS.forEach((ev) => window.addEventListener(ev, resetTimer, opts));
-
+    ACTIVITY_EVENTS.forEach(ev => window.addEventListener(ev, startTimers, opts));
     return () => {
-      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-      ACTIVITY_EVENTS.forEach((ev) => window.removeEventListener(ev, resetTimer, opts));
+      clearTimers();
+      ACTIVITY_EVENTS.forEach(ev => window.removeEventListener(ev, startTimers, opts));
     };
-  }, [token, logout]);
+  }, [token, startTimers, clearTimers]);
 
   return (
-    <AuthContext.Provider value={{ token, user: user as AuthUser | undefined, login, logout, isAuthenticated: !!token, switchOrg }}>
+    <AuthContext.Provider value={{
+      token,
+      user: user as AuthUser | undefined,
+      login,
+      logout,
+      isAuthenticated: !!token,
+      switchOrg,
+      showInactivityWarning,
+      extendSession,
+    }}>
       {children}
     </AuthContext.Provider>
   );

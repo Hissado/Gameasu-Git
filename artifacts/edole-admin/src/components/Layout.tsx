@@ -28,6 +28,7 @@ import { KoffiChat } from "@/components/KoffiChat";
 import { GlobalSearch, useGlobalSearch } from "@/components/GlobalSearch";
 import { AppBreadcrumb } from "@/components/AppBreadcrumb";
 import { SuggestionDialog } from "@/components/SuggestionDialog";
+import { InactivityWarningDialog } from "@/components/InactivityWarningDialog";
 import { TOUR_MODULE_MAP, RELAUNCH_EVENT, GuidesPanel } from "@/components/ui/onboarding-tour";
 
 type NavItem = {
@@ -1079,6 +1080,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
       {/* ── Suggestion produit — accessible depuis la topbar ──────────────────── */}
       <SuggestionDialog open={suggestionOpen} onOpenChange={setSuggestionOpen} />
+
+      {/* ── Avertissement inactivité (30 min → déconnexion automatique) ─────────── */}
+      <InactivityWarningDialog />
 
       {/* ── Guides disponibles ─────────────────────────────────────────────────── */}
       <GuidesPanel

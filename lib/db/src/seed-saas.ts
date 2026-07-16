@@ -216,21 +216,29 @@ async function upsertPlans() {
     result[p.code] = planId;
   }
 
-  // Migration : suppression des anciens plans obsolètes (GROWTH, PROFESSIONAL)
-  // s'ils existent encore en base et n'ont pas d'abonnement actif.
-  for (const oldCode of ["GROWTH", "PROFESSIONAL"]) {
+  // Migration : anciens plans obsolètes → nouveaux plans (GROWTH → BUSINESS, PROFESSIONAL → PREMIUM)
+  // On migre d'abord les abonnements existants, puis on supprime l'ancien plan.
+  const PLAN_MIGRATION: Record<string, string> = {
+    GROWTH: "BUSINESS",
+    PROFESSIONAL: "PREMIUM",
+  };
+  for (const [oldCode, newCode] of Object.entries(PLAN_MIGRATION)) {
     const old = await db.select().from(subscriptionPlansTable)
       .where(eq(subscriptionPlansTable.code, oldCode)).limit(1);
-    if (old.length > 0) {
-      const subs = await db.select().from(organizationSubscriptionsTable)
-        .where(eq(organizationSubscriptionsTable.planId, old[0].id)).limit(1);
-      if (subs.length === 0) {
-        await db.delete(subscriptionPlanFeaturesTable)
-          .where(eq(subscriptionPlanFeaturesTable.planId, old[0].id));
-        await db.delete(subscriptionPlansTable)
-          .where(eq(subscriptionPlansTable.id, old[0].id));
-      }
+    if (old.length === 0) continue;
+    // Migrer les abonnements vers le nouveau plan
+    const newPlan = await db.select({ id: subscriptionPlansTable.id })
+      .from(subscriptionPlansTable).where(eq(subscriptionPlansTable.code, newCode)).limit(1);
+    if (newPlan.length > 0) {
+      await db.update(organizationSubscriptionsTable)
+        .set({ planId: newPlan[0].id })
+        .where(eq(organizationSubscriptionsTable.planId, old[0].id));
     }
+    // Supprimer l'ancien plan (plus aucun abonnement ne le référence)
+    await db.delete(subscriptionPlanFeaturesTable)
+      .where(eq(subscriptionPlanFeaturesTable.planId, old[0].id));
+    await db.delete(subscriptionPlansTable)
+      .where(eq(subscriptionPlansTable.id, old[0].id));
   }
 
   return result;

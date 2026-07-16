@@ -97,7 +97,7 @@ const PLANS = [
     features: ["Jusqu'à 30 utilisateurs","CRM & pipeline commercial","Comptabilité SYSCOHADA","Équipe & RH","Onboarding & formation incluse"],
   },
   {
-    code: "PROFESSIONAL", name: "Professional", tagline: "Le standard premium",
+    code: "PREMIUM", name: "Premium", tagline: "Le standard complet",
     description: "Pour les structures multi-services qui pilotent finance et opérations.",
     monthlyPricePerSeat: 35_000, annualPricePerSeat: 350_000, setupFee: 750_000,
     minimumSeats: 5, includedSeats: 25, maxSeats: 100,
@@ -286,7 +286,7 @@ async function main() {
     const now = new Date();
     const periodEnd = new Date(now); periodEnd.setMonth(periodEnd.getMonth() + 1);
     const [sub] = await db.insert(organizationSubscriptionsTable).values({
-      organizationId: orgId, planId: planIds["PROFESSIONAL"]!, status: "active",
+      organizationId: orgId, planId: planIds["PREMIUM"]!, status: "active",
       billingCycle: "monthly", seats: 25, currentPeriodStart: now, currentPeriodEnd: periodEnd,
       unitPrice: 35_000, setupFee: 750_000, currency: "XOF", isCurrent: true,
     }).returning({ id: organizationSubscriptionsTable.id });

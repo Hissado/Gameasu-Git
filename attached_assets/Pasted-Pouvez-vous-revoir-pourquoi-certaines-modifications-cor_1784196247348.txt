@@ -1,0 +1,313 @@
+Pouvez-vous revoir pourquoi certaines modifications correctement visibles en environnement de développement ne sont pas répercutées en production, puis corriger définitivement la synchronisation entre les deux environnements ?
+
+Exemple constaté
+
+En développement, le pack affiché dans le header est bien :
+
+Premium
+
+Mais en production, l’ancien libellé :
+
+Professionnel
+
+continue de s’afficher.
+
+Cela signifie probablement que certaines configurations, données, migrations, variables d’environnement, seeds, caches ou builds ne sont pas correctement déployés ou synchronisés.
+
+⸻
+
+1. Auditer les différences entre développement et production
+
+Merci de comparer précisément les deux environnements afin d’identifier toutes les différences concernant :
+
+* libellés et traductions ;
+* noms des packs ;
+* prix ;
+* modules inclus ;
+* paramètres d’abonnement ;
+* données seedées ;
+* configuration du tenant ;
+* rôles et permissions ;
+* fonctionnalités activées ;
+* variables d’environnement ;
+* migrations de base de données ;
+* caches frontend et backend ;
+* build déployé ;
+* version des API ;
+* feature flags ;
+* données provenant du Cockpit.
+
+Ne pas corriger uniquement l’exemple Premium / Professionnel. Parcourir toute l’application pour identifier les autres changements présents en développement mais absents en production.
+
+⸻
+
+2. Corriger l’affichage du pack
+
+Le nom affiché dans le header doit toujours provenir de la formule réellement active pour l’organisation sélectionnée.
+
+Exemples de valeurs officielles :
+
+* Starter ;
+* Business ;
+* Premium ;
+* Offre personnalisée.
+
+Supprimer définitivement l’ancien libellé :
+
+Professionnel
+
+Le système ne doit pas utiliser un texte codé en dur dans l’interface.
+
+Le pack affiché doit être récupéré depuis une source centralisée et synchronisée avec :
+
+* le module Abonnement & Facturation ;
+* le Cockpit ;
+* le tenant actif ;
+* la base de données ;
+* les modules actifs ;
+* les permissions liées à l’abonnement.
+
+⸻
+
+3. Vérifier le processus de déploiement
+
+Merci de vérifier notamment :
+
+* que le dernier code est réellement déployé en production ;
+* que le bon commit ou la bonne branche est utilisé ;
+* que le build de production est régénéré ;
+* que les migrations ont bien été exécutées ;
+* que les seeds nécessaires sont appliqués ;
+* que les anciennes données ne remplacent pas les nouvelles ;
+* que le cache CDN ou navigateur est invalidé ;
+* que les service workers ne servent pas une ancienne version ;
+* que les variables d’environnement pointent vers les bonnes ressources ;
+* que le frontend et le backend utilisent la même version de configuration.
+
+Ajouter si possible un numéro de build interne ou un identifiant de version visible dans les outils d’administration afin de confirmer facilement la version réellement déployée.
+
+⸻
+
+4. Centraliser les configurations sensibles
+
+Les éléments suivants ne doivent pas être codés séparément entre le développement et la production :
+
+* nom des packs ;
+* prix ;
+* modules inclus ;
+* descriptions ;
+* limites utilisateurs ;
+* fonctionnalités disponibles ;
+* libellés d’abonnement ;
+* statuts ;
+* règles d’activation.
+
+Créer une source de configuration unique ou un mécanisme de synchronisation fiable afin que toute modification validée soit propagée correctement vers :
+
+* le site web ;
+* l’ERP ;
+* le Cockpit ;
+* le portail expert ;
+* la facturation ;
+* les rapports ;
+* les emails.
+
+⸻
+
+5. Déconnexion automatique après 30 minutes d’inactivité
+
+Pouvez-vous également mettre en place une déconnexion automatique après 30 minutes d’inactivité réelle dans :
+
+* l’ERP ;
+* le Cockpit Gameasu ;
+* le portail expert si applicable.
+
+L’inactivité doit être calculée à partir des actions de l’utilisateur, par exemple :
+
+* mouvement de souris ;
+* clic ;
+* frappe clavier ;
+* navigation ;
+* saisie dans un formulaire ;
+* action tactile sur mobile ;
+* appel métier déclenché par l’utilisateur.
+
+Les simples requêtes automatiques, rafraîchissements ou notifications en arrière-plan ne doivent pas réinitialiser artificiellement le compteur.
+
+⸻
+
+6. Avertissement avant déconnexion
+
+Avant la fin de la session, afficher une fenêtre d’avertissement, par exemple 2 minutes avant :
+
+Votre session va expirer dans 2 minutes en raison d’une période d’inactivité.
+
+Boutons :
+
+* Rester connecté
+* Se déconnecter maintenant
+
+Si l’utilisateur choisit Rester connecté, prolonger la session de manière sécurisée.
+
+⸻
+
+7. Sauvegarde automatique avant expiration de session
+
+La déconnexion automatique ne doit jamais entraîner la perte du travail en cours.
+
+Mettre en place une sauvegarde automatique des formulaires et brouillons.
+
+Fonctionnement attendu
+
+Lorsqu’un utilisateur saisit ou modifie des données :
+
+* enregistrer automatiquement un brouillon à intervalles réguliers ;
+* sauvegarder après une période courte sans nouvelle saisie ;
+* sauvegarder avant la déconnexion automatique ;
+* sauvegarder avant un changement de route si le formulaire n’est pas terminé ;
+* conserver la dernière version valide ;
+* afficher clairement le statut de sauvegarde.
+
+Exemples de statuts :
+
+* Enregistrement en cours…
+* Brouillon sauvegardé à 14:32
+* Modifications non encore enregistrées
+* Sauvegarde impossible — réessayez
+
+⸻
+
+8. Restauration du travail après reconnexion
+
+Quand l’utilisateur se reconnecte, le système doit détecter s’il existe un brouillon non finalisé.
+
+Afficher un message comme :
+
+Vous aviez un travail en cours avant l’expiration de votre session. Souhaitez-vous le reprendre ?
+
+Boutons :
+
+* Reprendre le brouillon
+* Ignorer
+* Supprimer le brouillon
+
+Le brouillon doit être lié à :
+
+* l’utilisateur ;
+* l’organisation active ;
+* le module ;
+* la fiche concernée ;
+* la date de dernière sauvegarde.
+
+Aucune donnée d’un tenant ne doit apparaître dans un autre tenant.
+
+⸻
+
+9. Gérer les conflits et la sécurité
+
+La sauvegarde automatique doit rester sécurisée.
+
+Prévoir :
+
+* versioning des brouillons ;
+* protection contre l’écrasement d’une version plus récente ;
+* gestion des modifications simultanées ;
+* chiffrement ou protection adaptée des données sensibles ;
+* expiration des brouillons anciens ;
+* journalisation des restaurations ;
+* contrôle des permissions lors de la reprise.
+
+Pour les données sensibles, notamment RH, paie, finance et comptabilité, ne jamais restaurer un brouillon à un utilisateur qui n’a plus les permissions nécessaires.
+
+⸻
+
+10. Cas particuliers à tester
+
+Merci de tester au minimum les scénarios suivants :
+
+Scénario 1 — Inactivité sans formulaire ouvert
+
+* l’utilisateur reste inactif pendant 30 minutes ;
+* avertissement avant expiration ;
+* déconnexion ;
+* retour vers la page login.
+
+Scénario 2 — Formulaire en cours
+
+* l’utilisateur commence à créer une facture ;
+* il devient inactif ;
+* le brouillon est sauvegardé ;
+* la session expire ;
+* après reconnexion, il peut reprendre la facture.
+
+Scénario 3 — Changement d’organisation
+
+* un utilisateur a accès à plusieurs organisations ;
+* un brouillon est créé dans Organisation A ;
+* après reconnexion, ce brouillon ne doit pas apparaître dans Organisation B.
+
+Scénario 4 — ERP et Cockpit
+
+* vérifier la déconnexion indépendante et cohérente dans les deux applications ;
+* vérifier les sessions partagées si une authentification commune est utilisée ;
+* éviter une situation où l’ERP est déconnecté mais le Cockpit reste ouvert sans contrôle.
+
+Scénario 5 — Déploiement production
+
+* vérifier que Premium s’affiche correctement ;
+* vérifier que l’ancien libellé Professionnel a disparu ;
+* vérifier que la donnée provient bien du pack actif ;
+* vérifier après nettoyage des caches.
+
+⸻
+
+11. Messages utilisateur
+
+Utiliser des messages simples et professionnels.
+
+Avant expiration
+
+Votre session va bientôt expirer pour des raisons de sécurité. Enregistrez votre travail ou restez connecté.
+
+Après expiration
+
+Votre session a expiré après 30 minutes d’inactivité. Vos brouillons ont été sauvegardés.
+
+Après reconnexion
+
+Nous avons retrouvé un travail non finalisé. Vous pouvez le reprendre là où vous vous étiez arrêté.
+
+⸻
+
+12. Audit global production
+
+Après correction, réaliser un audit complet de la production afin de vérifier que :
+
+* tous les changements validés en développement sont présents ;
+* les noms des packs sont corrects ;
+* les prix et modules sont synchronisés ;
+* les migrations sont appliquées ;
+* les caches sont actualisés ;
+* les permissions correspondent au bon tenant ;
+* la session expire après 30 minutes ;
+* les brouillons sont sauvegardés et restaurables ;
+* aucune donnée n’est perdue lors d’une déconnexion.
+
+⸻
+
+Résultat attendu
+
+Je veux obtenir une production parfaitement alignée avec le développement, notamment :
+
+* affichage du pack Premium au lieu de Professionnel ;
+* suppression de tous les anciens libellés ;
+* configuration centralisée et synchronisée ;
+* déconnexion automatique après 30 minutes d’inactivité ;
+* avertissement avant expiration ;
+* sauvegarde automatique du travail en cours ;
+* restauration des brouillons après reconnexion ;
+* sécurité et isolation strictes par organisation.
+
+Objectif final
+
+Garantir une expérience Gameasu stable, sécurisée et professionnelle, où les améliorations validées en développement sont correctement déployées en production et où aucune donnée utilisateur n’est perdue à cause de l’expiration d’une session.
