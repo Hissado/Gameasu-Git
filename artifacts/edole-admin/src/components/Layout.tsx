@@ -179,6 +179,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: "Console admin",      path: "/admin",              icon: Shield,     moduleKey: "administration",       permissionKey: "admin.access",    secondary: true, description: "Administrez votre système : utilisateurs, audits, incidents et diagnostics avancés." },
       { name: "Automatisations",    path: "/automations",        icon: Workflow,   moduleKey: "administration",       permissionKey: "automation.read", secondary: true, description: "Créez des workflows automatiques : définissez les déclencheurs, actions et règles métier sans code." },
       { name: "Support",            path: "/tickets",            icon: LifeBuoy,   secondary: true,                                                                    description: "Soumettez une demande d'assistance et suivez son traitement par l'équipe concernée." },
+      { name: "Centre d'aide",      path: "/aide",               icon: BookOpen,   description: "Parcourez tous les guides interactifs et visites guidées de Gaméasù." },
     ],
   },
 ];
@@ -302,7 +303,25 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [suggestionOpen, setSuggestionOpen] = useState(false);
   const [guidesOpen, setGuidesOpen] = useState(false);
+  const [pendingGuideKey, setPendingGuideKey] = useState<string | undefined>(undefined);
   const { open: searchOpen, setOpen: setSearchOpen } = useGlobalSearch();
+
+  // Auto-open GuidesPanel when arriving from the Help Center (?aide=1)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("aide") === "1") {
+      const pending = sessionStorage.getItem("aide_launch");
+      if (pending) {
+        try {
+          const { pathKey } = JSON.parse(pending);
+          setPendingGuideKey(pathKey as string);
+        } catch { /* ignore */ }
+      }
+      setGuidesOpen(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
 
   // Expert Portal — use useActiveFirm as single source of truth (stays in sync across pages)
   const qc = useQueryClient();
@@ -1089,6 +1108,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         moduleKey={currentTourKey ?? ""}
         open={guidesOpen}
         onOpenChange={setGuidesOpen}
+        initialPathKey={pendingGuideKey}
       />
     </div>
   );

@@ -1,0 +1,278 @@
+# Mettre en place un système de guides interactifs sur l'ensemble de Gameasu
+
+Pouvez-vous concevoir un **véritable système d'aide intégré et de visites guidées interactives** couvrant **100 % des modules, sous-modules, sections et fonctionnalités** de Gameasu ?
+
+## Objectif
+
+Je souhaite que chaque utilisateur, quel que soit son niveau d'expérience, puisse apprendre à utiliser Gameasu directement depuis l'application, sans avoir besoin de consulter un manuel ou de suivre une formation préalable.
+
+Chaque module doit disposer de son propre guide interactif, facilement accessible à tout moment.
+
+Gameasu doit devenir un ERP **auto-explicatif**, où chaque fonctionnalité est accompagnée d'une aide claire, contextuelle et pédagogique.
+
+---
+
+# 1. Ajouter un guide à tous les modules
+
+Chaque module principal doit disposer d'un guide dédié.
+
+Exemples :
+
+* Accueil
+* Ventes
+* CRM
+* Achats
+* Logistique
+* Finance
+* Comptabilité
+* Fiscalité
+* Trésorerie
+* Ressources Humaines
+* Paie
+* Projets
+* Marketing
+* Documents
+* Rapports
+* Administration
+* Paramètres
+* Cockpit
+* Portail Expert
+* Add-ons
+* Assistant IA
+
+---
+
+# 2. Ajouter un guide à tous les sous-modules
+
+Le même principe doit s'appliquer à toutes les sous-sections.
+
+Par exemple :
+
+## Ressources Humaines
+
+* Collaborateurs
+* Organigramme
+* Départements
+* Postes
+* Calendrier
+* Présences
+* Feuilles de temps
+* Grille de pointage
+* Congés & absences
+* Paie
+* Simulateur de coût
+* Recrutement
+* Réclamations
+
+## Comptabilité
+
+* Plan comptable
+* Journaux
+* Écritures
+* Grand livre
+* Balance
+* États financiers
+* Fiscalité
+* Déclarations
+* Contrôle fiscal préalable
+* Clôture
+
+## Ventes
+
+* Prospects
+* Clients
+* Opportunités
+* Devis
+* Factures
+* Encaissements
+* Relances
+
+Et ainsi de suite pour tous les modules.
+
+---
+
+# 3. Ajouter un guide à chaque écran
+
+Chaque page importante doit comporter :
+
+* une courte présentation ;
+* une explication des objectifs de la page ;
+* la description des principales fonctionnalités ;
+* les étapes recommandées ;
+* les bonnes pratiques.
+
+Par exemple, sur la page **Collaborateurs** :
+
+> Cette page vous permet de créer, modifier et suivre les informations administratives et professionnelles de vos collaborateurs. Vous pouvez également consulter leur historique, leurs contrats, leurs documents et leurs affectations.
+
+---
+
+# 4. Ajouter des guides contextuels
+
+Chaque fonctionnalité importante doit disposer d'une aide dédiée.
+
+Exemples :
+
+* Comment créer un client ?
+* Comment établir une facture ?
+* Comment effectuer un rapprochement bancaire ?
+* Comment lancer une paie ?
+* Comment créer un budget ?
+* Comment clôturer un exercice ?
+* Comment importer un plan comptable ?
+
+L'utilisateur doit pouvoir ouvrir ces guides sans quitter la page.
+
+---
+
+# 5. Ajouter une bibliothèque de guides
+
+Créer un **Centre d'aide** accessible depuis toutes les pages.
+
+Il devra contenir :
+
+* tous les guides ;
+* une recherche ;
+* une classification par module ;
+* une classification par rôle utilisateur ;
+* des favoris ;
+* les guides récemment consultés.
+
+---
+
+# 6. Guides adaptés au rôle de l'utilisateur
+
+Les guides doivent s'adapter automatiquement au profil connecté.
+
+Par exemple :
+
+Un collaborateur verra des guides sur :
+
+* Mon espace ;
+* Congés ;
+* Pointage ;
+* Avances sur salaire.
+
+Un comptable verra des guides sur :
+
+* Comptabilité ;
+* Fiscalité ;
+* Trésorerie ;
+* États financiers.
+
+Un responsable RH verra des guides sur :
+
+* Recrutement ;
+* Collaborateurs ;
+* Paie ;
+* Évaluations.
+
+---
+
+# 7. Visites guidées interactives
+
+Chaque module doit proposer une visite guidée complète.
+
+Cette visite doit :
+
+* mettre en évidence les éléments importants ;
+* expliquer chaque étape ;
+* laisser l'utilisateur continuer à naviguer ;
+* pouvoir être interrompue puis reprise plus tard.
+
+Elle ne doit jamais bloquer complètement l'application.
+
+---
+
+# 8. Aides contextuelles permanentes
+
+En complément des visites guidées, ajouter :
+
+* des infobulles ;
+* des descriptions de champs ;
+* des conseils pratiques ;
+* des messages de bonnes pratiques ;
+* des explications métier.
+
+L'objectif est que l'utilisateur comprenne immédiatement ce qu'il doit faire.
+
+---
+
+# 9. Rejouer les guides
+
+Depuis chaque module, ajouter un bouton :
+
+**Voir le guide**
+
+ou
+
+**Reprendre la visite**
+
+Même si le guide a déjà été terminé, l'utilisateur doit pouvoir le relancer à tout moment.
+
+---
+
+# 10. Progression de l'utilisateur
+
+Enregistrer pour chaque utilisateur :
+
+* les guides terminés ;
+* les guides ignorés ;
+* les guides favoris ;
+* le pourcentage de progression ;
+* les modules déjà découverts.
+
+Afficher éventuellement un indicateur :
+
+**Découverte de Gameasu : 78 % complétée**
+
+---
+
+# 11. Personnalisation
+
+Les guides doivent être enregistrés par :
+
+* utilisateur ;
+* organisation (tenant) ;
+* rôle.
+
+Ainsi, un utilisateur peut masquer un guide dans une organisation tout en le conservant dans une autre.
+
+---
+
+# 12. Contenu des guides
+
+Chaque guide doit contenir :
+
+* une introduction ;
+* les objectifs ;
+* les principales fonctionnalités ;
+* les étapes d'utilisation ;
+* les bonnes pratiques ;
+* les erreurs fréquentes à éviter ;
+* les liens vers les fonctionnalités associées.
+
+---
+
+# 13. Uniformiser toute l'application
+
+Merci de parcourir toute l'application afin de vérifier qu'aucun module, sous-module, écran ou fonctionnalité importante ne soit dépourvu d'un guide ou d'une aide contextuelle.
+
+L'expérience doit être homogène dans :
+
+* l'ERP ;
+* le Cockpit ;
+* le Portail Expert ;
+* les applications mobiles.
+
+---
+
+# Résultat attendu
+
+Je veux que chaque module, sous-module, écran et fonctionnalité de Gameasu dispose d'un guide interactif, d'une aide contextuelle et d'une visite guidée facilement accessibles.
+
+L'utilisateur doit pouvoir apprendre progressivement l'utilisation de l'ERP sans quitter l'application, avec une expérience fluide, moderne et cohérente.
+
+### Objectif final
+
+Faire de Gameasu un ERP de classe Enterprise qui accompagne ses utilisateurs à chaque étape grâce à un système complet d'onboarding, de guides interactifs et d'assistance contextuelle, comparable aux meilleures solutions SaaS comme Microsoft Dynamics 365, HubSpot, Notion, Salesforce, Oracle NetSuite ou Odoo Enterprise.

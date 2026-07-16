@@ -760,39 +760,429 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       ],
     },
   ],
+
+  // ── Sous-modules comptabilité ─────────────────────────────────
+  comptabilite_journaux: [
+    {
+      key: "saisie",
+      name: "Saisie des écritures",
+      description: "Créez des écritures comptables en partie double.",
+      steps: [
+        {
+          target: "acc-kpis",
+          title: "Écritures en partie double",
+          description: "Chaque écriture doit être équilibrée (débit = crédit). Sélectionnez le journal, la date, les comptes et les montants. La validation enregistre l'écriture en statut «brouillon».",
+          action: { label: "Écritures", href: "/comptabilite/ecritures" },
+        },
+        {
+          target: "acc-kpis",
+          title: "Journaux auxiliaires",
+          description: "Consultez le journal général ou filtrez par journal auxiliaire (ventes, achats, banque, caisse). Chaque journal peut être exporté en CSV ou PDF pour votre expert-comptable.",
+          action: { label: "Comptabilité", href: "/comptabilite" },
+        },
+      ],
+    },
+    {
+      key: "grand_livre",
+      name: "Grand livre & lettrage",
+      description: "Vérifiez les soldes et rapprochez les opérations.",
+      steps: [
+        {
+          target: "acc-kpis",
+          title: "Grand livre par compte",
+          description: "Consultez l'historique de toutes les opérations d'un compte dans l'ordre chronologique. Filtrez par période ou statut de lettrage. Idéal pour vérifier un solde ou retrouver une écriture.",
+          action: { label: "Grand livre", href: "/comptabilite/grand-livre" },
+        },
+        {
+          target: "acc-kpis",
+          title: "Rapprochement bancaire",
+          description: "Importez votre relevé bancaire (OFX, CSV) et rapprochez automatiquement les lignes aux écritures de caisse/banque. Les opérations non rapprochées sont signalées en orange.",
+          action: { label: "Rapprochement", href: "/comptabilite/rapprochement" },
+        },
+      ],
+    },
+    {
+      key: "cloture",
+      name: "Clôture de période",
+      description: "Verrouillez vos exercices et éditez les états SYSCOHADA.",
+      steps: [
+        {
+          target: "acc-kpis",
+          title: "Clôturer une période",
+          description: "La clôture verrouille toutes les écritures de la période. Aucune modification n'est possible après clôture. Les soldes clôturés alimentent les états financiers définitifs.",
+          action: { label: "Clôtures", href: "/comptabilite/cloture" },
+        },
+        {
+          target: "acc-kpis",
+          title: "États financiers SYSCOHADA",
+          description: "Éditez le bilan, le compte de résultat et les flux de trésorerie conformes à la norme SYSCOHADA révisée, prêts pour le dépôt fiscal ou l'assemblée générale des actionnaires.",
+          action: { label: "Bilan", href: "/comptabilite/bilan" },
+        },
+      ],
+    },
+  ],
+
+  // ── Sous-modules RH ──────────────────────────────────────────
+  rh_conges: [
+    {
+      key: "demandes",
+      name: "Demandes de congés",
+      description: "Validez ou refusez les demandes de congé de vos équipes.",
+      steps: [
+        {
+          target: "rh-kpis",
+          title: "File des demandes",
+          description: "Toutes les demandes en attente sont listées avec le motif, la durée et le solde disponible du collaborateur. Approuvez ou refusez en un clic avec un commentaire facultatif.",
+          action: { label: "Congés", href: "/rh/conges" },
+        },
+        {
+          target: "rh-kpis",
+          title: "Politiques de congé",
+          description: "Définissez les règles d'acquisition (jours/mois, plafond, reports), les jours fériés et les types de congé (annuel, maladie, formation). Les soldes sont calculés automatiquement.",
+          action: { label: "Politiques", href: "/rh/politiques-conges" },
+        },
+      ],
+    },
+  ],
+  rh_presences: [
+    {
+      key: "pointages",
+      name: "Pointages & présences",
+      description: "Suivez les horaires et présences de vos collaborateurs.",
+      steps: [
+        {
+          target: "rh-kpis",
+          title: "Tableau de présence",
+          description: "Vue quotidienne des présences, retards, absences et heures supplémentaires. Les kiosques de pointage connectés remontent les données en temps réel sans saisie manuelle.",
+          action: { label: "Présences", href: "/presences" },
+        },
+        {
+          target: "rh-kpis",
+          title: "Feuilles de temps",
+          description: "Les collaborateurs déclarent leurs heures par projet ou tâche. Le manager valide les feuilles en fin de semaine avant leur intégration dans le calcul de la paie.",
+          action: { label: "Feuilles de temps", href: "/rh/feuilles-temps" },
+        },
+      ],
+    },
+  ],
+  rh_recrutement: [
+    {
+      key: "pipeline",
+      name: "Pipeline de recrutement",
+      description: "Gérez les candidatures de l'offre à l'embauche.",
+      steps: [
+        {
+          target: "rh-kpis",
+          title: "Offres & candidatures",
+          description: "Publiez vos offres d'emploi et suivez les candidatures en pipeline Kanban (reçue → entretien → test → offre → embauché). Chaque candidat reçoit des notifications automatiques à chaque étape.",
+          action: { label: "Recrutement", href: "/rh/recrutement" },
+        },
+        {
+          target: "rh-kpis",
+          title: "Intégration du nouveau collaborateur",
+          description: "Planifiez l'onboarding : documents à fournir, accès à créer, matériel à préparer, formation initiale. La checklist garantit qu'aucune étape critique n'est oubliée.",
+          action: { label: "Intégration", href: "/rh/integration" },
+        },
+      ],
+    },
+  ],
+
+  // ── Sous-modules FP&A ────────────────────────────────────────
+  fpa_budgets: [
+    {
+      key: "creation",
+      name: "Créer & activer un budget",
+      description: "Saisissez vos budgets versionnés et activez-les.",
+      steps: [
+        {
+          target: "fpa-kpis",
+          title: "Créer un budget",
+          description: "Un budget couvre une année fiscale et un périmètre (entreprise, projet, département). Saisissez les montants compte par compte (matrice SYSCOHADA × mois) ou importez depuis Excel.",
+          action: { label: "Budgets", href: "/fpa/budgets" },
+        },
+        {
+          target: "fpa-kpis",
+          title: "Versionnage & duplication",
+          description: "Créez des révisions budgétaires sans effacer les versions précédentes. Dupliquez un budget pour une variante Forecast. Un seul budget peut être actif par périmètre simultanément.",
+          action: { label: "Voir les budgets", href: "/fpa/budgets" },
+        },
+      ],
+    },
+  ],
+  fpa_analyse: [
+    {
+      key: "variance",
+      name: "Analyse des écarts",
+      description: "Comparez budgets, réalisé et prévisions en temps réel.",
+      steps: [
+        {
+          target: "fpa-kpis",
+          title: "Rapport variance",
+          description: "Budget vs Réalisé par compte et par mois. Les dépassements apparaissent en rouge. Le taux d'exécution global et le top 5 des écarts sont visibles en haut du tableau.",
+          action: { label: "Variance", href: "/fpa/variance" },
+        },
+        {
+          target: "fpa-kpis",
+          title: "Projection fin d'exercice",
+          description: "L'atterrissage (YTD + budget restant) et la projection linéaire (extrapolation du rythme de consommation) donnent deux scénarios pour anticiper les ajustements nécessaires.",
+          action: { label: "Forecast", href: "/fpa/forecast" },
+        },
+      ],
+    },
+  ],
+
+  // ── Nouveaux modules ─────────────────────────────────────────
+  marketing: [
+    {
+      key: "campagnes",
+      name: "Campagnes & canaux",
+      description: "Créez et envoyez des campagnes email, SMS et notifications.",
+      steps: [
+        {
+          target: "mkt-campaigns",
+          title: "Centre de campagnes",
+          description: "Créez des campagnes email ou SMS en quelques clics : choisissez votre template, sélectionnez votre audience et planifiez l'envoi. Les statistiques (ouvertures, clics) sont disponibles en temps réel.",
+          action: { label: "Campagnes", href: "/marketing/campaigns" },
+        },
+        {
+          target: "mkt-campaigns",
+          title: "Audiences & segmentation",
+          description: "Segmentez vos contacts par critères (secteur, statut client, engagement, score). Les audiences dynamiques se mettent à jour automatiquement quand un contact change de segment.",
+          action: { label: "Audiences", href: "/marketing/audiences" },
+        },
+      ],
+    },
+    {
+      key: "analytics",
+      name: "Performance & analytics",
+      description: "Mesurez l'efficacité de vos actions marketing.",
+      steps: [
+        {
+          target: "mkt-campaigns",
+          title: "Tableaux de bord marketing",
+          description: "Taux d'ouverture, de clic, désabonnements et ROI par campagne. Comparez les performances entre vos canaux (email, SMS, push) sur n'importe quelle période.",
+          action: { label: "Analytics", href: "/marketing/analytics" },
+        },
+        {
+          target: "mkt-campaigns",
+          title: "Formulaires & lead capture",
+          description: "Créez des formulaires d'acquisition intégrables sur votre site. Les prospects capturés sont automatiquement créés dans votre CRM avec le bon scoring.",
+          action: { label: "Formulaires", href: "/marketing/forms" },
+        },
+      ],
+    },
+  ],
+  stock: [
+    {
+      key: "inventaire",
+      name: "Catalogue & inventaire",
+      description: "Gérez vos produits, catégories et niveaux de stock.",
+      steps: [
+        {
+          target: "stock-list",
+          title: "Catalogue produits",
+          description: "Tous vos produits avec référence, catégorie, unité de mesure et stock disponible. Les alertes de seuil minimum se déclenchent automatiquement pour éviter les ruptures.",
+        },
+        {
+          target: "stock-list",
+          title: "Entrepôts & emplacements",
+          description: "Organisez votre stock par entrepôt ou zone. Chaque mouvement est tracé avec date, responsable et justificatif. Le stock théorique et le stock réel sont distingués.",
+          action: { label: "Entrepôts", href: "/stock/entrepots" },
+        },
+      ],
+    },
+    {
+      key: "mouvements",
+      name: "Entrées, sorties & transferts",
+      description: "Suivez tous les mouvements de marchandises.",
+      steps: [
+        {
+          target: "stock-list",
+          title: "Enregistrer un mouvement",
+          description: "Créez une entrée (réception fournisseur), une sortie (livraison client) ou un transfert entre entrepôts. Le stock est mis à jour instantanément après validation.",
+        },
+        {
+          target: "stock-list",
+          title: "Inventaire physique",
+          description: "Lancez un inventaire physique pour comparer stock théorique et réel. L'ajustement est comptabilisé automatiquement dans les charges/produits de régularisation.",
+          action: { label: "Voir le stock", href: "/stock" },
+        },
+      ],
+    },
+  ],
+  expert: [
+    {
+      key: "decouverte",
+      name: "Portail cabinet expert",
+      description: "Accédez à vos clients et gérez vos missions depuis un espace dédié.",
+      steps: [
+        {
+          target: "expert-list",
+          title: "Tableau de bord cabinet",
+          description: "Vue consolidée sur tous vos clients connectés : statut de synchronisation, documents en attente et dernières activités. Passez d'un client à l'autre en un clic sans vous déconnecter.",
+          action: { label: "Mes clients", href: "/expert/clients" },
+        },
+        {
+          target: "expert-list",
+          title: "Demandes de documents",
+          description: "Créez des demandes de pièces justificatives auprès de vos clients (factures, relevés bancaires, contrats). Ils déposent directement dans leur espace sécurisé. Vous êtes notifié à chaque dépôt.",
+          action: { label: "Documents", href: "/expert/document-requests" },
+        },
+      ],
+    },
+  ],
+  documents: [
+    {
+      key: "decouverte",
+      name: "Bibliothèque documentaire",
+      description: "Centralisez, classez et partagez tous vos documents.",
+      steps: [
+        {
+          target: "docs-list",
+          title: "Organisation des fichiers",
+          description: "Classez vos documents par catégorie (contrats, factures, RH, techniques) et par entité liée (projet, client, collaborateur). La recherche plein texte retrouve n'importe quel fichier instantanément.",
+        },
+        {
+          target: "docs-list",
+          title: "Partage & permissions",
+          description: "Définissez qui peut voir, télécharger ou modifier chaque document. Les liens de partage sécurisés permettent d'envoyer des fichiers à des tiers sans créer de compte.",
+          action: { label: "Voir les documents", href: "/documents" },
+        },
+      ],
+    },
+  ],
+  rapports: [
+    {
+      key: "decouverte",
+      name: "États financiers & exports",
+      description: "Générez des rapports professionnels prêts à l'emploi.",
+      steps: [
+        {
+          target: "rpt-list",
+          title: "Catalogue de rapports",
+          description: "Accédez aux états financiers SYSCOHADA (bilan, compte de résultat, flux de trésorerie, balance) et aux rapports de gestion (rentabilité par projet, analyse commerciale).",
+        },
+        {
+          target: "rpt-list",
+          title: "Export PDF & Excel",
+          description: "Exportez chaque rapport en PDF formaté aux couleurs de votre organisation, ou en Excel pour des analyses complémentaires. Les rapports peuvent être envoyés par email en un clic.",
+          action: { label: "Voir les rapports", href: "/rapports" },
+        },
+      ],
+    },
+  ],
+  presences: [
+    {
+      key: "pointages",
+      name: "Pointages & feuilles de temps",
+      description: "Suivez les horaires, présences et feuilles de temps de vos équipes.",
+      steps: [
+        {
+          target: "rh-kpis",
+          title: "Tableau de présence quotidien",
+          description: "Vue du jour : présents, absents, retards et heures supplémentaires. Les kiosques de pointage connectés remontent les données en temps réel — aucune saisie manuelle requise.",
+        },
+        {
+          target: "rh-kpis",
+          title: "Feuilles de temps par projet",
+          description: "Les collaborateurs déclarent leurs heures par projet ou tâche. Le manager valide les feuilles hebdomadaires. Les heures validées alimentent automatiquement le module de paie.",
+          action: { label: "Feuilles de temps", href: "/rh/feuilles-temps" },
+        },
+      ],
+    },
+  ],
 };
 
 // ─── Constants & LS helpers ─────────────────────────────────────────────────────
 
 export const TOUR_MODULE_MAP: Record<string, string> = {
+  // Général
   "/": "dashboard",
-  // CRM & Commercial
+  "/briefing": "dashboard",
+  "/notifications": "dashboard",
+  "/alertes": "dashboard",
+  "/carte": "dashboard",
+  "/intelligence": "dashboard",
+  "/approbations": "dashboard",
+  "/assistant-ia": "dashboard",
+  "/quick": "dashboard",
+
+  // Ventes & CRM
   "/crm": "crm",
   "/clients": "clients",
+  "/tarification": "clients",
   "/devis": "devis",
   "/commandes": "commandes",
   "/factures": "factures",
   "/paiements": "paiements",
   "/avoirs": "factures",
+  "/recouvrement": "comptabilite",
+  "/marketing": "marketing",
+
   // Opérations
   "/projets": "projets",
+  "/portefeuille": "projets",
+  "/charge": "projets",
   "/tasks": "taches",
   "/services": "services",
   "/equipements": "equipements",
   "/locations": "locations",
   "/inspections": "locations",
   "/logistique": "logistique",
-  // Finance
+  "/operations": "logistique",
+  "/stock": "stock",
+  "/documents": "documents",
+  "/rapports": "rapports",
+
+  // Finance — sous-modules spécialisés (exact > préfixe)
   "/comptabilite/plan-comptable": "plan_comptable",
+  "/comptabilite/ecritures": "comptabilite_journaux",
+  "/comptabilite/grand-livre": "comptabilite_journaux",
+  "/comptabilite/balance": "comptabilite_journaux",
+  "/comptabilite/rapprochement": "comptabilite_journaux",
+  "/comptabilite/cloture": "comptabilite_journaux",
+  "/comptabilite/bilan": "comptabilite_journaux",
+  "/comptabilite/compte-de-resultat": "comptabilite_journaux",
+  "/comptabilite/flux-tresorerie": "comptabilite_journaux",
+  "/comptabilite/analytique": "comptabilite_journaux",
+  "/comptabilite/lettrage": "comptabilite_journaux",
   "/comptabilite": "comptabilite",
+  "/finance/tresorerie": "comptabilite",
+  "/fiscal/moteur": "comptabilite",
+  "/conformite": "comptabilite",
+  "/fpa/budgets": "fpa_budgets",
+  "/fpa/variance": "fpa_analyse",
+  "/fpa/forecast": "fpa_analyse",
+  "/fpa/cashflow": "fpa_analyse",
+  "/fpa/reports": "fpa_analyse",
   "/fpa": "fpa",
   "/achats": "achats",
-  // RH
+
+  // RH — sous-modules spécialisés
+  "/rh/conges": "rh_conges",
+  "/rh/politiques-conges": "rh_conges",
+  "/rh/recrutement": "rh_recrutement",
+  "/rh/integration": "rh_recrutement",
+  "/rh/feuilles-temps": "rh_presences",
+  "/rh/btp-pointage": "rh_presences",
+  "/presences": "rh_presences",
+  "/kiosques": "rh_presences",
   "/rh": "rh",
   "/collaborateurs": "collaborateurs",
-  // Administration & Communication
+
+  // Communication
   "/messaging": "messagerie",
+  "/appels": "messagerie",
+
+  // Expert
+  "/expert": "expert",
+
+  // Administration
   "/utilisateurs": "utilisateurs",
+  "/admin": "parametres",
+  "/workspace-settings": "parametres",
+  "/abonnement": "parametres",
+  "/automations": "parametres",
   "/parametres": "parametres",
 };
 
@@ -1345,9 +1735,10 @@ interface GuidesPanelProps {
   moduleKey: string;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  initialPathKey?: string;
 }
 
-export function GuidesPanel({ moduleKey, open, onOpenChange }: GuidesPanelProps) {
+export function GuidesPanel({ moduleKey, open, onOpenChange, initialPathKey }: GuidesPanelProps) {
   const [activePath, setActivePath] = useState<string | null>(null);
   const [tourActive, setTourActive] = useState(false);
   const [tick, setTick] = useState(0);
@@ -1389,6 +1780,33 @@ export function GuidesPanel({ moduleKey, open, onOpenChange }: GuidesPanelProps)
       })
       .catch(() => {});
   }, [open, moduleKey]);
+
+  // Auto-launch a specific path when opened from the Help Center
+  useEffect(() => {
+    if (!open || !initialPathKey) return;
+    const pending = sessionStorage.getItem("aide_launch");
+    if (!pending) return;
+    let parsed: { moduleKey: string; pathKey: string } | null = null;
+    try { parsed = JSON.parse(pending); } catch { return; }
+    if (!parsed || parsed.moduleKey !== moduleKey) return;
+    sessionStorage.removeItem("aide_launch");
+    // Small delay so panel's server-sync effect runs first
+    const t = setTimeout(() => {
+      const pk = parsed!.pathKey;
+      const path = paths.find(p => p.key === pk);
+      if (path) {
+        if (!localStorage.getItem(LS_PATH_DONE(moduleKey, pk))) {
+          localStorage.setItem(LS_PATH_STEP(moduleKey, pk), "0");
+          syncProgressToServer(pk, 0, false);
+        }
+        setActivePath(pk);
+        setTourActive(true);
+        onOpenChange(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialPathKey]);
 
   const startPath = useCallback((pathKey: string) => {
     const path = paths.find(p => p.key === pathKey);

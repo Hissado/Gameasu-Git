@@ -204,6 +204,7 @@ const HrSalaryAdvances = lazy(() => import("@/pages/hr/salary-advances"));
 const FiscalEngine = lazy(() => import("@/pages/fiscal/engine"));
 const CompliancePage = lazy(() => import("@/pages/compliance/index"));
 const InvoiceScannerPage = lazy(() => import("@/pages/compliance/scanner"));
+const AidePage = lazy(() => import("@/pages/aide/index"));
 
 // ── Cache global réglé pour confort + fraîcheur raisonnable ────────────
 const queryClient = new QueryClient({
@@ -327,6 +328,7 @@ function AppRouter() {
                 <Route path="/notifications" component={NotificationsList} />
                 <Route path="/parametres" component={Settings} />
                 <Route path="/profil" component={MyProfile} />
+                <Route path="/aide" component={AidePage} />
 
                 <Route path="/fpa" component={FpaDashboard} />
                 <Route path="/fpa/budgets" component={FpaBudgets} />
