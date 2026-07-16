@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ClipboardList, Search, ChevronLeft, ChevronRight, Filter, X,
-  Shield, AlertTriangle, Download, Activity, Users, User, Trash2, LogIn,
+  Shield, AlertTriangle, Download, Activity, Users, Trash2, LogIn,
   Eye, BarChart3, Clock, Monitor, Globe, CheckCircle2, XCircle,
   AlertCircle, Info, Zap, RefreshCw, ChevronDown, ChevronUp,
 } from "lucide-react";
@@ -593,6 +593,12 @@ export default function AdminAuditPage() {
   const [timelineUserId, setTimelineUserId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  const { data: orgUsers } = useQuery<Array<{ id: string; email: string; firstName: string; lastName: string }>>({
+    queryKey: ["users/list"],
+    queryFn: () => apiFetch("/api/users?limit=200&isActive=true"),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const resetPage = useCallback(() => setPage(1), []);
 
   const params = new URLSearchParams();
@@ -712,11 +718,19 @@ export default function AdminAuditPage() {
                     <Input value={q} onChange={e => { setQ(e.target.value); resetPage(); }}
                       placeholder="Email, entité…" className="pl-8 h-8 text-sm" />
                   </div>
-                  <div className="w-52 relative">
-                    <Label className="text-xs mb-1 block">Utilisateur (email)</Label>
-                    <User className="absolute left-3 bottom-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                    <Input value={userEmail} onChange={e => { setUserEmail(e.target.value); resetPage(); }}
-                      placeholder="prenom.nom@…" className="pl-8 h-8 text-sm" />
+                  <div className="w-56">
+                    <Label className="text-xs mb-1 block">Utilisateur</Label>
+                    <Select value={userEmail || "_all"} onValueChange={v => { setUserEmail(v === "_all" ? "" : v); resetPage(); }}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Tous les utilisateurs" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_all">Tous les utilisateurs</SelectItem>
+                        {(orgUsers ?? []).map((u: { id: string; email: string; firstName: string; lastName: string }) => (
+                          <SelectItem key={u.id} value={u.email}>
+                            {u.firstName} {u.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="w-44">
                     <Label className="text-xs mb-1 block">Action</Label>
