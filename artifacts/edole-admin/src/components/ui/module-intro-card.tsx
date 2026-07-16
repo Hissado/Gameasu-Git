@@ -124,21 +124,28 @@ export const MODULE_INTRO_MAP: Record<string, ModuleIntroConfig> = {
 
 export function useModuleIntro(moduleKey: string) {
   const { user } = useAuth();
-  const storageKey = `intro_seen:${user?.id ?? "anon"}:${moduleKey}`;
+  // Ne jamais utiliser "anon" comme clé : si l'utilisateur ferme le bandeau
+  // avant que le userId soit chargé, la préférence est enregistrée sous la
+  // clé "anon" et le bandeau réapparaît dès que le vrai userId est disponible.
+  // On attend que user.id soit connu avant d'afficher quoi que ce soit.
+  const storageKey = user?.id ? `intro_seen:${user.id}:${moduleKey}` : null;
 
-  const [shouldShow, setShouldShow] = React.useState(() => {
-    try { return !localStorage.getItem(storageKey); } catch { return false; }
-  });
+  const [shouldShow, setShouldShow] = React.useState(false);
 
-  // Recompute when storageKey changes — guards against async user resolution
-  // where the first render uses "anon" before the real userId is available.
   React.useEffect(() => {
+    if (!storageKey) {
+      setShouldShow(false);
+      return;
+    }
     try {
       setShouldShow(!localStorage.getItem(storageKey));
-    } catch {}
+    } catch {
+      setShouldShow(false);
+    }
   }, [storageKey]);
 
   const dismiss = React.useCallback(() => {
+    if (!storageKey) return;
     try { localStorage.setItem(storageKey, "1"); } catch {}
     setShouldShow(false);
   }, [storageKey]);

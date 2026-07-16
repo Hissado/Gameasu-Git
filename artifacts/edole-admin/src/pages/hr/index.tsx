@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ReadOnlyBanner } from "@/components/ui/read-only-banner";
 import { ModuleIntroCard } from "@/components/ui/module-intro-card";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { HrShell } from "./_layout";
@@ -202,6 +203,9 @@ export default function HrOverview() {
     staleTime: 60_000,
   });
 
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("rh");
+  const activeSteps = TOUR_PATHS["rh"]?.find(p => p.key === selectedPathKey)?.steps ?? TOUR_PATHS["rh"]?.[0]?.steps ?? [];
+
   const kpis = hrDash?.kpis ?? {};
   const contractsExpiring: any[] = hrDash?.contractsExpiringSoon ?? [];
   const trialPeriod: any[] = hrDash?.trialPeriodCollaborators ?? [];
@@ -245,6 +249,27 @@ export default function HrOverview() {
   return (
     <HrShell title="Vue d'ensemble" subtitle="Tableau de bord RH">
       <ReadOnlyBanner />
+      {showWelcome && (
+        <WelcomeModal
+          title="Ressources Humaines"
+          subtitle="Gérez vos équipes, contrats, absences et paie."
+          icon={Users}
+          steps={activeSteps}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+          paths={TOUR_PATHS["rh"]}
+          onStartPath={startTourWithPath}
+        />
+      )}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <ModuleIntroCard moduleKey="rh" />
       <div className="space-y-5">
 

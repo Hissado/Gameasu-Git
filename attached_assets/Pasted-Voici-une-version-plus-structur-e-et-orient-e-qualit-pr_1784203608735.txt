@@ -1,0 +1,208 @@
+Voici une version plus structurée et orientée qualité produit :
+
+Revoir le fonctionnement des guides de découverte des modules et la personnalisation du tableau de bord
+
+Pouvez-vous revoir entièrement le fonctionnement des guides de découverte des modules ainsi que la personnalisation du tableau de bord afin de garantir une expérience utilisateur fluide, cohérente et fonctionnelle ?
+
+⸻
+
+1. Corriger le comportement de « Découvrir ce module »
+
+J’ai constaté que, quel que soit le module (Projets, RH, Finance, Ventes, etc.), lorsque l’utilisateur clique sur « Compris », « Voir le guide », « Découvrir ce module » ou tout autre bouton associé au bandeau d’introduction, celui-ci ne disparaît pas définitivement ou ne se comporte pas correctement.
+
+Comportement attendu
+
+Lorsqu’un utilisateur clique sur :
+
+* Compris
+* Masquer
+* Fermer
+* Ignorer
+* Découvrir plus tard
+
+le bandeau doit :
+
+* se fermer immédiatement avec une animation fluide ;
+* libérer automatiquement l’espace occupé ;
+* ne plus s’afficher à chaque retour sur la page (sauf si l’utilisateur choisit de réactiver les guides depuis les paramètres ou relance une visite guidée).
+
+Cette préférence doit être enregistrée par :
+
+* utilisateur ;
+* organisation (tenant) ;
+* module.
+
+Ainsi, un utilisateur peut masquer le guide du module Projets tout en conservant celui du module Finance.
+
+⸻
+
+2. Fonctionnement du bouton « Voir le guide »
+
+Le bouton Voir le guide doit lancer la visite guidée complète du module.
+
+Cette visite doit :
+
+* mettre en évidence les principales fonctionnalités ;
+* expliquer chaque section étape par étape ;
+* afficher une barre de progression ;
+* proposer les boutons Suivant, Précédent, Ignorer et Terminer.
+
+À la fin de la visite :
+
+* le bandeau d’introduction peut être automatiquement masqué ;
+* l’utilisateur pourra toujours relancer la visite ultérieurement.
+
+⸻
+
+3. Vérifier tous les modules
+
+Merci de tester cette logique dans tous les modules :
+
+* Tableau de bord
+* Ventes
+* CRM
+* Achats
+* Finance
+* Comptabilité
+* Fiscalité
+* Trésorerie
+* Ressources Humaines
+* Paie
+* Projets
+* Logistique
+* Administration
+* Paramètres
+* Cockpit
+* Portail Expert
+* Add-ons
+
+Le comportement doit être strictement identique partout.
+
+⸻
+
+4. Corriger la personnalisation du tableau de bord
+
+J’ai également constaté un problème dans Personnaliser le tableau de bord.
+
+Même lorsque tous les widgets sont activés (interrupteurs activés), certains n’apparaissent pas sur le tableau de bord après enregistrement.
+
+Cela donne l’impression que la personnalisation ne fonctionne pas correctement.
+
+⸻
+
+Comportement attendu
+
+Lorsque l’utilisateur :
+
+* active un widget ;
+* modifie son ordre ;
+* désactive un widget ;
+* clique sur Enregistrer,
+
+le tableau de bord doit immédiatement refléter ces modifications.
+
+Les widgets activés doivent apparaître automatiquement sans qu’il soit nécessaire de recharger la page.
+
+⸻
+
+5. Synchronisation des préférences
+
+Les préférences de personnalisation doivent être enregistrées de manière persistante pour chaque utilisateur.
+
+Elles doivent inclure notamment :
+
+* les widgets visibles ;
+* les widgets masqués ;
+* leur ordre d’affichage (glisser-déposer) ;
+* leur taille si celle-ci est personnalisable ;
+* les graphiques favoris ;
+* les raccourcis affichés.
+
+Ces préférences doivent être conservées après :
+
+* une déconnexion ;
+* une reconnexion ;
+* un changement de navigateur ;
+* un changement d’appareil (si les paramètres sont synchronisés).
+
+⸻
+
+6. Vérifier tous les widgets
+
+Merci de vérifier que chacun des widgets peut être correctement activé, désactivé et affiché :
+
+* Vue d’ensemble (KPIs)
+* Accès rapides
+* Pointage du jour
+* Copilote IA
+* Alertes prioritaires
+* Tâches à venir
+* Graphique des revenus
+* Pipeline CRM
+* Trésorerie
+* Factures
+* Projets
+* RH
+* Calendrier
+* Notifications
+* Tous les autres widgets disponibles.
+
+Aucun widget activé ne doit rester invisible.
+
+⸻
+
+7. Vérifier la persistance des données
+
+Contrôler également que :
+
+* les préférences sont bien enregistrées en base de données ;
+* elles sont correctement récupérées lors du chargement du tableau de bord ;
+* elles sont propres à chaque utilisateur et à chaque organisation ;
+* un utilisateur appartenant à plusieurs organisations peut avoir un tableau de bord différent pour chacune.
+
+⸻
+
+8. Vérifier les droits
+
+Si certains widgets dépendent :
+
+* du pack souscrit ;
+* des modules actifs ;
+* des permissions du rôle,
+
+le système doit :
+
+* masquer les widgets non autorisés ;
+* ou afficher une explication claire indiquant pourquoi ils ne sont pas disponibles.
+
+Aucun widget ne doit être activable si l’utilisateur ne peut pas réellement l’utiliser.
+
+⸻
+
+9. Vérification technique
+
+Merci de vérifier notamment :
+
+* la sauvegarde des préférences utilisateur ;
+* la synchronisation entre le frontend et le backend ;
+* la logique des composants de widgets ;
+* les appels API de sauvegarde ;
+* la restauration automatique des préférences ;
+* la gestion du cache ;
+* les éventuels conflits entre les paramètres utilisateur et ceux de l’organisation.
+
+⸻
+
+Résultat attendu
+
+Je souhaite que :
+
+* les guides de découverte fonctionnent de manière cohérente dans tous les modules ;
+* les bandeaux puissent être fermés définitivement ou relancés à la demande ;
+* la personnalisation du tableau de bord soit entièrement fonctionnelle ;
+* tous les widgets activés apparaissent immédiatement ;
+* les préférences soient enregistrées et restaurées automatiquement.
+
+Objectif final
+
+Offrir une expérience utilisateur moderne, fluide et personnalisable, où chaque utilisateur peut configurer son tableau de bord selon ses besoins et découvrir progressivement les fonctionnalités de Gameasu grâce à des guides interactifs parfaitement intégrés.

@@ -8,6 +8,7 @@ import { Wallet, TrendingUp, TrendingDown, Scale, Receipt, Building2 } from "luc
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
 import { Link } from "wouter";
 import { ModuleIntroCard } from "@/components/ui/module-intro-card";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 type Dash = {
   cashTotal: number; creances: number; dettes: number;
@@ -41,8 +42,32 @@ export default function AccountingDashboard() {
     queryFn: () => apiFetch("/api/accounting/dashboard"),
   });
 
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("comptabilite");
+  const activeSteps = TOUR_PATHS["comptabilite"]?.find(p => p.key === selectedPathKey)?.steps ?? TOUR_PATHS["comptabilite"]?.[0]?.steps ?? [];
+
   return (
     <AccountingShell title="Comptabilité — Tableau financier" subtitle="Performance financière consolidée · Référentiel SYSCOHADA">
+      {showWelcome && (
+        <WelcomeModal
+          title="Comptabilité & Finance"
+          subtitle="Pilotez vos finances avec la norme SYSCOHADA."
+          icon={Scale}
+          steps={activeSteps}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+          paths={TOUR_PATHS["comptabilite"]}
+          onStartPath={startTourWithPath}
+        />
+      )}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <ModuleIntroCard moduleKey="comptabilite" />
       {isLoading || !data ? (
         <div className="text-muted-foreground">Chargement…</div>

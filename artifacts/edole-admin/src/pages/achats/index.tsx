@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { StatusBadgePurchases } from "./_shared";
 import { ModuleIntroCard } from "@/components/ui/module-intro-card";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -134,12 +135,36 @@ export default function AchatsOverview() {
   const urgent = overview?.urgentInvoices ?? [];
   const activity = overview?.recentActivity ?? [];
 
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("achats");
+  const activeSteps = TOUR_PATHS["achats"]?.find(p => p.key === selectedPathKey)?.steps ?? TOUR_PATHS["achats"]?.[0]?.steps ?? [];
+
   return (
     <div className="p-6 space-y-6">
       <PageHeader
         title="Vue d'ensemble Achats"
         subtitle="Tableau de bord des comptes fournisseurs"
       />
+      {showWelcome && (
+        <WelcomeModal
+          title="Module Achats"
+          subtitle="Gérez vos fournisseurs, commandes et factures reçues."
+          icon={ShoppingCart}
+          steps={activeSteps}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+          paths={TOUR_PATHS["achats"]}
+          onStartPath={startTourWithPath}
+        />
+      )}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <ModuleIntroCard moduleKey="achats" />
 
       {/* ── KPI cards — 7 indicateurs ── */}

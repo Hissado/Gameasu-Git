@@ -413,6 +413,156 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
       ],
     },
   ],
+  rh: [
+    {
+      key: "decouverte",
+      name: "Tableau de bord RH",
+      description: "KPIs RH, effectifs actifs, masse salariale et événements du mois.",
+      steps: [
+        {
+          target: "rh-kpis",
+          title: "Indicateurs RH clés",
+          description: "Vue consolidée : effectif actif, masse salariale du mois, anniversaires et fin de contrats imminents. Ces KPIs remontent automatiquement depuis les fiches collaborateurs.",
+        },
+        {
+          target: "rh-kpis",
+          title: "Répartition et activité",
+          description: "Les graphiques en bas de page montrent la pyramide des âges et la répartition par département. Le calendrier remonte les événements RH (congés, anniversaires, échéances).",
+        },
+      ],
+    },
+    {
+      key: "modules",
+      name: "Modules RH avancés",
+      description: "Paie, présences, congés et gestion des performances.",
+      steps: [
+        {
+          target: "rh-kpis",
+          title: "Gestion de la paie",
+          description: "Le module Paie génère les bulletins mensuels à partir des contrats, présences et avances sur salaire. Les cotisations patronales et salariales sont calculées automatiquement.",
+          action: { label: "Voir la paie", href: "/rh/paie" },
+        },
+        {
+          target: "rh-kpis",
+          title: "Présences et congés",
+          description: "Enregistrez les présences quotidiennes, validez les demandes de congé et suivez les soldes. Les absences sont automatiquement prises en compte dans le calcul de la paie.",
+          action: { label: "Voir les présences", href: "/presences" },
+        },
+      ],
+    },
+  ],
+  comptabilite: [
+    {
+      key: "decouverte",
+      name: "Tableau financier",
+      description: "Trésorerie, créances, dettes et résultat du mois consolidés.",
+      steps: [
+        {
+          target: "acc-kpis",
+          title: "KPIs financiers",
+          description: "Trésorerie totale, créances clients, dettes fournisseurs et résultat du mois — les 4 indicateurs clés de la santé financière de votre organisation, actualisés en temps réel.",
+        },
+        {
+          target: "acc-kpis",
+          title: "Graphique Produits vs Charges",
+          description: "La courbe sur 6 mois met en évidence les tendances et saisonnalités. Un écart positif entre produits et charges signale un mois bénéficiaire.",
+        },
+      ],
+    },
+    {
+      key: "plan",
+      name: "Plan de comptes & journaux",
+      description: "Naviguez dans la comptabilité SYSCOHADA et saisissez vos écritures.",
+      steps: [
+        {
+          target: "acc-kpis",
+          title: "Plan de comptes SYSCOHADA",
+          description: "Le plan de comptes suit la norme SYSCOHADA révisée. Chaque compte est classé par classe (immobilisations, stocks, tiers, financiers, charges, produits).",
+          action: { label: "Plan de comptes", href: "/comptabilite/plan-comptable" },
+        },
+        {
+          target: "acc-kpis",
+          title: "Journaux comptables",
+          description: "Saisissez vos écritures en partie double, consultez le journal général et les journaux auxiliaires (ventes, achats, banque, caisse). Le lettrage facilite le rapprochement.",
+          action: { label: "Journaux", href: "/comptabilite/journaux" },
+        },
+      ],
+    },
+  ],
+  achats: [
+    {
+      key: "decouverte",
+      name: "Vue d'ensemble Achats",
+      description: "Tableau de bord des comptes fournisseurs et dépenses.",
+      steps: [
+        {
+          target: "ach-kpis",
+          title: "Indicateurs Achats",
+          description: "Fournisseurs actifs, dépenses du mois, factures à échéance proche et alertes de retard — une vue synthétique de votre cycle fournisseur.",
+        },
+        {
+          target: "ach-kpis",
+          title: "Activité récente",
+          description: "Les dernières réceptions, validations de factures et paiements fournisseurs apparaissent dans le fil d'activité pour un suivi en temps réel.",
+        },
+      ],
+    },
+    {
+      key: "commandes",
+      name: "Bons de commande & factures fournisseurs",
+      description: "Gérez le cycle complet achats, de la commande au règlement.",
+      steps: [
+        {
+          target: "ach-kpis",
+          title: "Bons de commande",
+          description: "Créez vos bons de commande fournisseur, suivez leur statut (brouillon, envoyé, réceptionné) et associez-les aux factures reçues pour un contrôle 3 niveaux.",
+          action: { label: "Bons de commande", href: "/achats/bons-de-commande" },
+        },
+        {
+          target: "ach-kpis",
+          title: "Factures fournisseurs & règlements",
+          description: "Enregistrez les factures reçues, contrôlez les montants et planifiez les règlements. La comptabilisation est automatique dès la validation.",
+          action: { label: "Factures reçues", href: "/achats/factures" },
+        },
+      ],
+    },
+  ],
+  messagerie: [
+    {
+      key: "decouverte",
+      name: "Hub de messagerie",
+      description: "Messagerie interne : DM, groupes projets et conversations clients.",
+      steps: [
+        {
+          target: "msg-conv-list",
+          title: "Liste des conversations",
+          description: "Vos conversations récentes sont listées à gauche par ordre d'activité. Le badge indique les messages non lus. Cliquez pour ouvrir une conversation.",
+        },
+        {
+          target: "msg-conv-list",
+          title: "Types de conversations",
+          description: "Créez des messages directs avec un collaborateur, des groupes projets avec toute une équipe, ou des fils de discussion liés à un client ou dossier.",
+        },
+      ],
+    },
+    {
+      key: "fonctions",
+      name: "Fonctions avancées",
+      description: "Fichiers, vocaux, réactions, traduction et présence en temps réel.",
+      steps: [
+        {
+          target: "msg-conv-list",
+          title: "Pièces jointes et messages vocaux",
+          description: "Partagez des fichiers (jusqu'à 25 Mo), images, PDF et messages audio directement dans la conversation. Le bouton micro lance l'enregistrement vocal.",
+        },
+        {
+          target: "msg-conv-list",
+          title: "Traduction automatique",
+          description: "Chaque message peut être traduit instantanément en français, anglais, arabe, portugais ou espagnol via le menu contextuel. Idéal pour les équipes multilingues.",
+        },
+      ],
+    },
+  ],
 };
 
 // ─── Constants & LS helpers ─────────────────────────────────────────────────────
@@ -423,11 +573,15 @@ export const TOUR_MODULE_MAP: Record<string, string> = {
   "/projets": "projets",
   "/collaborateurs": "collaborateurs",
   "/comptabilite/plan-comptable": "plan_comptable",
+  "/comptabilite": "comptabilite",
   "/fpa": "fpa",
   "/tasks": "taches",
   "/factures": "factures",
   "/paiements": "paiements",
   "/locations": "locations",
+  "/rh": "rh",
+  "/achats": "achats",
+  "/messaging": "messagerie",
 };
 
 const LS_KEY = (k: string) => `tour_seen_${k}`;

@@ -21,6 +21,7 @@ import { getSocket, useRealtime, useConversationRoom, emitTyping } from "@/lib/r
 import { useCallCenter } from "@/components/CallCenter";
 import { cn } from "@/lib/utils";
 import { ModuleIntroCard } from "@/components/ui/module-intro-card";
+import { useModuleTour, WelcomeModal, OnboardingTour, TOUR_PATHS } from "@/components/ui/onboarding-tour";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type Participant = {
@@ -541,6 +542,9 @@ export default function Messaging() {
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
 
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("messagerie");
+  const activeSteps = TOUR_PATHS["messagerie"]?.find(p => p.key === selectedPathKey)?.steps ?? TOUR_PATHS["messagerie"]?.[0]?.steps ?? [];
+
   // Read convId / clientId from URL query params
   const urlParams = new URLSearchParams(window.location.search);
   const urlConvId = urlParams.get("convId");
@@ -954,6 +958,27 @@ export default function Messaging() {
           <NewConversationDialog onCreated={(c) => { setSelectedConvId(c.id); refresh(); }} />
         </div>
       </div>
+      {showWelcome && (
+        <WelcomeModal
+          title="Messagerie"
+          subtitle="Hub conversationnel interne : DM, groupes et échanges clients."
+          icon={MessageSquare}
+          steps={activeSteps}
+          onStart={startTour}
+          onDismiss={dismissWelcome}
+          paths={TOUR_PATHS["messagerie"]}
+          onStartPath={startTourWithPath}
+        />
+      )}
+      {tourActive && (
+        <OnboardingTour
+          steps={activeSteps}
+          onClose={closeTour}
+          pathLabel={tourPathLabel}
+          initialStep={tourInitialStep}
+          onStepChange={handleTourStepChange}
+        />
+      )}
       <ModuleIntroCard moduleKey="messagerie" />
 
       <div className="flex-1 flex gap-4 overflow-hidden">

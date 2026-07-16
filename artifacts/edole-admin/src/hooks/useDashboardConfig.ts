@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
 
 export type WidgetId =
   | "kpis"
@@ -74,8 +75,19 @@ export function useDashboardConfig() {
         method: "PUT",
         body: JSON.stringify({ widgetConfig }),
       }),
+    onMutate: async (widgetConfig) => {
+      await qc.cancelQueries({ queryKey: qk });
+      const previous = qc.getQueryData(qk);
+      qc.setQueryData(qk, { widgetConfig });
+      return { previous };
+    },
     onSuccess: (res: any) => {
       qc.setQueryData(qk, { widgetConfig: res.widgetConfig });
+      toast.success("Tableau de bord mis à jour");
+    },
+    onError: (_err: unknown, _vars: unknown, ctx: any) => {
+      if (ctx?.previous) qc.setQueryData(qk, ctx.previous);
+      toast.error("Échec de l'enregistrement — veuillez réessayer");
     },
   });
 
