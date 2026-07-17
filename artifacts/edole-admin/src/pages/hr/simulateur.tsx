@@ -513,7 +513,7 @@ function ResultsPanel({ result, mode, avances = 0 }: {
 
 function NetVersBrutTab() {
   const [net, setNet] = useState(120_000);
-  const [nbParts, setNbParts] = useState(1);
+  const [nbParts, setNbParts] = useState(0);
   const [avances, setAvances] = useState(0);
   const [rates, setRates] = useState<SalaryRates>(DEFAULT_RATES);
 
@@ -579,7 +579,7 @@ function NetVersBrutTab() {
 
 function BrutVersNetTab() {
   const [brut, setBrut] = useState(320_000);
-  const [nbParts, setNbParts] = useState(1);
+  const [nbParts, setNbParts] = useState(0);
   const [avances, setAvances] = useState(0);
   const [rates, setRates] = useState<SalaryRates>(DEFAULT_RATES);
   const [showBreakdown, setShowBreakdown] = useState(false);
