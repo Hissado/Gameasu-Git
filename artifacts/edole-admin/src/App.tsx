@@ -163,6 +163,7 @@ const AdminUsers = lazy(() => import("@/pages/admin/users"));
 const AdminInvitations = lazy(() => import("@/pages/admin/invitations"));
 const AdminAudit = lazy(() => import("@/pages/admin/audit"));
 const DataExports = lazy(() => import("@/pages/settings/data-exports"));
+const CloudStoragePage = lazy(() => import("@/pages/settings/cloud-storage"));
 const ChangePassword = lazy(() => import("@/pages/change-password"));
 const AcceptInvitation = lazy(() => import("@/pages/accept-invitation"));
 const AcceptExpertInvitation = lazy(() => import("@/pages/accept-expert-invitation"));
@@ -460,6 +461,7 @@ function AppRouter() {
                 <Route path="/admin/invitations" component={AdminInvitations} />
                 <Route path="/admin/audit" component={AdminAudit} />
                 <Route path="/admin/data-exports" component={DataExports} />
+                <Route path="/admin/cloud-storage" component={CloudStoragePage} />
                 <Route path="/changer-mdp" component={ChangePassword} />
 
                 <Route path="/abonnement" component={BillingPage} />

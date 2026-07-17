@@ -86,6 +86,8 @@ import salaryAdvancesRouter from "./salary-advances";
 import fiscalEngineRouter from "./fiscal-engine";
 import complianceRouter from "./compliance";
 import dataExportsRouter from "./data-exports";
+import cloudStorageRouter from "./cloud-storage";
+import { startSyncWorker } from "../lib/cloud-storage/sync-worker";
 import assistantIaRouter from "./assistant-ia";
 import billingManualPaymentsRouter from "./billing-manual-payments";
 import tourProgressRouter from "./tour-progress";
@@ -220,6 +222,10 @@ router.use(salaryAdvancesRouter);
 router.use(fiscalEngineRouter);
 router.use(complianceRouter);
 router.use(dataExportsRouter);
+router.use(cloudStorageRouter);
+
+// Démarrage du worker de synchronisation cloud (toutes les 2 min)
+startSyncWorker();
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()

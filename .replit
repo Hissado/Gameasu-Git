@@ -91,6 +91,7 @@ channel = "stable-25_05"
 
 [userenv.shared]
 EMAIL_FROM = "Gameasu <noreply@gameasu.com>"
+CLOUD_STORAGE_ENCRYPTION_KEY = "Bk0vWRBO46juXypePanYV3Qf7Ztf4TvKYZuOjzZmd+k="
 
 [userenv.production]
 SEED_HISSADO_DEMO = "true"

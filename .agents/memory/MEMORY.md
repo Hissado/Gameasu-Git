@@ -35,3 +35,4 @@
 - [Salary advances + fiscal engine schema](salary-advances-fiscal-engine.md) — 8 tables (3 avances, 5 fiscal); seed-hissado extends idempotently via existingRates/existing length guard; patente needs separate brackets table (no inline rate).
 - [Compliance module table naming](compliance-table-naming.md) — benefits.ts owns signatureRequestsTable; compliance tables use docSigRequestsTable/docSigSignersTable to avoid esbuild ambiguous-import; drizzle push blocks on rename prompts → use tsx migration script.
 - [Payroll engine formulas](payroll-engine-formulas.md) — single source of truth in lib/payroll-engine.ts; 8-tranche CGI Togo barème; base = floor(brut×91%×72%/1000)×1000
+- [Cloud storage integration](cloud-storage-integration.md) — googleapis already in build.mjs external[]; 2FA verify endpoint is /auth/login/verify-2fa (not /auth/verify-2fa); CLOUD_STORAGE_ENCRYPTION_KEY is a shared env var.

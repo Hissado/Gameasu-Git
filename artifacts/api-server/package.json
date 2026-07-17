@@ -24,6 +24,7 @@
     "exceljs": "^4.4.0",
     "express": "^5",
     "google-auth-library": "^10.7.0",
+    "googleapis": "^173.0.0",
     "helmet": "^8.2.0",
     "multer": "^2.1.1",
     "openai": "^6.34.0",

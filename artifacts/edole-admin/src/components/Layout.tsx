@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { useActiveFirm, useExpertClients, getActiveFirmId, setActiveFirmId, getContextOrgId, setContextOrgId, useSwitchClientContext } from "@/lib/expert-api";
 import { Link, useLocation } from "wouter";
-import { Menu, X, ChevronRight, Database, CalendarCheck, ChevronDown, EyeOff } from "lucide-react";
+import { Menu, X, ChevronRight, Database, CalendarCheck, ChevronDown, EyeOff, Cloud } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth";
 import {
@@ -175,6 +175,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Migration & Import", path: "/migration",          icon: Database,   moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Importez vos données historiques et migrez depuis d'autres outils vers Gaméasù." },
       { name: "Données & Exports",  path: "/admin/data-exports", icon: Database,   moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Exportez l'intégralité des données de votre organisation dans un fichier ZIP sécurisé." },
+      { name: "Stockage cloud",     path: "/admin/cloud-storage", icon: Cloud,      moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Synchronisez vos documents vers Google Drive ou OneDrive. Sauvegarde automatique des factures, contrats et bulletins de paie." },
       { name: "Paramètres",         path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings",   permissionKey: "settings.read",   description: "Configurez votre espace de travail : organisation, modules actifs, rôles et autorisations." },
       { name: "Abonnement",         path: "/abonnement",         icon: CreditCard, moduleKey: "billing_subscription", permissionKey: "admin.access",    description: "Découvrez et activez des fonctionnalités supplémentaires adaptées à vos besoins." },
       { name: "Console admin",      path: "/admin",              icon: Shield,     moduleKey: "administration",       permissionKey: "admin.access",    secondary: true, description: "Administrez votre système : utilisateurs, audits, incidents et diagnostics avancés." },
