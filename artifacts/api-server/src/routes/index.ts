@@ -85,6 +85,7 @@ import taxControlRouter from "./tax-control";
 import salaryAdvancesRouter from "./salary-advances";
 import fiscalEngineRouter from "./fiscal-engine";
 import complianceRouter from "./compliance";
+import dataExportsRouter from "./data-exports";
 import assistantIaRouter from "./assistant-ia";
 import billingManualPaymentsRouter from "./billing-manual-payments";
 import tourProgressRouter from "./tour-progress";
@@ -218,6 +219,7 @@ router.use(taxControlRouter);
 router.use(salaryAdvancesRouter);
 router.use(fiscalEngineRouter);
 router.use(complianceRouter);
+router.use(dataExportsRouter);
 
 // Seed RBAC au démarrage (idempotent).
 seedRbac()

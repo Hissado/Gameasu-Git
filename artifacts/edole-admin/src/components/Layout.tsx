@@ -174,6 +174,7 @@ const NAV_GROUPS: NavGroup[] = [
     description: "Configurez votre organisation, vos utilisateurs, permissions, abonnements, modules et paramètres.",
     items: [
       { name: "Migration & Import", path: "/migration",          icon: Database,   moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Importez vos données historiques et migrez depuis d'autres outils vers Gaméasù." },
+      { name: "Données & Exports",  path: "/admin/data-exports", icon: Database,   moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Exportez l'intégralité des données de votre organisation dans un fichier ZIP sécurisé." },
       { name: "Paramètres",         path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings",   permissionKey: "settings.read",   description: "Configurez votre espace de travail : organisation, modules actifs, rôles et autorisations." },
       { name: "Abonnement",         path: "/abonnement",         icon: CreditCard, moduleKey: "billing_subscription", permissionKey: "admin.access",    description: "Découvrez et activez des fonctionnalités supplémentaires adaptées à vos besoins." },
       { name: "Console admin",      path: "/admin",              icon: Shield,     moduleKey: "administration",       permissionKey: "admin.access",    secondary: true, description: "Administrez votre système : utilisateurs, audits, incidents et diagnostics avancés." },

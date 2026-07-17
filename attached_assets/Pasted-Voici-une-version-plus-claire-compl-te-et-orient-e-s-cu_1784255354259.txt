@@ -1,0 +1,443 @@
+Voici une version plus claire, complète et orientée sécurité, sauvegarde et portabilité des données :
+
+Pouvez-vous mettre en place dans Gameasu une solution complète de sauvegarde cloud sécurisée, de restauration et d’export intégral des données de chaque organisation ?
+
+Objectif
+
+Je veux que les données de chaque tenant soient sauvegardées de manière fiable sur une infrastructure cloud sécurisée, avec une séparation stricte entre les organisations.
+
+Chaque client doit pouvoir accéder à son espace uniquement après authentification avec ses identifiants Gameasu, tandis qu’un administrateur autorisé doit pouvoir télécharger une copie complète des données de son organisation.
+
+La solution doit garantir :
+
+* la sécurité ;
+* la confidentialité ;
+* la disponibilité ;
+* la restauration après incident ;
+* la portabilité des données ;
+* la traçabilité de toutes les opérations.
+
+⸻
+
+1. Sauvegarde cloud sécurisée par organisation
+
+Toutes les données importantes doivent être sauvegardées dans un environnement cloud sécurisé.
+
+Cela inclut notamment :
+
+* clients ;
+* fournisseurs ;
+* collaborateurs ;
+* paie ;
+* présences ;
+* factures ;
+* devis ;
+* paiements ;
+* encaissements ;
+* achats ;
+* dépenses ;
+* comptabilité ;
+* écritures ;
+* documents ;
+* pièces jointes ;
+* projets ;
+* budgets ;
+* rapports ;
+* paramètres ;
+* utilisateurs ;
+* rôles et permissions ;
+* historique d’audit ;
+* données des add-ons.
+
+Chaque sauvegarde doit être strictement liée au bon organization_id ou tenant_id.
+
+Aucune donnée d’une organisation ne doit être accessible depuis une autre.
+
+⸻
+
+2. Accès sécurisé avec les identifiants Gameasu
+
+Le client doit accéder à ses données avec ses identifiants habituels Gameasu.
+
+Prévoir :
+
+* authentification sécurisée ;
+* mot de passe robuste ;
+* double authentification si activée ;
+* contrôle de la session ;
+* déconnexion après inactivité ;
+* vérification des permissions ;
+* journalisation des accès.
+
+L’accès aux sauvegardes et aux exports ne doit jamais se faire au moyen d’un simple lien public permanent.
+
+⸻
+
+3. Centre de sauvegarde et de récupération
+
+Créer une section dans l’ERP :
+
+Administration > Sauvegarde & récupération
+
+ou
+
+Paramètres > Données & sauvegardes
+
+Cette section doit afficher :
+
+* date de la dernière sauvegarde ;
+* statut de la sauvegarde ;
+* prochaine sauvegarde prévue ;
+* taille totale des données ;
+* nombre de sauvegardes disponibles ;
+* période de conservation ;
+* historique des sauvegardes ;
+* historique des restaurations ;
+* état des vérifications d’intégrité.
+
+⸻
+
+4. Fréquence des sauvegardes
+
+Prévoir plusieurs niveaux de sauvegarde :
+
+* sauvegarde automatique quotidienne ;
+* sauvegarde hebdomadaire ;
+* sauvegarde mensuelle ;
+* sauvegarde manuelle avant une opération sensible ;
+* sauvegarde automatique avant une migration importante ;
+* sauvegarde avant un import massif ;
+* sauvegarde avant un changement de référentiel comptable.
+
+Les grandes organisations doivent pouvoir bénéficier d’une fréquence plus élevée selon leur offre ou add-on.
+
+⸻
+
+5. Versioning et points de restauration
+
+Conserver plusieurs versions des données afin de revenir à une situation antérieure.
+
+Exemples :
+
+* état de la veille ;
+* état d’il y a 7 jours ;
+* état de fin de mois ;
+* sauvegarde avant import ;
+* sauvegarde avant mise à jour majeure.
+
+Chaque point de restauration doit afficher :
+
+* date et heure ;
+* type de sauvegarde ;
+* utilisateur ou processus à l’origine ;
+* taille ;
+* statut ;
+* commentaire ;
+* version de l’application.
+
+⸻
+
+6. Restauration des données
+
+Permettre une restauration sécurisée.
+
+Types de restauration
+
+* restauration complète du tenant ;
+* restauration d’un module ;
+* restauration de documents ;
+* restauration d’un enregistrement supprimé ;
+* restauration d’un point précis dans le temps si l’infrastructure le permet.
+
+Workflow recommandé
+
+1. L’administrateur choisit une sauvegarde.
+2. Le système affiche un résumé de l’impact.
+3. Une confirmation renforcée est demandée.
+4. Une nouvelle sauvegarde est créée avant restauration.
+5. La restauration est exécutée.
+6. Un rapport est généré.
+7. Les administrateurs sont notifiés.
+
+Une restauration importante doit pouvoir nécessiter :
+
+* un mot de passe récent ;
+* une confirmation 2FA ;
+* une approbation supplémentaire ;
+* ou l’intervention du support Gameasu selon la criticité.
+
+⸻
+
+7. Téléchargement de toutes les données par un administrateur
+
+Oui, cette fonctionnalité doit être prévue.
+
+Ajouter une option :
+
+Exporter toutes les données de l’organisation
+
+Seuls les utilisateurs disposant de la permission appropriée doivent pouvoir l’utiliser.
+
+Utilisateurs autorisés
+
+Par exemple :
+
+* Super Administrateur ;
+* Propriétaire de l’organisation ;
+* Administrateur des données ;
+* Expert autorisé ;
+* équipe Gameasu selon procédure de support et consentement.
+
+⸻
+
+8. Contenu de l’export complet
+
+L’export doit pouvoir inclure :
+
+* données métier ;
+* données financières ;
+* données comptables ;
+* données RH ;
+* documents ;
+* pièces jointes ;
+* historique ;
+* paramètres ;
+* utilisateurs ;
+* rôles et permissions ;
+* journal d’audit ;
+* rapports générés.
+
+Prévoir un fichier compressé contenant une structure claire, par exemple :
+
+* clients.csv
+* fournisseurs.csv
+* factures.csv
+* paiements.csv
+* collaborateurs.csv
+* paie.csv
+* ecritures_comptables.csv
+* projets.csv
+* documents/
+* pieces_jointes/
+* parametres.json
+* permissions.json
+* journal_audit.csv
+* manifest.json
+
+⸻
+
+9. Formats d’export
+
+Prévoir des formats standards et exploitables :
+
+* CSV ;
+* Excel ;
+* JSON ;
+* PDF pour certains rapports ;
+* ZIP pour l’archive complète.
+
+L’objectif est que le client puisse récupérer ses données dans un format portable et réutilisable, sans dépendre définitivement de Gameasu.
+
+⸻
+
+10. Export asynchrone et sécurisé
+
+Pour les gros volumes, ne pas générer l’export directement dans le navigateur.
+
+Workflow recommandé :
+
+1. L’administrateur demande l’export.
+2. Le système crée une tâche sécurisée en arrière-plan.
+3. L’utilisateur reçoit une notification lorsque l’archive est prête.
+4. Le lien de téléchargement est temporaire.
+5. Le lien expire après une courte période.
+6. Le téléchargement est journalisé.
+7. L’archive est supprimée automatiquement après expiration.
+
+Afficher un statut :
+
+* En préparation ;
+* Disponible ;
+* Téléchargé ;
+* Expiré ;
+* Échec.
+
+⸻
+
+11. Protection des données sensibles
+
+Les sauvegardes et exports doivent être protégés.
+
+Prévoir :
+
+* chiffrement en transit ;
+* chiffrement au repos ;
+* clés gérées de manière sécurisée ;
+* liens temporaires signés ;
+* contrôle d’accès strict ;
+* suppression automatique des archives temporaires ;
+* masquage ou exclusion configurable des secrets ;
+* vérification antivirus des fichiers ;
+* stockage séparé des environnements développement et production.
+
+Ne jamais exporter en clair :
+
+* mots de passe ;
+* tokens de session ;
+* secrets API ;
+* codes 2FA ;
+* clés privées ;
+* informations complètes de carte bancaire.
+
+⸻
+
+12. Permissions dédiées
+
+Ajouter des permissions spécifiques :
+
+* voir l’état des sauvegardes ;
+* lancer une sauvegarde manuelle ;
+* télécharger une sauvegarde ;
+* demander un export complet ;
+* télécharger un export complet ;
+* restaurer des données ;
+* restaurer une organisation ;
+* gérer la politique de conservation ;
+* voir l’historique des restaurations ;
+* supprimer une archive temporaire.
+
+Le fait d’être administrateur ne doit pas automatiquement donner toutes les permissions sensibles si l’organisation souhaite les séparer.
+
+⸻
+
+13. Validation renforcée avant export complet
+
+Comme l’export contient potentiellement des données sensibles, prévoir :
+
+* saisie récente du mot de passe ;
+* confirmation 2FA ;
+* affichage d’un avertissement ;
+* éventuellement validation par un second administrateur ;
+* motif de l’export ;
+* acceptation d’une déclaration de confidentialité.
+
+Message recommandé :
+
+Cet export contient des données confidentielles de votre organisation. Conservez-le dans un emplacement sécurisé et limitez son accès aux personnes autorisées.
+
+⸻
+
+14. Journal d’audit
+
+Toutes les opérations doivent être enregistrées dans le Journal d’audit :
+
+* sauvegarde créée ;
+* export demandé ;
+* export généré ;
+* archive téléchargée ;
+* restauration demandée ;
+* restauration validée ;
+* restauration effectuée ;
+* export expiré ;
+* tentative refusée.
+
+Pour chaque événement, enregistrer :
+
+* utilisateur ;
+* organisation ;
+* date et heure ;
+* type d’opération ;
+* résultat ;
+* adresse IP ;
+* appareil ;
+* volume de données ;
+* motif si applicable.
+
+⸻
+
+15. Cockpit Gameasu
+
+Dans le Cockpit, permettre à l’équipe Gameasu autorisée de suivre :
+
+* état des sauvegardes par tenant ;
+* échecs de sauvegarde ;
+* dernières sauvegardes réussies ;
+* taille de stockage ;
+* demandes de restauration ;
+* exports complets demandés ;
+* incidents ;
+* consommation de stockage.
+
+L’équipe Gameasu ne doit pas pouvoir consulter librement le contenu des sauvegardes sans procédure d’autorisation et traçabilité.
+
+⸻
+
+16. Politique de conservation
+
+Prévoir une politique configurable selon le pack ou l’organisation.
+
+Exemple :
+
+* sauvegardes quotidiennes conservées 30 jours ;
+* sauvegardes hebdomadaires conservées 3 mois ;
+* sauvegardes mensuelles conservées 12 mois ;
+* sauvegardes annuelles conservées plus longtemps ;
+* archives légales conservées selon la réglementation applicable.
+
+La suppression automatique doit elle aussi être journalisée.
+
+⸻
+
+17. Notifications
+
+Notifier les administrateurs lorsque :
+
+* une sauvegarde échoue ;
+* une restauration est demandée ;
+* une restauration est terminée ;
+* un export complet est prêt ;
+* une archive est téléchargée ;
+* une archive expire ;
+* l’espace de stockage approche de sa limite ;
+* une activité inhabituelle est détectée.
+
+⸻
+
+18. Tests obligatoires
+
+Tester notamment :
+
+* sauvegarde automatique ;
+* sauvegarde manuelle ;
+* restauration complète ;
+* restauration partielle ;
+* export complet d’un petit tenant ;
+* export complet d’un tenant volumineux ;
+* expiration du lien ;
+* utilisateur sans permission ;
+* confirmation 2FA ;
+* accès multi-organisation ;
+* tentative de téléchargement depuis une autre organisation ;
+* interruption réseau ;
+* échec de génération ;
+* reprise après incident ;
+* intégrité des fichiers exportés.
+
+⸻
+
+19. Résultat attendu
+
+Je veux que Gameasu permette :
+
+* de sauvegarder automatiquement les données de chaque organisation sur un cloud sécurisé ;
+* de restaurer les données en cas d’incident ;
+* de consulter l’historique des sauvegardes ;
+* d’accéder uniquement après authentification ;
+* de télécharger une copie complète des données avec des droits administratifs ;
+* de protéger les archives et liens de téléchargement ;
+* de garantir l’isolation stricte entre tenants ;
+* de journaliser toutes les opérations.
+
+Objectif final
+
+Faire de Gameasu un ERP fiable et digne des grandes institutions, garantissant à chaque client la sécurité, la disponibilité et la portabilité de ses données, tout en lui donnant la possibilité de récupérer une copie complète de son organisation de manière contrôlée, sécurisée et traçable.

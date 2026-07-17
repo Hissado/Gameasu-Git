@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp, uuid, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, uuid, jsonb, index, uniqueIndex, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -147,6 +147,32 @@ export const securityAlertsTable = pgTable("security_alerts", {
   resolvedIdx: index("security_alerts_resolved_idx").on(t.resolvedAt),
   createdIdx: index("security_alerts_created_idx").on(t.createdAt),
 }));
+
+// ─────────────────────────────────────────────────────────────────
+// Exports de données — jobs asynchrones
+// ─────────────────────────────────────────────────────────────────
+export const dataExportsTable = pgTable("data_exports", {
+  id:               uuid("id").primaryKey().defaultRandom(),
+  organizationId:   uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  requestedById:    uuid("requested_by_id").references(() => usersTable.id, { onDelete: "set null" }),
+  requestedByEmail: text("requested_by_email"),
+  status:           text("status").notNull().default("pending"),
+  requestedAt:      timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+  generatedAt:      timestamp("generated_at", { withTimezone: true }),
+  expiresAt:        timestamp("expires_at", { withTimezone: true }),
+  downloadedAt:     timestamp("downloaded_at", { withTimezone: true }),
+  filePath:         text("file_path"),
+  fileSize:         integer("file_size"),
+  downloadToken:    text("download_token"),
+  downloadCount:    integer("download_count").notNull().default(0),
+  triggeredBy:      text("triggered_by").notNull().default("manual"),
+  reason:           text("reason"),
+  errorMessage:     text("error_message"),
+  stats:            jsonb("stats"),
+  ipAddress:        text("ip_address"),
+  userAgent:        text("user_agent"),
+});
+export type DataExport = typeof dataExportsTable.$inferSelect;
 
 // ─────────────────────────────────────────────────────────────────
 // Schémas Zod & types
