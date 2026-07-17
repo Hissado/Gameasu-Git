@@ -1,0 +1,558 @@
+Voici une version plus claire, complète et orientée architecture SaaS multi-tenant, sécurité et gestion documentaire :
+
+Pouvez-vous mettre en place dans Gameasu une fonctionnalité permettant à chaque organisation de connecter et synchroniser son propre espace de stockage cloud, afin que ses documents et fichiers puissent être enregistrés automatiquement dans un service comme Google Drive, Microsoft OneDrive, SharePoint ou un autre fournisseur compatible ?
+
+Objectif
+
+Je veux que chaque tenant puisse choisir où stocker ses documents :
+
+* stockage sécurisé Gameasu ;
+* Google Drive ;
+* Microsoft OneDrive ;
+* SharePoint ;
+* Dropbox ;
+* Amazon S3 ou autre stockage compatible ;
+* plusieurs espaces cloud selon les besoins de l’organisation.
+
+Cette intégration doit être propre à chaque tenant, sécurisée, optionnelle et entièrement configurable.
+
+L’objectif n’est pas de remplacer la base de données de Gameasu par Google Drive ou OneDrive. Les données structurées de l’ERP doivent rester dans la base de données sécurisée de Gameasu, tandis que les documents et pièces jointes peuvent être synchronisés vers le stockage cloud choisi par l’organisation.
+
+⸻
+
+1. Clarifier ce qui doit être synchronisé
+
+La synchronisation cloud doit concerner principalement les fichiers et documents, par exemple :
+
+* factures clients ;
+* factures fournisseurs ;
+* devis ;
+* bons de commande ;
+* reçus ;
+* contrats ;
+* bulletins de paie ;
+* documents RH ;
+* pièces justificatives ;
+* rapports PDF ;
+* exports Excel ;
+* documents fiscaux ;
+* documents comptables ;
+* images ;
+* scans ;
+* signatures et cachets autorisés ;
+* pièces jointes des projets ;
+* documents des clients et fournisseurs ;
+* sauvegardes exportables si l’organisation le souhaite.
+
+Ne pas stocker directement dans Drive ou OneDrive les éléments sensibles nécessaires au fonctionnement de l’ERP, notamment :
+
+* mots de passe ;
+* tokens ;
+* sessions ;
+* règles de permissions ;
+* écritures transactionnelles internes ;
+* données techniques de sécurité ;
+* secrets API.
+
+⸻
+
+2. Ajouter une section de configuration cloud par tenant
+
+Créer une section :
+
+Paramètres > Documents & stockage cloud
+
+ou
+
+Administration > Intégrations > Stockage cloud
+
+Cette section doit permettre à l’administrateur de l’organisation de :
+
+* choisir un fournisseur cloud ;
+* connecter son compte ;
+* autoriser Gameasu via OAuth sécurisé ;
+* choisir le dossier principal ;
+* tester la connexion ;
+* activer ou désactiver la synchronisation ;
+* consulter l’état de la synchronisation ;
+* déconnecter le fournisseur ;
+* changer de fournisseur si nécessaire.
+
+⸻
+
+3. Fournisseurs à prévoir
+
+Prévoir une architecture extensible pour intégrer progressivement :
+
+* Google Drive ;
+* Microsoft OneDrive ;
+* Microsoft SharePoint ;
+* Dropbox ;
+* Amazon S3 ;
+* Azure Blob Storage ;
+* Google Cloud Storage ;
+* stockage S3 compatible ;
+* autre fournisseur ajouté plus tard.
+
+Ne pas créer une logique spécifique et rigide pour chaque fournisseur. Utiliser une couche d’abstraction commune de stockage afin de pouvoir ajouter facilement de nouveaux connecteurs.
+
+⸻
+
+4. Connexion sécurisée
+
+La connexion doit utiliser les méthodes officielles des fournisseurs.
+
+Prévoir :
+
+* OAuth 2.0 ;
+* consentement explicite du client ;
+* scopes minimaux ;
+* tokens chiffrés ;
+* renouvellement sécurisé des tokens ;
+* révocation des accès ;
+* journalisation des connexions ;
+* vérification du tenant actif ;
+* séparation stricte des identifiants par organisation.
+
+Ne jamais demander à l’utilisateur de saisir son mot de passe Google ou Microsoft directement dans Gameasu.
+
+⸻
+
+5. Structure automatique des dossiers
+
+Lors de l’activation, proposer une arborescence automatique.
+
+Exemple :
+
+Gameasu/
+├── Clients/
+│   ├── Client ABC/
+│   │   ├── Factures/
+│   │   ├── Devis/
+│   │   ├── Contrats/
+│   │   └── Documents/
+├── Fournisseurs/
+│   ├── Fournisseur XYZ/
+│   │   ├── Factures/
+│   │   ├── Bons de commande/
+│   │   └── Documents/
+├── Ressources humaines/
+│   ├── Collaborateurs/
+│   ├── Contrats/
+│   ├── Paie/
+│   └── Congés/
+├── Comptabilité/
+│   ├── Écritures exportées/
+│   ├── États financiers/
+│   ├── Fiscalité/
+│   └── Pièces justificatives/
+├── Projets/
+├── Rapports/
+└── Sauvegardes exportées/
+
+L’organisation doit pouvoir :
+
+* utiliser la structure proposée ;
+* personnaliser les dossiers ;
+* choisir les modules à synchroniser ;
+* définir des règles de classement ;
+* sélectionner un dossier existant.
+
+⸻
+
+6. Synchronisation automatique des documents
+
+Lorsqu’un document est créé ou ajouté dans Gameasu, le système doit pouvoir le synchroniser automatiquement.
+
+Exemples
+
+Lorsqu’une facture est générée :
+
+1. la facture est créée dans Gameasu ;
+2. le PDF est généré ;
+3. le fichier est envoyé dans le dossier cloud correspondant ;
+4. le lien cloud est enregistré dans Gameasu ;
+5. le statut de synchronisation est affiché.
+
+Lorsqu’une facture fournisseur est scannée :
+
+1. l’image ou le PDF est importé ;
+2. l’OCR traite le document ;
+3. la pièce originale est sauvegardée ;
+4. elle est envoyée vers le dossier Fournisseurs ;
+5. Gameasu conserve la relation avec la facture concernée.
+
+⸻
+
+7. Modes de synchronisation
+
+Prévoir plusieurs options :
+
+Sauvegarde vers le cloud
+
+Gameasu reste la source principale et envoie une copie des fichiers vers le cloud.
+
+Synchronisation bidirectionnelle contrôlée
+
+Les documents ajoutés dans un dossier cloud défini peuvent être importés dans Gameasu après validation.
+
+Archivage automatique
+
+Les documents finalisés ou clôturés sont archivés dans le cloud.
+
+Export programmé
+
+Gameasu génère régulièrement un export des documents ou rapports vers le cloud.
+
+Pour la première version, privilégier une synchronisation Gameasu vers le cloud, plus simple et plus sécurisée. La synchronisation bidirectionnelle pourra être activée plus tard avec des règles strictes.
+
+⸻
+
+8. Statuts de synchronisation
+
+Chaque document doit afficher son statut :
+
+* Non synchronisé ;
+* En attente ;
+* Synchronisation en cours ;
+* Synchronisé ;
+* Échec ;
+* Connexion expirée ;
+* Conflit détecté ;
+* Supprimé du cloud ;
+* Synchronisation suspendue.
+
+En cas d’échec, permettre :
+
+* de relancer la synchronisation ;
+* de voir le motif ;
+* de changer de dossier ;
+* de reconnecter le compte cloud.
+
+⸻
+
+9. Gestion des suppressions
+
+Définir clairement la logique lorsqu’un fichier est supprimé.
+
+Recommandation
+
+La suppression d’un document dans Gameasu ne doit pas supprimer immédiatement la copie cloud.
+
+Prévoir une option configurable :
+
+* conserver la copie cloud ;
+* déplacer le fichier dans un dossier Corbeille Gameasu ;
+* supprimer après une période de rétention ;
+* supprimer uniquement après confirmation renforcée.
+
+De même, si un document est supprimé directement dans Google Drive ou OneDrive, Gameasu doit afficher :
+
+Le fichier lié n’est plus disponible dans votre espace cloud.
+
+Le document ne doit pas disparaître silencieusement de l’ERP.
+
+⸻
+
+10. Source de vérité et duplication
+
+Le système doit éviter les incohérences entre Gameasu et le fournisseur cloud.
+
+Pour chaque document, conserver :
+
+* identifiant Gameasu ;
+* identifiant du fichier cloud ;
+* fournisseur ;
+* chemin du dossier ;
+* version ;
+* date de dernière synchronisation ;
+* taille ;
+* checksum ou empreinte ;
+* statut ;
+* utilisateur ayant déclenché l’opération.
+
+Détecter :
+
+* les doublons ;
+* les changements de nom ;
+* les fichiers déplacés ;
+* les versions différentes ;
+* les conflits.
+
+⸻
+
+11. Versioning des documents
+
+Lorsque le fournisseur le permet, conserver les versions successives.
+
+Exemple :
+
+* Facture créée ;
+* Facture modifiée ;
+* Facture corrigée ;
+* Facture signée ;
+* Facture finale envoyée.
+
+Gameasu doit toujours distinguer :
+
+* brouillon ;
+* version validée ;
+* version signée ;
+* version finale.
+
+Ne jamais écraser silencieusement un document finalisé.
+
+⸻
+
+12. Permissions
+
+Créer des permissions spécifiques :
+
+* voir la configuration du stockage cloud ;
+* connecter un fournisseur ;
+* modifier le dossier principal ;
+* activer la synchronisation ;
+* consulter les documents synchronisés ;
+* relancer une synchronisation ;
+* supprimer un lien cloud ;
+* télécharger un document ;
+* gérer la synchronisation bidirectionnelle ;
+* consulter les erreurs ;
+* exporter tous les documents.
+
+Un utilisateur ne doit accéder qu’aux fichiers des modules pour lesquels il dispose déjà des permissions dans Gameasu.
+
+⸻
+
+13. Séparation par organisation
+
+La configuration doit être propre à chaque tenant.
+
+Un même utilisateur pouvant accéder à plusieurs organisations doit pouvoir avoir :
+
+* Google Drive connecté pour Organisation A ;
+* SharePoint connecté pour Organisation B ;
+* stockage Gameasu uniquement pour Organisation C.
+
+Lors du changement d’organisation :
+
+* charger la bonne configuration cloud ;
+* afficher uniquement les documents du tenant actif ;
+* ne jamais réutiliser le token ou le dossier d’une autre organisation.
+
+⸻
+
+14. Comptes personnels et comptes professionnels
+
+Permettre de distinguer :
+
+* compte Google personnel ;
+* Google Workspace ;
+* compte Microsoft personnel ;
+* Microsoft 365 professionnel ;
+* SharePoint d’entreprise.
+
+Afficher un avertissement lorsque l’utilisateur connecte un compte personnel à une organisation professionnelle.
+
+Message recommandé :
+
+Pour une meilleure gouvernance des données, nous recommandons de connecter un compte cloud appartenant officiellement à votre organisation.
+
+⸻
+
+15. Journal d’audit
+
+Journaliser toutes les actions :
+
+* fournisseur connecté ;
+* consentement accordé ;
+* dossier sélectionné ;
+* synchronisation activée ;
+* fichier envoyé ;
+* fichier téléchargé ;
+* synchronisation échouée ;
+* document supprimé ;
+* compte déconnecté ;
+* token expiré ;
+* export massif lancé.
+
+Pour chaque événement, enregistrer :
+
+* utilisateur ;
+* organisation ;
+* document ;
+* fournisseur ;
+* date et heure ;
+* résultat ;
+* adresse IP ;
+* appareil ;
+* message d’erreur si applicable.
+
+⸻
+
+16. Notifications et alertes
+
+Notifier les administrateurs lorsque :
+
+* la connexion cloud expire ;
+* un token est révoqué ;
+* une synchronisation échoue ;
+* le quota de stockage est presque atteint ;
+* un dossier est supprimé ou déplacé ;
+* un grand nombre de fichiers échoue ;
+* un fournisseur cloud est indisponible ;
+* un export massif est terminé.
+
+⸻
+
+17. Sécurité
+
+La fonctionnalité doit respecter les règles suivantes :
+
+* chiffrement en transit ;
+* chiffrement des tokens au repos ;
+* scopes minimaux ;
+* aucune clé ou secret dans le frontend ;
+* vérification côté backend ;
+* liens temporaires pour les téléchargements ;
+* contrôle des formats de fichiers ;
+* analyse antivirus si possible ;
+* limites de taille ;
+* interdiction des fichiers exécutables dangereux ;
+* rotation et révocation des tokens ;
+* isolation stricte entre tenants.
+
+⸻
+
+18. Continuité de service
+
+Même si le fournisseur cloud est temporairement indisponible, Gameasu doit continuer à fonctionner.
+
+Le système doit :
+
+* enregistrer le document dans Gameasu ;
+* mettre la synchronisation en attente ;
+* relancer automatiquement plus tard ;
+* informer l’utilisateur ;
+* éviter toute perte de fichier.
+
+Le fournisseur cloud ne doit pas devenir un point de blocage pour l’ERP.
+
+⸻
+
+19. Cockpit Gameasu
+
+Dans le Cockpit, permettre aux utilisateurs autorisés de suivre :
+
+* tenants ayant connecté un fournisseur ;
+* fournisseur utilisé ;
+* statut de la connexion ;
+* volume synchronisé ;
+* erreurs ;
+* files d’attente ;
+* consommation de stockage Gameasu ;
+* incidents de synchronisation.
+
+L’équipe Gameasu ne doit pas pouvoir parcourir librement les documents des tenants sans autorisation explicite et journalisée.
+
+⸻
+
+20. Facturation et add-on
+
+Cette fonctionnalité peut être proposée comme :
+
+* fonctionnalité incluse dans Business ou Premium ;
+* add-on Stockage cloud ;
+* option sur devis ;
+* facturation selon le volume ou le nombre de connecteurs.
+
+Prévoir une configuration flexible dans :
+
+* Abonnement & Facturation ;
+* Add-ons ;
+* Cockpit ;
+* factures d’abonnement.
+
+⸻
+
+21. Interface utilisateur
+
+L’interface doit afficher clairement :
+
+Fournisseur connecté
+
+* Google Drive ;
+* OneDrive ;
+* SharePoint ;
+* autre.
+
+État
+
+* Connecté ;
+* Synchronisation active ;
+* Action requise ;
+* Erreur.
+
+Informations
+
+* compte connecté ;
+* dossier principal ;
+* dernière synchronisation ;
+* nombre de fichiers ;
+* volume utilisé ;
+* modules synchronisés.
+
+Boutons :
+
+* Connecter ;
+* Tester ;
+* Modifier ;
+* Synchroniser maintenant ;
+* Voir les erreurs ;
+* Déconnecter.
+
+⸻
+
+22. Tests obligatoires
+
+Tester notamment :
+
+* connexion Google Drive ;
+* connexion OneDrive ;
+* connexion SharePoint ;
+* refus du consentement ;
+* token expiré ;
+* compte déconnecté ;
+* changement d’organisation ;
+* synchronisation d’une facture ;
+* synchronisation d’un bulletin de paie ;
+* import d’un document ;
+* doublon ;
+* fichier déplacé ;
+* suppression cloud ;
+* quota dépassé ;
+* interruption réseau ;
+* synchronisation différée ;
+* utilisateur sans permission ;
+* export massif ;
+* déconnexion du fournisseur.
+
+⸻
+
+Résultat attendu
+
+Je veux que Gameasu permette à chaque organisation de connecter son propre espace Google Drive, OneDrive, SharePoint ou autre stockage cloud afin de :
+
+* sauvegarder automatiquement ses documents ;
+* classer les fichiers par module ;
+* conserver une copie cloud ;
+* synchroniser les pièces jointes ;
+* retrouver les documents depuis Gameasu ;
+* contrôler les accès ;
+* assurer la traçabilité ;
+* éviter toute perte de données ;
+* respecter l’isolation entre tenants.
+
+Objectif final
+
+Faire de Gameasu un ERP ouvert et flexible, capable de s’intégrer aux outils cloud utilisés par chaque client, tout en conservant une architecture sécurisée où Gameasu reste la source métier principale et où les documents peuvent être archivés ou synchronisés vers le stockage choisi par l’organisation.
