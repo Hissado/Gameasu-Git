@@ -1,0 +1,87 @@
+Voici une version plus professionnelle et plus précise du prompt :
+
+⸻
+
+Vérification de l’architecture de navigation sur l’ensemble de Gameasu
+
+Pouvez-vous vérifier si cette nouvelle logique de structuration a bien été appliquée à l’ensemble des modules de Gameasu, et pas uniquement au module Équipe & Ressources Humaines ?
+
+Objectif
+
+Je souhaite que tous les modules de l’ERP suivent une architecture de navigation cohérente, hiérarchique et homogène, afin d’offrir une expérience utilisateur intuitive et uniforme.
+
+Chaque module doit respecter la même logique :
+
+Niveau 1 : Module principal
+→ Niveau 2 : Rubriques fonctionnelles
+→ Niveau 3 : Sous-rubriques et fonctionnalités détaillées
+
+L’utilisateur doit toujours comprendre facilement :
+
+* où il se trouve dans l’application ;
+* quelles sont les grandes fonctionnalités disponibles ;
+* comment accéder rapidement aux fonctionnalités spécifiques.
+
+Modules concernés
+
+Merci d’analyser et de restructurer, si nécessaire, tous les modules, notamment :
+
+* Accueil
+* Ventes
+* CRM
+* Marketing
+* Achats
+* Logistique
+* Projets
+* Finance
+* Comptabilité
+* Fiscalité
+* Trésorerie
+* Équipe & RH
+* Documents
+* Rapports
+* Administration
+* Paramètres
+* Abonnement & Facturation
+* Add-ons
+* Cockpit
+* Portail Expert
+
+Analyse attendue
+
+Pour chaque module, merci de vérifier :
+
+* si les fonctionnalités sont regroupées dans la bonne catégorie ;
+* si la hiérarchie est logique et cohérente ;
+* si certaines fonctionnalités sont mal placées ou devraient être déplacées ;
+* si certaines catégories sont trop chargées ou, au contraire, trop vides ;
+* si des sous-modules méritent d’être regroupés ou subdivisés ;
+* si la navigation est simple pour un nouvel utilisateur ;
+* si l’organisation est suffisamment évolutive pour accueillir de futures fonctionnalités.
+
+Uniformité de l’expérience utilisateur
+
+Tous les modules doivent respecter les mêmes principes :
+
+* une structure à trois niveaux (Module → Rubrique → Sous-rubrique) ;
+* des intitulés cohérents et homogènes ;
+* une navigation intuitive ;
+* des descriptions courtes sous chaque module et sous-module ;
+* des guides contextuels et des visites guidées ;
+* un comportement identique des menus, panneaux latéraux et fils d’Ariane (breadcrumbs).
+
+Recommandations
+
+En complément de la vérification, je souhaite que vous réalisiez un audit global de l’architecture fonctionnelle de Gameasu et que vous proposiez toutes les améliorations nécessaires pour :
+
+* simplifier la navigation ;
+* réduire la complexité ;
+* éliminer les incohérences ;
+* améliorer la logique métier ;
+* harmoniser l’ensemble de l’application.
+
+N’hésitez pas à remettre en question la structure actuelle si une organisation plus logique, plus moderne ou plus conforme aux meilleures pratiques des ERP (SAP, Microsoft Dynamics 365, Oracle NetSuite, Odoo Enterprise, Workday, etc.) permet d’améliorer l’expérience utilisateur.
+
+Résultat attendu
+
+Je souhaite que tous les modules de Gameasu reposent sur une architecture unique, cohérente et évolutive, offrant une expérience utilisateur fluide, professionnelle et premium, où chaque fonctionnalité est facilement accessible et logiquement organisée.

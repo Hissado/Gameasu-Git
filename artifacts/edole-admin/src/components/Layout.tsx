@@ -75,96 +75,280 @@ type NavGroup = {
 };
 
 const NAV_GROUPS: NavGroup[] = [
+  // ── ACCUEIL ─────────────────────────────────────────────────────────────────
   {
     title: "Accueil",
     icon: Gauge,
     description: "Retrouvez une vue d'ensemble de votre activité, vos indicateurs clés et les actions prioritaires.",
-    items: [
-      { name: "Tableau de bord",   path: "/",                    icon: LayoutDashboard, moduleKey: "dashboard",       description: "Visualisez vos principaux indicateurs et suivez la performance de votre organisation." },
-      { name: "Briefing du jour",  path: "/briefing",            icon: Sun,             moduleKey: "dashboard",       description: "Consultez votre récapitulatif quotidien personnalisé : approbations en attente, événements et actions prioritaires." },
-      { name: "Messagerie",        path: "/messaging",           icon: MessageSquare,   moduleKey: "communications",  permissionKey: "messaging.use",            description: "Échangez en temps réel avec vos équipes : DM, groupes, pièces jointes et présence instantanée." },
-      { name: "Appels",            path: "/appels",              icon: PhoneCall,       moduleKey: "communications",  permissionKey: "messaging.use",            description: "Consultez le journal de vos appels WebRTC : historique, durée, participants et enregistrements." },
-      { name: "Intelligence IA",   path: "/intelligence",        icon: Brain,           moduleKey: "dashboard",       permissionKey: "ai.view_insights", secondary: true, description: "Exploitez vos données métier grâce à l'analyse prédictive et aux recommandations intelligentes automatiques." },
-      { name: "Assistant IA",      path: "/assistant-ia",        icon: Bot,             moduleKey: "ai_assistant",    permissionKey: "ai.view_insights",         description: "Posez vos questions métier à votre assistant IA : rédigez, analysez et obtenez des réponses en français." },
-      { name: "Approbations",      path: "/approbations",        icon: CheckSquare,     moduleKey: "dashboard",       secondary: true,                           description: "Traitez les demandes en attente de votre approbation ou signature en un seul espace." },
-      { name: "Documents cabinet", path: "/documents-cabinet",   icon: FileText,                                                                                description: "Déposez vos fichiers directement depuis l'ERP pour répondre aux demandes de votre cabinet comptable." },
+    items: [],
+    sections: [
+      {
+        id: "accueil-tableau",
+        name: "Vue d'ensemble",
+        icon: LayoutDashboard,
+        items: [
+          { name: "Tableau de bord",  path: "/",         moduleKey: "dashboard", description: "Visualisez vos principaux indicateurs et suivez la performance de votre organisation." },
+          { name: "Briefing du jour", path: "/briefing", moduleKey: "dashboard", description: "Consultez votre récapitulatif quotidien personnalisé : approbations en attente, événements et actions prioritaires." },
+        ],
+      },
+      {
+        id: "accueil-comm",
+        name: "Communication",
+        icon: MessageSquare,
+        moduleKey: "communications",
+        permissionKey: "messaging.use",
+        items: [
+          { name: "Messagerie", path: "/messaging", moduleKey: "communications", permissionKey: "messaging.use", description: "Échangez en temps réel avec vos équipes : DM, groupes, pièces jointes et présence instantanée." },
+          { name: "Appels",     path: "/appels",   moduleKey: "communications", permissionKey: "messaging.use", description: "Consultez le journal de vos appels WebRTC : historique, durée, participants et enregistrements." },
+        ],
+      },
+      {
+        id: "accueil-ia",
+        name: "Intelligence & IA",
+        icon: Brain,
+        moduleKey: "ai_assistant",
+        permissionKey: "ai.view_insights",
+        items: [
+          { name: "Assistant IA",    path: "/assistant-ia", moduleKey: "ai_assistant", permissionKey: "ai.view_insights", description: "Posez vos questions métier à votre assistant IA : rédigez, analysez et obtenez des réponses en français." },
+          { name: "Intelligence IA", path: "/intelligence", moduleKey: "dashboard",    permissionKey: "ai.view_insights", description: "Exploitez vos données métier grâce à l'analyse prédictive et aux recommandations intelligentes automatiques." },
+        ],
+      },
+      {
+        id: "accueil-workflow",
+        name: "Flux de travail",
+        icon: CheckSquare,
+        items: [
+          { name: "Approbations",      path: "/approbations",     moduleKey: "dashboard", description: "Traitez les demandes en attente de votre approbation ou signature en un seul espace." },
+          { name: "Documents cabinet", path: "/documents-cabinet",                        description: "Déposez vos fichiers directement depuis l'ERP pour répondre aux demandes de votre cabinet comptable." },
+        ],
+      },
     ],
   },
+
+  // ── VENTES ──────────────────────────────────────────────────────────────────
   {
     title: "Ventes",
     icon: TrendingUp,
     description: "Gérez vos prospects, clients, devis, factures, commandes et encaissements.",
-    items: [
-      { name: "Marketing",     path: "/marketing",    icon: Megaphone,     moduleKey: "marketing",  permissionKey: "marketing.read",  description: "Gérez vos campagnes, audiences, prospects et performances marketing depuis un seul espace." },
-      { name: "Pipeline CRM",  path: "/crm",          icon: Target,        moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Suivez vos prospects, opportunités commerciales, relances et relations clients." },
-      { name: "Clients",       path: "/clients",      icon: Building2,     moduleKey: "clients",    permissionKey: "clients.read",    description: "Gérez les informations, contacts, documents et historiques de vos clients." },
-      { name: "Tarification",  path: "/tarification", icon: Tag,           moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Définissez vos grilles de prix, remises par segment client et conditions commerciales." },
-      { name: "Devis",         path: "/devis",        icon: FileSignature, moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Créez, envoyez et suivez vos propositions commerciales." },
-      { name: "Commandes",     path: "/commandes",    icon: ShoppingCart,  moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Créez et suivez vos bons de commande clients : statut, livraisons, facturation et historique complet." },
-      { name: "Factures",      path: "/factures",     icon: FileText,      moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Émettez des factures professionnelles et suivez leur statut jusqu'au règlement." },
-      { name: "Encaissements", path: "/paiements",    icon: CreditCard,    moduleKey: "sales_crm",  permissionKey: "commercial.read", description: "Enregistrez les paiements reçus et affectez-les aux factures correspondantes." },
-      { name: "Avoirs",        path: "/avoirs",       icon: MinusCircle,   moduleKey: "sales_crm",  permissionKey: "commercial.read", secondary: true, description: "Émettez des avoirs et notes de crédit pour corriger vos facturations ou rembourser vos clients." },
+    items: [],
+    sections: [
+      {
+        id: "ventes-acquisition",
+        name: "Acquisition clients",
+        icon: Target,
+        items: [
+          { name: "Marketing",    path: "/marketing", moduleKey: "marketing", permissionKey: "marketing.read",  description: "Gérez vos campagnes, audiences, prospects et performances marketing depuis un seul espace." },
+          { name: "Pipeline CRM", path: "/crm",       moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Suivez vos prospects, opportunités commerciales, relances et relations clients." },
+          { name: "Clients",      path: "/clients",   moduleKey: "clients",   permissionKey: "clients.read",    description: "Gérez les informations, contacts, documents et historiques de vos clients." },
+        ],
+      },
+      {
+        id: "ventes-transactions",
+        name: "Transactions commerciales",
+        icon: ShoppingCart,
+        moduleKey: "sales_crm",
+        permissionKey: "commercial.read",
+        items: [
+          { name: "Tarification", path: "/tarification", moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Définissez vos grilles de prix, remises par segment client et conditions commerciales." },
+          { name: "Devis",        path: "/devis",         moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Créez, envoyez et suivez vos propositions commerciales." },
+          { name: "Commandes",    path: "/commandes",     moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Créez et suivez vos bons de commande clients : statut, livraisons, facturation et historique complet." },
+        ],
+      },
+      {
+        id: "ventes-facturation",
+        name: "Facturation & Encaissements",
+        icon: CreditCard,
+        moduleKey: "sales_crm",
+        permissionKey: "commercial.read",
+        items: [
+          { name: "Factures",      path: "/factures",  moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Émettez des factures professionnelles et suivez leur statut jusqu'au règlement." },
+          { name: "Encaissements", path: "/paiements", moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Enregistrez les paiements reçus et affectez-les aux factures correspondantes." },
+          { name: "Avoirs",        path: "/avoirs",    moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Émettez des avoirs et notes de crédit pour corriger vos facturations ou rembourser vos clients." },
+        ],
+      },
     ],
   },
+
+  // ── PROJETS ─────────────────────────────────────────────────────────────────
   {
     title: "Projets",
     icon: FolderKanban,
     description: "Planifiez vos projets, répartissez les tâches et suivez les budgets, délais et résultats.",
-    items: [
-      { name: "Projets",       path: "/projets",      icon: FolderKanban, moduleKey: "projects",  permissionKey: "projects.read",  description: "Créez et pilotez les objectifs, budgets, responsables et échéances de vos projets." },
-      { name: "Tâches",        path: "/tasks",        icon: CheckSquare,  moduleKey: "tasks",     permissionKey: "tasks.read",     description: "Créez, assignez et suivez les actions nécessaires à la réalisation des projets." },
-      { name: "Portefeuille",  path: "/portefeuille", icon: LayoutGrid,   moduleKey: "projects",  permissionKey: "projects.read",  secondary: true, description: "Analysez l'avancement, les coûts, les délais et la performance de tous vos projets." },
-      { name: "Charge équipe", path: "/charge",       icon: Activity,     moduleKey: "projects",  permissionKey: "projects.read",  secondary: true, description: "Visualisez et équilibrez la charge de travail par collaborateur et par projet : surcharges et disponibilités." },
-      { name: "Documents",     path: "/documents",    icon: FolderOpen,   moduleKey: "documents", permissionKey: "documents.read", secondary: true, description: "Centralisez, classez et partagez les documents liés à votre organisation." },
+    items: [],
+    sections: [
+      {
+        id: "projets-gestion",
+        name: "Gestion de projets",
+        icon: FolderKanban,
+        items: [
+          { name: "Projets", path: "/projets", moduleKey: "projects", permissionKey: "projects.read", description: "Créez et pilotez les objectifs, budgets, responsables et échéances de vos projets." },
+          { name: "Tâches",  path: "/tasks",   moduleKey: "tasks",    permissionKey: "tasks.read",    description: "Créez, assignez et suivez les actions nécessaires à la réalisation des projets." },
+        ],
+      },
+      {
+        id: "projets-analyse",
+        name: "Analyse & Ressources",
+        icon: LayoutGrid,
+        moduleKey: "projects",
+        permissionKey: "projects.read",
+        items: [
+          { name: "Portefeuille",  path: "/portefeuille", moduleKey: "projects",  permissionKey: "projects.read",  description: "Analysez l'avancement, les coûts, les délais et la performance de tous vos projets." },
+          { name: "Charge équipe", path: "/charge",       moduleKey: "projects",  permissionKey: "projects.read",  description: "Visualisez et équilibrez la charge de travail par collaborateur et par projet : surcharges et disponibilités." },
+          { name: "Documents",     path: "/documents",    moduleKey: "documents", permissionKey: "documents.read", description: "Centralisez, classez et partagez les documents liés à votre organisation." },
+        ],
+      },
     ],
   },
+
+  // ── LOGISTIQUE ──────────────────────────────────────────────────────────────
   {
     title: "Logistique",
     icon: Truck,
     description: "Organisez les stocks, équipements, mouvements, livraisons et opérations logistiques.",
-    items: [
-      { name: "Services",    path: "/services",    icon: Briefcase,      moduleKey: "services",           permissionKey: "services.read",   description: "Gérez votre catalogue de prestations et services : description, tarification et disponibilité par période." },
-      { name: "Opérations",  path: "/operations",  icon: Truck,          moduleKey: "operations",         permissionKey: "operations.view", description: "Planifiez et suivez vos opérations terrain : livraisons, collectes et affectation des équipes logistiques." },
-      { name: "Stock",       path: "/stock",       icon: Package,        moduleKey: "inventory_products", permissionKey: "inventory.read",  description: "Suivez les produits, quantités disponibles, entrées, sorties et alertes de stock." },
-      { name: "Équipements", path: "/equipements", icon: Wrench,         moduleKey: "inventory_assets",   permissionKey: "equipment.read",  description: "Gérez votre inventaire d'actifs et équipements : état, maintenance planifiée et disponibilité calendaire." },
-      { name: "Locations",   path: "/locations",   icon: ClipboardCheck, moduleKey: "rentals",            permissionKey: "equipment.read",  description: "Créez et suivez vos contrats de location d'équipements : planning, états des lieux et facturation." },
+    items: [],
+    sections: [
+      {
+        id: "logi-inventaire",
+        name: "Inventaire & Actifs",
+        icon: Package,
+        items: [
+          { name: "Services",    path: "/services",    moduleKey: "services",           permissionKey: "services.read",  description: "Gérez votre catalogue de prestations et services : description, tarification et disponibilité par période." },
+          { name: "Stock",       path: "/stock",       moduleKey: "inventory_products", permissionKey: "inventory.read", description: "Suivez les produits, quantités disponibles, entrées, sorties et alertes de stock." },
+          { name: "Équipements", path: "/equipements", moduleKey: "inventory_assets",   permissionKey: "equipment.read", description: "Gérez votre inventaire d'actifs et équipements : état, maintenance planifiée et disponibilité calendaire." },
+        ],
+      },
+      {
+        id: "logi-operations",
+        name: "Opérations terrain",
+        icon: Truck,
+        items: [
+          { name: "Opérations", path: "/operations", moduleKey: "operations", permissionKey: "operations.view", description: "Planifiez et suivez vos opérations terrain : livraisons, collectes et affectation des équipes logistiques." },
+          { name: "Locations",  path: "/locations",  moduleKey: "rentals",    permissionKey: "equipment.read",  description: "Créez et suivez vos contrats de location d'équipements : planning, états des lieux et facturation." },
+        ],
+      },
     ],
   },
+
+  // ── ACHATS ──────────────────────────────────────────────────────────────────
   {
     title: "Achats",
     icon: ShoppingCart,
     moduleKey: "purchases",
     description: "Gérez vos fournisseurs, demandes d'achat, commandes, dépenses, factures et paiements.",
-    items: [
-      { name: "Vue d'ensemble",        path: "/achats",                  icon: LayoutDashboard, moduleKey: "purchases", permissionKey: "purchases.read",    description: "Consultez vos indicateurs achats : dépenses du mois, fournisseurs actifs et commandes en cours." },
-      { name: "Fournisseurs",          path: "/achats/fournisseurs",     icon: Building2,       moduleKey: "purchases", permissionKey: "purchases.read",    description: "Gérez les informations, contacts, conditions et documents de vos fournisseurs." },
-      { name: "Factures fournisseurs", path: "/achats/factures",         icon: FileText,        moduleKey: "purchases", permissionKey: "purchases.read",    description: "Enregistrez et contrôlez les factures reçues avant leur paiement. Importez via OCR." },
-      { name: "Import OCR",            path: "/conformite/scanner",      icon: ScanLine,        moduleKey: "purchases", permissionKey: "purchases.read",    secondary: true, description: "Importez une facture fournisseur (PDF ou photo) et extrayez automatiquement les données par IA." },
-      { name: "Bons de commande",      path: "/achats/bons-de-commande", icon: ClipboardCheck,  moduleKey: "purchases", permissionKey: "purchases.read",    description: "Créez, approuvez et suivez les commandes adressées aux fournisseurs." },
-      { name: "Paiements",             path: "/achats/paiements",        icon: CreditCard,      moduleKey: "purchases", permissionKey: "purchases.pay",     description: "Planifiez et suivez les règlements effectués aux fournisseurs." },
-      { name: "Dépenses",              path: "/achats/depenses",         icon: Banknote,        moduleKey: "purchases", permissionKey: "purchases.read",    secondary: true, description: "Enregistrez, classez et justifiez les dépenses de l'organisation." },
-      { name: "Approbations",          path: "/achats/approbations",     icon: CheckSquare,     moduleKey: "purchases", permissionKey: "purchases.approve", secondary: true, description: "Validez ou rejetez les demandes d'achat soumises à votre approbation." },
-      { name: "Rapports",              path: "/achats/rapports",         icon: BarChart3,       moduleKey: "purchases", permissionKey: "purchases.read",    secondary: true, description: "Analysez vos performances et générez des rapports professionnels en PDF ou Excel." },
+    items: [],
+    sections: [
+      {
+        id: "achats-overview",
+        name: "Vue d'ensemble",
+        icon: LayoutDashboard,
+        directPath: "/achats",
+        moduleKey: "purchases",
+        permissionKey: "purchases.read",
+        items: [],
+      },
+      {
+        id: "achats-fournisseurs",
+        name: "Fournisseurs & Commandes",
+        icon: Building2,
+        moduleKey: "purchases",
+        permissionKey: "purchases.read",
+        items: [
+          { name: "Fournisseurs",     path: "/achats/fournisseurs",     moduleKey: "purchases", permissionKey: "purchases.read",    description: "Gérez les informations, contacts, conditions et documents de vos fournisseurs." },
+          { name: "Bons de commande", path: "/achats/bons-de-commande", moduleKey: "purchases", permissionKey: "purchases.read",    description: "Créez, approuvez et suivez les commandes adressées aux fournisseurs." },
+          { name: "Approbations",     path: "/achats/approbations",     moduleKey: "purchases", permissionKey: "purchases.approve", description: "Validez ou rejetez les demandes d'achat soumises à votre approbation." },
+        ],
+      },
+      {
+        id: "achats-facturation",
+        name: "Facturation & Paiements",
+        icon: FileText,
+        moduleKey: "purchases",
+        permissionKey: "purchases.read",
+        items: [
+          { name: "Factures fournisseurs", path: "/achats/factures",     moduleKey: "purchases", permissionKey: "purchases.read", description: "Enregistrez et contrôlez les factures reçues avant leur paiement. Importez via OCR." },
+          { name: "Import OCR",            path: "/conformite/scanner",  moduleKey: "purchases", permissionKey: "purchases.read", description: "Importez une facture fournisseur (PDF ou photo) et extrayez automatiquement les données par IA." },
+          { name: "Paiements",             path: "/achats/paiements",    moduleKey: "purchases", permissionKey: "purchases.pay",  description: "Planifiez et suivez les règlements effectués aux fournisseurs." },
+          { name: "Dépenses",              path: "/achats/depenses",     moduleKey: "purchases", permissionKey: "purchases.read", description: "Enregistrez, classez et justifiez les dépenses de l'organisation." },
+        ],
+      },
+      {
+        id: "achats-rapports",
+        name: "Analyse & Rapports",
+        icon: BarChart3,
+        moduleKey: "purchases",
+        permissionKey: "purchases.read",
+        items: [
+          { name: "Rapports achats", path: "/achats/rapports", moduleKey: "purchases", permissionKey: "purchases.read", description: "Analysez vos performances et générez des rapports professionnels en PDF ou Excel." },
+        ],
+      },
     ],
   },
+
+  // ── FINANCE ─────────────────────────────────────────────────────────────────
   {
     title: "Finance",
     icon: Landmark,
     description: "Suivez votre trésorerie, vos budgets, votre comptabilité, vos prévisions et vos obligations fiscales.",
-    items: [
-      { name: "Intelligence",         path: "/finance/intelligence",         icon: Brain,         moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Détectez les anomalies financières, analysez les tendances et exploitez les recommandations automatiques." },
-      { name: "Comptabilité",         path: "/comptabilite",                 icon: Calculator,    moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Gérez vos écritures, journaux, comptes, états financiers et contrôles comptables." },
-      { name: "Immobilisations",      path: "/comptabilite/immobilisations", icon: Landmark,      moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Gérez vos actifs immobilisés : acquisitions, calcul des amortissements et enregistrement des cessions." },
-      { name: "Trésorerie",           path: "/finance/tresorerie",           icon: Banknote,      moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Suivez les entrées, sorties, soldes disponibles et prévisions de liquidité." },
-      { name: "Recouvrement",         path: "/recouvrement",                 icon: Flame,         moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Suivez et relancez vos créances clients échues : historique, litiges et relances automatiques." },
-      { name: "Clôture des périodes", path: "/comptabilite/cloture",         icon: CalendarCheck, moduleKey: "accounting",         permissionKey: "accounting.manage", description: "Clôturez vos périodes comptables, verrouillez les écritures et générez les états de synthèse." },
-      { name: "Budgets & prévisions", path: "/fpa",                               icon: TrendingUp,    moduleKey: "financial_planning", permissionKey: "fpa.read",          description: "Préparez vos budgets et comparez les prévisions aux réalisations." },
-      { name: "Fiscalité",            path: "/fiscal/moteur",                     icon: Calculator,    moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Calculez TVA, IS, IMF, Patente et IRPP (barème OHADA/Togo), simulez votre charge fiscale et gérez vos obligations déclaratives." },
-      { name: "Contrôle fiscal",      path: "/comptabilite/controle-fiscal",      icon: ShieldCheck,   moduleKey: "accounting",         permissionKey: "accounting.read",   description: "Vérifiez la conformité fiscale de vos écritures avant soumission : détection d'anomalies et rapport de contrôle." },
-      { name: "Conformité docs",      path: "/conformite",                        icon: Lock,          moduleKey: "accounting",         permissionKey: "accounting.read",   secondary: true, description: "Tableau de bord conformité : cachets OTR sur factures, scellés SHA-256 et suivi des workflows de signature." },
-      { name: "Rapports",             path: "/rapports",                          icon: BarChart3,     moduleKey: "reports",            permissionKey: "accounting.read",   description: "Générez les états financiers correspondant au référentiel comptable actif." },
+    items: [],
+    sections: [
+      {
+        id: "fin-intelligence",
+        name: "Intelligence financière",
+        icon: Brain,
+        directPath: "/finance/intelligence",
+        moduleKey: "accounting",
+        permissionKey: "accounting.read",
+        items: [],
+      },
+      {
+        id: "fin-comptabilite",
+        name: "Comptabilité",
+        icon: Calculator,
+        moduleKey: "accounting",
+        permissionKey: "accounting.read",
+        items: [
+          { name: "Grand livre",          path: "/comptabilite",                 moduleKey: "accounting", permissionKey: "accounting.read",   description: "Gérez vos écritures, journaux, comptes, états financiers et contrôles comptables." },
+          { name: "Immobilisations",      path: "/comptabilite/immobilisations", moduleKey: "accounting", permissionKey: "accounting.read",   description: "Gérez vos actifs immobilisés : acquisitions, calcul des amortissements et enregistrement des cessions." },
+          { name: "Clôture des périodes", path: "/comptabilite/cloture",         moduleKey: "accounting", permissionKey: "accounting.manage", description: "Clôturez vos périodes comptables, verrouillez les écritures et générez les états de synthèse." },
+        ],
+      },
+      {
+        id: "fin-tresorerie",
+        name: "Trésorerie & Recouvrement",
+        icon: Banknote,
+        moduleKey: "accounting",
+        permissionKey: "accounting.read",
+        items: [
+          { name: "Trésorerie",   path: "/finance/tresorerie", moduleKey: "accounting", permissionKey: "accounting.read", description: "Suivez les entrées, sorties, soldes disponibles et prévisions de liquidité." },
+          { name: "Recouvrement", path: "/recouvrement",       moduleKey: "accounting", permissionKey: "accounting.read", description: "Suivez et relancez vos créances clients échues : historique, litiges et relances automatiques." },
+        ],
+      },
+      {
+        id: "fin-planification",
+        name: "Planification financière",
+        icon: TrendingUp,
+        moduleKey: "financial_planning",
+        permissionKey: "fpa.read",
+        items: [
+          { name: "Budgets & prévisions", path: "/fpa", moduleKey: "financial_planning", permissionKey: "fpa.read", description: "Préparez vos budgets, comparez les prévisions aux réalisations et pilotez vos atterrissages." },
+        ],
+      },
+      {
+        id: "fin-fiscalite",
+        name: "Fiscalité & Conformité",
+        icon: ShieldCheck,
+        moduleKey: "accounting",
+        permissionKey: "accounting.read",
+        items: [
+          { name: "Moteur fiscal",       path: "/fiscal/moteur",                moduleKey: "accounting", permissionKey: "accounting.read",   description: "Calculez TVA, IS, IMF, Patente et IRPP (barème OHADA/Togo), simulez votre charge fiscale et gérez vos obligations déclaratives." },
+          { name: "Contrôle fiscal",     path: "/comptabilite/controle-fiscal", moduleKey: "accounting", permissionKey: "accounting.read",   description: "Vérifiez la conformité fiscale de vos écritures avant soumission : détection d'anomalies et rapport de contrôle." },
+          { name: "Conformité docs",     path: "/conformite",                   moduleKey: "accounting", permissionKey: "accounting.read",   description: "Tableau de bord conformité : cachets OTR sur factures, scellés SHA-256 et suivi des workflows de signature." },
+          { name: "Rapports financiers", path: "/rapports",                     moduleKey: "reports",    permissionKey: "accounting.read",   description: "Générez les états financiers correspondant au référentiel comptable actif." },
+        ],
+      },
     ],
   },
+
   {
     title: "Équipe",
     icon: Users2,
@@ -398,33 +582,89 @@ const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
+  // ── PORTAIL EXPERT ──────────────────────────────────────────────────────────
   {
     title: "Portail Expert",
     icon: Network,
     description: "Gérez vos clients, missions et livrables depuis votre espace cabinet expert.",
-    items: [
-      { name: "Vue d'ensemble", path: "/expert",                   icon: LayoutDashboard, description: "Consultez votre tableau de bord cabinet : vue consolidée sur vos clients, missions et documents en attente." },
-      { name: "Mes clients",    path: "/expert/clients",           icon: Building2,       description: "Accédez à vos clients connectés : espace client, statut de synchronisation et dernière activité." },
-      { name: "Documents",      path: "/expert/document-requests", icon: FileText,        description: "Gérez vos demandes de documents auprès de vos clients : statut de réception et relances en attente." },
-      { name: "Rapports",       path: "/expert/reports",           icon: BarChart3,       description: "Générez des rapports consolidés par client : synthèses financières et livrables du cabinet." },
-      { name: "Utilisateurs",   path: "/expert/users-permissions", icon: UsersRound, secondary: true, description: "Gérez les accès de vos collaborateurs de cabinet : rôles et droits sur chaque client." },
-      { name: "Mon cabinet",    path: "/expert/firm-settings",     icon: Settings,   secondary: true, description: "Configurez votre cabinet expert : informations, logo, spécialités et préférences d'affichage." },
+    items: [],
+    sections: [
+      {
+        id: "expert-overview",
+        name: "Tableau de bord",
+        icon: LayoutDashboard,
+        directPath: "/expert",
+        items: [],
+      },
+      {
+        id: "expert-clients",
+        name: "Clients & Missions",
+        icon: Building2,
+        items: [
+          { name: "Mes clients",        path: "/expert/clients",           description: "Accédez à vos clients connectés : espace client, statut de synchronisation et dernière activité." },
+          { name: "Demandes documents", path: "/expert/document-requests", description: "Gérez vos demandes de documents auprès de vos clients : statut de réception et relances en attente." },
+          { name: "Rapports",           path: "/expert/reports",           description: "Générez des rapports consolidés par client : synthèses financières et livrables du cabinet." },
+        ],
+      },
+      {
+        id: "expert-cabinet",
+        name: "Gestion du cabinet",
+        icon: Settings,
+        items: [
+          { name: "Utilisateurs", path: "/expert/users-permissions", description: "Gérez les accès de vos collaborateurs de cabinet : rôles et droits sur chaque client." },
+          { name: "Mon cabinet",  path: "/expert/firm-settings",     description: "Configurez votre cabinet expert : informations, logo, spécialités et préférences d'affichage." },
+        ],
+      },
     ],
   },
+
+  // ── ADMINISTRATION ───────────────────────────────────────────────────────────
   {
     title: "Admin",
     icon: Shield,
     description: "Configurez votre organisation, vos utilisateurs, permissions, abonnements, modules et paramètres.",
-    items: [
-      { name: "Migration & Import", path: "/migration",          icon: Database,   moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Importez vos données historiques et migrez depuis d'autres outils vers Gaméasù." },
-      { name: "Données & Exports",  path: "/admin/data-exports", icon: Database,   moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Exportez l'intégralité des données de votre organisation dans un fichier ZIP sécurisé." },
-      { name: "Stockage cloud",     path: "/admin/cloud-storage", icon: Cloud,      moduleKey: "workspace_settings",   permissionKey: "admin.access",    description: "Synchronisez vos documents vers Google Drive ou OneDrive. Sauvegarde automatique des factures, contrats et bulletins de paie." },
-      { name: "Paramètres",         path: "/workspace-settings", icon: Settings,   moduleKey: "workspace_settings",   permissionKey: "settings.read",   description: "Configurez votre espace de travail : organisation, modules actifs, rôles et autorisations." },
-      { name: "Abonnement",         path: "/abonnement",         icon: CreditCard, moduleKey: "billing_subscription", permissionKey: "admin.access",    description: "Découvrez et activez des fonctionnalités supplémentaires adaptées à vos besoins." },
-      { name: "Console admin",      path: "/admin",              icon: Shield,     moduleKey: "administration",       permissionKey: "admin.access",    secondary: true, description: "Administrez votre système : utilisateurs, audits, incidents et diagnostics avancés." },
-      { name: "Automatisations",    path: "/automations",        icon: Workflow,   moduleKey: "administration",       permissionKey: "automation.read", secondary: true, description: "Créez des workflows automatiques : définissez les déclencheurs, actions et règles métier sans code." },
-      { name: "Support",            path: "/tickets",            icon: LifeBuoy,   secondary: true,                                                                    description: "Soumettez une demande d'assistance et suivez son traitement par l'équipe concernée." },
-      { name: "Centre d'aide",      path: "/aide",               icon: BookOpen,   description: "Parcourez tous les guides interactifs et visites guidées de Gaméasù." },
+    items: [],
+    sections: [
+      {
+        id: "admin-donnees",
+        name: "Données & Stockage",
+        icon: Database,
+        moduleKey: "workspace_settings",
+        permissionKey: "admin.access",
+        items: [
+          { name: "Migration & Import", path: "/migration",           moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Importez vos données historiques et migrez depuis d'autres outils vers Gaméasù." },
+          { name: "Données & Exports",  path: "/admin/data-exports",  moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Exportez l'intégralité des données de votre organisation dans un fichier ZIP sécurisé." },
+          { name: "Stockage cloud",     path: "/admin/cloud-storage", moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Synchronisez vos documents vers Google Drive ou OneDrive. Sauvegarde automatique des factures, contrats et bulletins de paie." },
+        ],
+      },
+      {
+        id: "admin-config",
+        name: "Configuration",
+        icon: Settings,
+        items: [
+          { name: "Paramètres",      path: "/workspace-settings", moduleKey: "workspace_settings", permissionKey: "settings.read",   description: "Configurez votre espace de travail : organisation, modules actifs, rôles et autorisations." },
+          { name: "Automatisations", path: "/automations",        moduleKey: "administration",     permissionKey: "automation.read", description: "Créez des workflows automatiques : définissez les déclencheurs, actions et règles métier sans code." },
+        ],
+      },
+      {
+        id: "admin-abo",
+        name: "Abonnement & Modules",
+        icon: CreditCard,
+        directPath: "/abonnement",
+        moduleKey: "billing_subscription",
+        permissionKey: "admin.access",
+        items: [],
+      },
+      {
+        id: "admin-support",
+        name: "Assistance",
+        icon: LifeBuoy,
+        items: [
+          { name: "Console admin", path: "/admin",    moduleKey: "administration", permissionKey: "admin.access", description: "Administrez votre système : utilisateurs, audits, incidents et diagnostics avancés." },
+          { name: "Support",       path: "/tickets",                                                              description: "Soumettez une demande d'assistance et suivez son traitement par l'équipe concernée." },
+          { name: "Centre d'aide", path: "/aide",                                                                 description: "Parcourez tous les guides interactifs et visites guidées de Gaméasù." },
+        ],
+      },
     ],
   },
 ];
