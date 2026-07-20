@@ -366,23 +366,7 @@ const NAV_GROUPS: NavGroup[] = [
         moduleKey: "team_hr",
         items: [],
       },
-      // ── 2. Pilotage RH ─────────────────────────────────────────────────────
-      {
-        id: "rh-pilotage",
-        name: "Pilotage RH",
-        icon: BarChart3,
-        description: "Indicateurs, rapports, simulateur de coût et intelligence RH.",
-        moduleKey: "team_hr",
-        permissionKey: "hr.read",
-        excludeRoles: ["collaborator"],
-        items: [
-          { name: "Indicateurs RH",   path: "/rh/indicateurs" },
-          { name: "Rapports RH",      path: "/rh/rapports" },
-          { name: "Simulateur paie",  path: "/rh/simulateur" },
-          { name: "Intelligence RH",  path: "/rh/intelligence", permissionKey: "ai.view_insights" },
-        ],
-      },
-      // ── 3. Collaborateurs ─────────────────────────────────────────────────
+      // ── 2. Collaborateurs ─────────────────────────────────────────────────
       {
         id: "rh-collaborateurs",
         name: "Collaborateurs",
@@ -394,7 +378,7 @@ const NAV_GROUPS: NavGroup[] = [
         excludeRoles: ["collaborator"],
         items: [],
       },
-      // ── 4. Recrutement ─────────────────────────────────────────────────────
+      // ── 3. Recrutement ─────────────────────────────────────────────────────
       {
         id: "rh-recrutement",
         name: "Recrutement",
@@ -517,17 +501,22 @@ const NAV_GROUPS: NavGroup[] = [
         excludeRoles: ["collaborator"],
         items: [],
       },
-      // ── 11. Évaluations ────────────────────────────────────────────────────
+      // ── 11. Notation & Rapports ────────────────────────────────────────────
       {
         id: "rh-notation-rapports",
-        name: "Évaluations",
-        icon: Target,
-        directPath: "/rh/evaluations",
-        description: "Entretiens d'évaluation, objectifs et plan de développement des compétences.",
+        name: "Notation & Rapports",
+        icon: BarChart3,
+        description: "Évaluations, objectifs, indicateurs et rapports RH.",
         moduleKey: "team_hr",
         permissionKey: "hr.read",
         excludeRoles: ["collaborator"],
-        items: [],
+        items: [
+          { name: "Évaluations",     path: "/rh/evaluations" },
+          { name: "Indicateurs",     path: "/rh/indicateurs" },
+          { name: "Rapports",        path: "/rh/rapports" },
+          { name: "Simulateur paie", path: "/rh/simulateur" },
+          { name: "Intelligence RH", path: "/rh/intelligence", permissionKey: "ai.view_insights" },
+        ],
       },
       // ── 12. Paramètres RH ──────────────────────────────────────────────────
       {
