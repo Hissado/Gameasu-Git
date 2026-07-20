@@ -40,10 +40,35 @@ type NavItem = {
   roles?: string[];
   excludeRoles?: string[];
 };
+
+// ── Navigation 3 niveaux (ex : module Équipe & RH) ───────────────────────────
+type NavSectionItem = {
+  name: string;
+  path?: string;           // undefined → "Bientôt disponible"
+  description?: string;
+  moduleKey?: string;
+  permissionKey?: string;
+  roles?: string[];
+  excludeRoles?: string[];
+};
+type NavSection = {
+  id: string;
+  name: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  description?: string;
+  directPath?: string;     // Si défini, l'en-tête est un lien direct (pas d'expand)
+  moduleKey?: string;
+  permissionKey?: string;
+  roles?: string[];
+  excludeRoles?: string[];
+  items: NavSectionItem[];
+};
+
 type NavGroup = {
   title: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   items: NavItem[];
+  sections?: NavSection[];  // navigation 3 niveaux (remplace items quand présent)
   isNew?: boolean;
   moduleKey?: string;
   description?: string;
@@ -144,15 +169,233 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Équipe",
     icon: Users2,
     description: "Gérez vos collaborateurs, contrats, congés, présences, paie, recrutements et réclamations.",
-    items: [
-      { name: "Mon espace",           path: "/rh/mon-espace",         icon: UserCircle,        moduleKey: "team_hr",                                                description: "Votre espace RH personnel : bulletins de paie, soldes de congés, avances et documents administratifs." },
-      { name: "Collaborateurs",       path: "/rh",                    icon: UsersRound,        moduleKey: "team_hr", permissionKey: "hr.read",      excludeRoles: ["collaborator"],                                                          description: "Gérez les fiches, contrats, documents et informations professionnelles de vos collaborateurs." },
-      { name: "Paie",                 path: "/rh/paie",               icon: Banknote,          moduleKey: "team_hr", permissionKey: "hr.read",      excludeRoles: ["collaborator"],                                                          description: "Préparez et validez les bulletins de paie, gérez le calendrier, les déclarations et les corrections." },
-      { name: "Avances sur salaire",  path: "/rh/avances-salaire",    icon: ArrowLeftRight,    moduleKey: "team_hr", permissionKey: "hr.read", roles: ["super_admin", "admin", "manager", "rh", "financier"], secondary: true,            description: "Approuvez les demandes d'avance, gérez les échéanciers et intégrez les retenues dans la paie." },
-      { name: "Congés & absences",    path: "/rh/conges",             icon: CalendarCheck,     moduleKey: "team_hr", permissionKey: "hr.read",      excludeRoles: ["collaborator"],                                                          description: "Gérez les demandes de congés, politiques d'absence, soldes et plannings de l'équipe." },
-      { name: "Recrutement",          path: "/rh/recrutement",        icon: GraduationCap,     moduleKey: "team_hr", permissionKey: "hr.read",      excludeRoles: ["collaborator"],                                                          description: "Publiez vos offres, suivez les candidatures et gérez le processus de recrutement." },
-      { name: "Présences",            path: "/presences",             icon: Clock,             moduleKey: "team_hr", permissionKey: "attendance.view",             excludeRoles: ["collaborator"],                                                          description: "Suivez les horaires, pointages, pauses, retards, absences et heures travaillées." },
-      { name: "Kiosques de pointage", path: "/kiosques",              icon: MonitorSmartphone, moduleKey: "team_hr", permissionKey: "attendance.manage_settings",  excludeRoles: ["collaborator"], secondary: true,                                            description: "Configurez et gérez vos kiosques de pointage physiques connectés à Gaméasù." },
+    moduleKey: "team_hr",
+    items: [],
+    sections: [
+      // ── 1. Mon espace ──────────────────────────────────────────────────────
+      {
+        id: "rh-mon-espace",
+        name: "Mon espace",
+        icon: UserCircle,
+        directPath: "/rh/mon-espace",
+        description: "Votre espace RH personnel : bulletins de paie, soldes de congés, avances et documents.",
+        moduleKey: "team_hr",
+        items: [],
+      },
+      // ── 2. Collaborateurs ─────────────────────────────────────────────────
+      {
+        id: "rh-collaborateurs",
+        name: "Collaborateurs",
+        icon: UsersRound,
+        directPath: "/rh",
+        description: "Fiches, contrats, documents et informations professionnelles de votre équipe.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [],
+      },
+      // ── 3. Recrutement ─────────────────────────────────────────────────────
+      {
+        id: "rh-recrutement",
+        name: "Recrutement",
+        icon: GraduationCap,
+        description: "Publiez vos offres, suivez les candidatures et gérez le processus d'embauche.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Dossiers de candidature", path: "/rh/recrutement" },
+          { name: "Lettres d'embauche" },
+          { name: "Visites médicales" },
+        ],
+      },
+      // ── 4. Intégration ─────────────────────────────────────────────────────
+      {
+        id: "rh-integration",
+        name: "Intégration",
+        icon: Sparkles,
+        description: "Accueillez et intégrez vos nouveaux collaborateurs.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Informations du collaborateur", path: "/rh" },
+          { name: "Création numéro d'assurance" },
+          { name: "Création NIF" },
+        ],
+      },
+      // ── 5. Structure ───────────────────────────────────────────────────────
+      {
+        id: "rh-structure",
+        name: "Structure",
+        icon: Network,
+        description: "Organisez votre entreprise : postes, départements, organigramme et mouvements.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Départements",          path: "/rh/departements" },
+          { name: "Postes",                path: "/rh/postes" },
+          { name: "Organigramme",          path: "/rh/organigramme" },
+          { name: "Affectations",          path: "/rh/affectations" },
+          { name: "Promotions" },
+          { name: "Formations",            path: "/rh/formations" },
+          { name: "Mouvements du personnel", path: "/rh/mouvements" },
+          { name: "Départs" },
+          { name: "Retraite" },
+        ],
+      },
+      // ── 6. Temps & Présence ────────────────────────────────────────────────
+      {
+        id: "rh-temps-presence",
+        name: "Temps & Présence",
+        icon: Clock,
+        description: "Suivez les horaires, pointages, absences et missions de vos équipes.",
+        moduleKey: "team_hr",
+        permissionKey: "attendance.view",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Présence & absence",         path: "/presences" },
+          { name: "Kiosques de pointage",        path: "/kiosques", permissionKey: "attendance.manage_settings" },
+          { name: "Maladie" },
+          { name: "Permissions" },
+          { name: "Déplacement professionnel" },
+          { name: "Mission" },
+        ],
+      },
+      // ── 7. Paie ────────────────────────────────────────────────────────────
+      {
+        id: "rh-paie",
+        name: "Paie",
+        icon: Banknote,
+        description: "Bulletins, calendrier, avances, congés, notes de frais et paiements.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Calendrier de paie",    path: "/rh/paie" },
+          { name: "Avances sur salaire",   path: "/rh/avances-salaire" },
+          { name: "Notes de frais",        path: "/rh/notes-frais" },
+          { name: "Congés",                path: "/rh/conges" },
+          { name: "Paiements" },
+          { name: "Corrections" },
+          { name: "Solde de tout compte" },
+        ],
+      },
+      // ── 8. Formalités administratives ──────────────────────────────────────
+      {
+        id: "rh-formalites",
+        name: "Formalités administratives",
+        icon: CheckCircle2,
+        description: "Cotisations sociales, déclarations fiscales et obligations légales.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Cotisations sociales" },
+          { name: "IRPP" },
+          { name: "DAS" },
+        ],
+      },
+      // ── 9. Documents du personnel ──────────────────────────────────────────
+      {
+        id: "rh-documents-personnel",
+        name: "Documents du personnel",
+        icon: FolderOpen,
+        description: "Templates de contrats, contrats signés, attestations et sanctions.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Templates de contrats",  path: "/rh/documents" },
+          { name: "Contrats signés",         path: "/rh/contrats" },
+          { name: "Sanctions" },
+        ],
+      },
+      // ── 10. Documents légaux ───────────────────────────────────────────────
+      {
+        id: "rh-documents-legaux",
+        name: "Documents légaux",
+        icon: FileSignature,
+        description: "Registre du personnel, code du travail, conventions collectives.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Registre du personnel" },
+          { name: "Normes de travail" },
+        ],
+      },
+      // ── 11. Notation & Rapports ────────────────────────────────────────────
+      {
+        id: "rh-notation-rapports",
+        name: "Notation & Rapports",
+        icon: BarChart3,
+        description: "Évaluations, objectifs, indicateurs et rapports RH.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Évaluations",    path: "/rh/evaluations" },
+          { name: "Indicateurs",    path: "/rh/indicateurs" },
+          { name: "Rapports",       path: "/rh/rapports" },
+          { name: "Intelligence RH", path: "/rh/intelligence", permissionKey: "ai.view_insights" },
+        ],
+      },
+      // ── 12. Paramètres RH ──────────────────────────────────────────────────
+      {
+        id: "rh-parametres",
+        name: "Paramètres",
+        icon: Settings,
+        description: "Configurez les politiques de congés, pointage, paie et notation.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Paramètres de congés",   path: "/rh/politiques-conges" },
+          { name: "Paramètres de pointage" },
+          { name: "Paramètres de paie" },
+          { name: "Paramètres de notation" },
+        ],
+      },
+      // ── 13. Archivage ──────────────────────────────────────────────────────
+      {
+        id: "rh-archivage",
+        name: "Archivage",
+        icon: FolderArchive,
+        description: "Archivage des dossiers, contrats et documents du personnel.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [
+          { name: "Dossiers archivés" },
+          { name: "Contrats archivés" },
+        ],
+      },
+      // ── 14. Réclamations & Suggestions ────────────────────────────────────
+      {
+        id: "rh-reclamations",
+        name: "Réclamations & Suggestions",
+        icon: Lightbulb,
+        directPath: "/rh/reclamations",
+        description: "Gérez les réclamations et suggestions de vos collaborateurs.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [],
+      },
+      // ── 15. Journal d'audit ────────────────────────────────────────────────
+      {
+        id: "rh-journal-audit",
+        name: "Journal d'audit",
+        icon: Activity,
+        directPath: "/rh/journal-audit",
+        description: "Consultez l'historique complet des actions RH pour assurer la conformité.",
+        moduleKey: "team_hr",
+        permissionKey: "hr.read",
+        excludeRoles: ["collaborator"],
+        items: [],
+      },
     ],
   },
   {
@@ -230,9 +473,17 @@ function SidebarUserFooter() {
 }
 
 function isGroupActive(group: NavGroup, location: string) {
-  return group.items.some(
+  const flatMatch = group.items.some(
     (item) => location === item.path || (item.path !== "/" && location.startsWith(item.path))
   );
+  if (flatMatch) return true;
+  if (group.sections) {
+    return group.sections.some((s) => {
+      if (s.directPath && (location === s.directPath || location.startsWith(s.directPath + "/"))) return true;
+      return s.items.some((i) => i.path && (location === i.path || location.startsWith(i.path + "/")));
+    });
+  }
+  return false;
 }
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -265,6 +516,18 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           return item;
         }
       }
+      if (group.sections) {
+        for (const section of group.sections) {
+          if (section.directPath && (location === section.directPath || location.startsWith(section.directPath + "/"))) {
+            return { name: section.name, path: section.directPath, icon: section.icon, description: section.description };
+          }
+          for (const si of section.items) {
+            if (si.path && (location === si.path || location.startsWith(si.path + "/"))) {
+              return { name: si.name, path: si.path, icon: section.icon, description: si.description };
+            }
+          }
+        }
+      }
     }
     return null;
   }, [location]);
@@ -278,8 +541,28 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     return true;
   };
 
+  const isSectionItemVisible = (item: NavSectionItem) => {
+    if (item.roles && !item.roles.includes(user?.role ?? "")) return false;
+    if (item.excludeRoles && item.excludeRoles.includes(user?.role ?? "")) return false;
+    if (item.permissionKey && !perms.isAdmin && !perms.has(item.permissionKey)) return false;
+    return true;
+  };
+
+  const isSectionVisible = (section: NavSection) => {
+    if (section.roles && !section.roles.includes(user?.role ?? "")) return false;
+    if (section.excludeRoles && section.excludeRoles.includes(user?.role ?? "")) return false;
+    if (section.permissionKey && !perms.isAdmin && !perms.has(section.permissionKey)) return false;
+    return true;
+  };
+
   // All registered nav paths — used to resolve "most specific match wins"
-  const allNavPaths = NAV_GROUPS.flatMap(g => g.items.map(i => i.path));
+  const allNavPaths = NAV_GROUPS.flatMap(g => [
+    ...g.items.map(i => i.path),
+    ...(g.sections ?? []).flatMap(s => [
+      ...(s.directPath ? [s.directPath] : []),
+      ...s.items.filter(i => !!i.path).map(i => i.path as string),
+    ]),
+  ]);
 
   /**
    * An item is active when:
@@ -382,6 +665,30 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     return initial;
   });
 
+  // Collapsible sections (Level 2 dans les groupes avec sections) — auto-ouvre la section active
+  const [openSections, setOpenSections] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    for (const g of NAV_GROUPS) {
+      if (!g.sections) continue;
+      for (const s of g.sections) {
+        const hasActive =
+          (s.directPath && (location === s.directPath || location.startsWith(s.directPath + "/"))) ||
+          s.items.some(i => i.path && (location === i.path || location.startsWith(i.path + "/")));
+        if (hasActive) initial.add(s.id);
+      }
+    }
+    return initial;
+  });
+
+  const toggleSection = (id: string) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   // Auto-expand the group containing the active page on navigation
   useEffect(() => {
     setMobileOpen(false);
@@ -404,6 +711,21 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           next.add(activeGroup.title);
           return next;
         });
+      }
+      // Auto-expand the active section (Level 2) if applicable
+      if (activeGroup.sections) {
+        const activeSection = activeGroup.sections.find(s =>
+          (s.directPath && (location === s.directPath || location.startsWith(s.directPath + "/"))) ||
+          s.items.some(i => i.path && (location === i.path || location.startsWith(i.path + "/")))
+        );
+        if (activeSection) {
+          setOpenSections((prev) => {
+            if (prev.has(activeSection.id)) return prev;
+            const next = new Set(prev);
+            next.add(activeSection.id);
+            return next;
+          });
+        }
       }
     }
   }, [location]);
@@ -454,7 +776,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             const isOpen = openGroups.has(group.title);
             const hasActive = isGroupActive(group, location);
             const GroupIcon = group.icon;
-            if (!group.items.some((i) => isItemVisible(i))) return null;
+            // Hide group if nothing visible — check flat items OR sections
+            const hasVisibleItems = group.items.some((i) => isItemVisible(i));
+            const hasVisibleSections = (group.sections ?? []).some((s) => isSectionVisible(s));
+            if (!hasVisibleItems && !hasVisibleSections) return null;
             // Gate Expert group: hide until user has at least one firm (unless already on /expert route)
             if (group.title === "Portail Expert" && !location.startsWith("/expert") && (!expertFirms || expertFirms.length === 0)) return null;
 
@@ -530,6 +855,154 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   }`}
                 >
                   <div className="overflow-hidden">
+                    {/* ── Navigation 3 niveaux (sections) ────────────────── */}
+                    {group.sections && (
+                      <ul className="pt-1 pb-1 pl-1 space-y-0">
+                        {group.sections.filter(s => isSectionVisible(s)).map((section) => {
+                          const SectionIcon = section.icon;
+                          const isSectionOpen = openSections.has(section.id);
+                          const sectionHasActive = section.directPath
+                            ? isNavItemActive(section.directPath)
+                            : section.items.some(i => i.path ? isNavItemActive(i.path) : false);
+                          const locked = !!(section.moduleKey && modules && modules.length > 0 && !enabledKeys.has(section.moduleKey));
+
+                          const sectionHeaderContent = (
+                            <>
+                              <SectionIcon
+                                className={`w-[13px] h-[13px] shrink-0 transition-colors duration-150 ${
+                                  sectionHasActive ? "text-[#D9B86A]" : locked ? "text-white/15" : "text-white/25 group-hover/sh:text-white/45"
+                                }`}
+                                strokeWidth={sectionHasActive ? 2 : 1.75}
+                              />
+                              <span className="truncate flex-1 text-left">{section.name}</span>
+                              {locked && <Lock className="w-2.5 h-2.5 text-white/15 shrink-0" strokeWidth={2} />}
+                              {sectionHasActive && !isSectionOpen && (
+                                <span className="w-1 h-1 rounded-full bg-[#2563EB] shrink-0" />
+                              )}
+                              {!section.directPath && section.items.length > 0 && (
+                                <ChevronRight
+                                  className={`w-2.5 h-2.5 shrink-0 transition-transform duration-150 ${
+                                    isSectionOpen ? "rotate-90 text-white/35" : "text-white/15"
+                                  }`}
+                                  strokeWidth={2}
+                                />
+                              )}
+                            </>
+                          );
+
+                          return (
+                            <li key={section.id}>
+                              {/* Section header */}
+                              {section.directPath ? (
+                                <TooltipProvider delayDuration={700}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Link
+                                        href={section.directPath}
+                                        className={`group/sh relative flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                                          sectionHasActive
+                                            ? "text-white/90 bg-card/[0.06]"
+                                            : locked
+                                              ? "text-white/20 cursor-default"
+                                              : "text-white/40 hover:text-white/75 hover:bg-card/[0.04]"
+                                        }`}
+                                      >
+                                        {sectionHasActive && (
+                                          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-[#2563EB] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />
+                                        )}
+                                        {sectionHeaderContent}
+                                      </Link>
+                                    </TooltipTrigger>
+                                    {section.description && (
+                                      <TooltipContent side="right" className="max-w-[220px] text-[11px] leading-relaxed bg-popover text-popover-foreground border shadow-md">
+                                        <p className="font-semibold text-[11px] mb-0.5">{section.name}</p>
+                                        <p className="text-muted-foreground">{section.description}</p>
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <TooltipProvider delayDuration={700}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        type="button"
+                                        onClick={() => !locked && toggleSection(section.id)}
+                                        className={`group/sh w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                                          sectionHasActive && !isSectionOpen
+                                            ? "text-white/80 bg-card/[0.04]"
+                                            : isSectionOpen
+                                              ? "text-white/65"
+                                              : locked
+                                                ? "text-white/20 cursor-default"
+                                                : "text-white/40 hover:text-white/75 hover:bg-card/[0.04]"
+                                        }`}
+                                      >
+                                        {sectionHeaderContent}
+                                      </button>
+                                    </TooltipTrigger>
+                                    {section.description && !isSectionOpen && (
+                                      <TooltipContent side="right" className="max-w-[220px] text-[11px] leading-relaxed bg-popover text-popover-foreground border shadow-md">
+                                        <p className="font-semibold text-[11px] mb-0.5">{section.name}</p>
+                                        <p className="text-muted-foreground">{section.description}</p>
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+
+                              {/* Section items (Level 3) — smooth CSS grid animation */}
+                              {!section.directPath && section.items.length > 0 && (
+                                <div className={`grid transition-[grid-template-rows] duration-150 ease-in-out ${isSectionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                                  <div className="overflow-hidden">
+                                    <ul className="py-0.5 pl-4 space-y-0">
+                                      {section.items.filter(i => isSectionItemVisible(i)).map((item) => {
+                                        const active = item.path ? isNavItemActive(item.path) : false;
+                                        const itemLocked = !!(item.moduleKey && modules && modules.length > 0 && !enabledKeys.has(item.moduleKey));
+                                        if (!item.path || itemLocked) {
+                                          return (
+                                            <li key={item.name}>
+                                              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[11.5px] text-white/20 select-none">
+                                                <span className="w-1 h-1 rounded-full bg-white/10 shrink-0 mt-px" />
+                                                <span className="truncate flex-1">{item.name}</span>
+                                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] text-white/20 font-medium shrink-0 border border-white/[0.06]">
+                                                  {itemLocked ? "🔒" : "Bientôt"}
+                                                </span>
+                                              </div>
+                                            </li>
+                                          );
+                                        }
+                                        return (
+                                          <li key={item.path}>
+                                            <Link
+                                              href={item.path}
+                                              className={`relative flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[11.5px] transition-all duration-150 ${
+                                                active
+                                                  ? "text-white/90 bg-card/[0.07] font-medium"
+                                                  : "text-white/40 hover:text-white/75 hover:bg-card/[0.04] font-normal"
+                                              }`}
+                                            >
+                                              {active && (
+                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-3 w-[2px] rounded-full bg-[#2563EB]" />
+                                              )}
+                                              <span className={`w-1 h-1 rounded-full shrink-0 mt-px ${active ? "bg-[#D9B86A]" : "bg-white/15"}`} />
+                                              <span className="truncate">{item.name}</span>
+                                            </Link>
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  </div>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+
+                    {/* ── Navigation 2 niveaux (flat items) ─────────────── */}
+                    {!group.sections && (
                     <ul className="pt-0.5 pb-1 pl-2 space-y-0.5">
                       {/* ── Items primaires — filtrés par permission ── */}
                       {group.items.filter(i => !i.secondary && isItemVisible(i)).map((item) => {
@@ -640,6 +1113,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                         );
                       })()}
                     </ul>
+                    )}
                   </div>
                 </div>
               </div>
