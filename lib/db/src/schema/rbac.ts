@@ -55,8 +55,9 @@ export const userProjectAccessTable = pgTable("user_project_access", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  accessLevel: text("access_level").notNull().default("viewer"),
   grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
-  grantedBy: uuid("granted_by").references(() => usersTable.id, { onDelete: "set null" }),
+  grantedById: uuid("granted_by_id").references(() => usersTable.id, { onDelete: "set null" }),
 }, (t) => ({
   userProjectIdx: uniqueIndex("user_project_access_uidx").on(t.userId, t.projectId),
 }));
