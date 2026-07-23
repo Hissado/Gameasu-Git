@@ -1,5 +1,5 @@
 /**
- * Simulateur de coût collaborateur — Gaméasù
+ * Simulateur de coût collaborateur — Gameasu
  * Outil bidirectionnel : Net → Brut / Brut → Net + Scénarios d'impact
  * Barème IRPP Togo, taux configurables, décomposition transparente
  */

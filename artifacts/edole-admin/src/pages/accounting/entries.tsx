@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Trash2, RotateCcw, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { apiErrorMessage } from "@/lib/api-error";
+import { statusLabel } from "@/lib/status-labels";
 
 type Entry = {
   id: string; entryNumber: string; entryDate: string;
@@ -281,7 +282,7 @@ export default function EntriesPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div><div className="text-xs uppercase text-muted-foreground">Date</div><div className="font-semibold">{detail.entryDate}</div></div>
                   <div><div className="text-xs uppercase text-muted-foreground">Journal</div><div className="font-semibold">{detail.journal?.code} — {detail.journal?.label}</div></div>
-                  <div><div className="text-xs uppercase text-muted-foreground">Statut</div><Badge variant={detail.status === "posted" ? "default" : "destructive"}>{detail.status}</Badge></div>
+                  <div><div className="text-xs uppercase text-muted-foreground">Statut</div><Badge variant={detail.status === "posted" ? "default" : "destructive"}>{statusLabel(detail.status)}</Badge></div>
                 </div>
                 {detail.description && <div><div className="text-xs uppercase text-muted-foreground">Description</div><div>{detail.description}</div></div>}
                 <table className="w-full border text-sm">

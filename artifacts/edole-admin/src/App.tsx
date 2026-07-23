@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -200,7 +200,7 @@ const ExpertReports = lazy(() => import("@/pages/expert/reports"));
 const ExpertFirmSettings = lazy(() => import("@/pages/expert/firm-settings"));
 const ClientDocuments = lazy(() => import("@/pages/client-documents/index"));
 const BtpPointage = lazy(() => import("@/pages/hr/btp-pointage"));
-const BtpPaie = lazy(() => import("@/pages/hr/btp-paie"));
+const EtatsSalaires = lazy(() => import("@/pages/hr/etats-salaires"));
 const BtpSettings = lazy(() => import("@/pages/hr/btp-settings"));
 const HrSalaryAdvances = lazy(() => import("@/pages/hr/salary-advances"));
 const FiscalEngine = lazy(() => import("@/pages/fiscal/engine"));
@@ -391,7 +391,9 @@ function AppRouter() {
                 <Route path="/migration" component={MigrationPage} />
                 <Route path="/rh/intelligence" component={HrIntelligence} />
                 <Route path="/rh/btp-pointage" component={BtpPointage} />
-                <Route path="/rh/btp-paie" component={BtpPaie} />
+                <Route path="/rh/etats-paie" component={EtatsSalaires} />
+                {/* Redirection de l'ancienne URL sectorielle (audit P3 §I) */}
+                <Route path="/rh/btp-paie">{() => <Redirect to="/rh/etats-paie" />}</Route>
                 <Route path="/rh/btp-parametres" component={BtpSettings} />
                 <Route path="/rh/reclamations/:id" component={HrReclamationDetail} />
                 <Route path="/rh/reclamations" component={HrReclamations} />

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Building2, Mail, Phone, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { statusLabel } from "@/lib/status-labels";
 
 type Client = { id: string; name: string; email?: string; phone?: string; industry?: string; website?: string; address?: string; status: string };
 
@@ -79,7 +80,7 @@ export default function ClientsCommercial() {
                       {c.email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" /> {c.email}</div>}
                       {c.phone && <div className="flex items-center gap-1"><Phone className="w-3 h-3" /> {c.phone}</div>}
                     </td>
-                    <td className="p-3 text-center"><Badge variant="outline" className="capitalize">{c.status}</Badge></td>
+                    <td className="p-3 text-center"><Badge variant="outline">{statusLabel(c.status)}</Badge></td>
                     <td className="p-3 text-right">
                       <Button size="icon" variant="ghost" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Supprimer "${c.name}" ?`)) del.mutate(c.id); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>

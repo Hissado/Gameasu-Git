@@ -244,7 +244,7 @@ export default function PeriodClosePage() {
       <PageHeader
         icon={CalendarCheck}
         title="Clôture des périodes"
-        subtitle="Month-end close, checklist de clôture et verrouillage des exercices"
+        subtitle="Clôture mensuelle, checklist de clôture et verrouillage des exercices"
         actions={
           <Select value={selectedYear} onValueChange={v => { setSelectedYear(v); setSelectedMonth(null); }}>
             <SelectTrigger className="w-32 h-8 text-sm"><SelectValue /></SelectTrigger>

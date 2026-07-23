@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { formatFCFA } from "@/lib/format";
 import { severityLabel } from "@/lib/intelligence";
+import { statusLabel } from "@/lib/status-labels";
 
 const CHECKIN_KIND_LABELS: Record<string, string> = {
   arrival: "Arrivée", departure: "Départ", start: "Démarrage", stop: "Arrêt",
@@ -426,7 +427,7 @@ function IncidentsTab({ data, onChanged }: { data: any[]; onChanged: () => void 
                   <TableCell><Badge className={SEVERITY_COLORS[i.severity]}>{severityLabel(i.severity)}</Badge></TableCell>
                   <TableCell className="text-xs">{i.missionRef} — {i.missionTitle}</TableCell>
                   <TableCell className="text-sm max-w-md truncate">{i.description}</TableCell>
-                  <TableCell><Badge variant={i.status === "resolved" ? "outline" : "default"}>{i.status}</Badge></TableCell>
+                  <TableCell><Badge variant={i.status === "resolved" ? "outline" : "default"}>{statusLabel(i.status)}</Badge></TableCell>
                   <TableCell>
                     {i.status !== "resolved" && (
                       <Button size="sm" variant="ghost" onClick={() => resolve.mutate(i.id)}>Résoudre</Button>
@@ -811,7 +812,7 @@ function MissionDetailDialog({ missionId, onClose, onChanged }: { missionId: str
                   <div className="flex items-center gap-2">
                     <Badge className={SEVERITY_COLORS[i.severity]}>{severityLabel(i.severity)}</Badge>
                     <span className="font-medium">{INCIDENT_LABELS[i.kind] ?? i.kind}</span>
-                    <Badge variant="outline">{i.status}</Badge>
+                    <Badge variant="outline">{statusLabel(i.status)}</Badge>
                   </div>
                   {i.description && <p className="text-xs text-muted-foreground mt-1">{i.description}</p>}
                 </div>

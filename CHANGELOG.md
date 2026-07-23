@@ -2,6 +2,15 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Harmonisation P3 : vocabulaire, statuts FR, marque, route générique — juillet 2026
+
+Corrections des chantiers **P3** du rapport d'audit consolidé (voir [`docs/RAPPORT_CORRECTIONS_P3.md`](docs/RAPPORT_CORRECTIONS_P3.md)).
+
+- **Statuts en français** : dictionnaire central `statusLabel()` (~40 statuts) appliqué aux écrans qui affichaient encore le code brut (écritures, fournisseurs, clients, opérations) ; « Month-end close » → « Clôture mensuelle ».
+- **Vestige `/rh/btp-paie`** : page renommée `etats-salaires.tsx`, route `/rh/etats-paie`, redirection de l'ancienne URL, vocabulaire « chantier » retiré.
+- **Graphie de marque unique** : « Gaméasù » → « Gameasu » (16 occurrences en dur) ; l'identité reste pilotée par `branding.ts`.
+- **KPI dettes fournisseurs** (§F #19) : la carte du tableau de bord Comptabilité lit la source unique (`getPayablesBalance`, 401 grand livre) — plus de valeurs contradictoires (aligné au lot P1.h, confirmé ici).
+
 ## Fiabilisation P2 : dates, numérotation, page 404, purge démo — juillet 2026
 
 Corrections des chantiers **P2** du rapport d'audit consolidé (voir [`docs/RAPPORT_CORRECTIONS_P2.md`](docs/RAPPORT_CORRECTIONS_P2.md)).

@@ -73,7 +73,7 @@ function rowsToCSV(rows: Record<string, unknown>[]): string {
 
 function manifestContent(orgId: string, stats: Record<string, number>, generatedAt: Date): string {
   return JSON.stringify({
-    generator: "Gaméasù Data Export",
+    generator: "Gameasu Data Export",
     version: "1.0",
     organization_id: orgId,
     generated_at: generatedAt.toISOString(),

@@ -12,7 +12,7 @@ export const HELP_CONTENT: Record<string, string> = {
   "settings.security":
     "Gérez votre mot de passe, l'authentification à deux facteurs et les appareils de confiance.",
   "settings.subscription":
-    "Consultez votre formule Gaméasù, les modules inclus et les options de mise à niveau disponibles.",
+    "Consultez votre formule Gameasu, les modules inclus et les options de mise à niveau disponibles.",
   "settings.notifications":
     "Choisissez les événements qui vous envoient une notification et le canal utilisé (e-mail, in-app).",
   "settings.regional":

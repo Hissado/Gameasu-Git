@@ -371,7 +371,7 @@ router.get("/cloud-storage/oauth/google/callback", async (req, res) => {
         const at = decryptToken(conn.accessTokenEnc);
         const rt = decryptToken(conn.refreshTokenEnc);
 
-        const rootId = await provider.createFolder(at, rt, "Gaméasù");
+        const rootId = await provider.createFolder(at, rt, "Gameasu");
         const folderMap: Record<string, string> = { root: rootId };
 
         const sections = [
@@ -386,7 +386,7 @@ router.get("/cloud-storage/oauth/google/callback", async (req, res) => {
 
         await db.update(cloudStorageConnectionsTable).set({
           rootFolderId:   rootId,
-          rootFolderName: "Gaméasù",
+          rootFolderName: "Gameasu",
           folderMap,
         }).where(eq(cloudStorageConnectionsTable.id, connId));
       } catch (e) {

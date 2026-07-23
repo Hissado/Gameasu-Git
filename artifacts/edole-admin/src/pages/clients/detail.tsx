@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatFCFA } from "@/lib/format";
+import { statusLabel } from "@/lib/status-labels";
 
 function waLink(phone?: string, text?: string) {
   if (!phone) return null;
@@ -242,7 +243,7 @@ export default function ClientDetailWorkspace() {
                   <Briefcase className="w-4 h-4 text-primary shrink-0" />
                   <span className="font-medium flex-1 truncate">{e.name}</span>
                   {e.isRecurring && <Badge variant="secondary" className="gap-1 text-xs"><Repeat className="w-3 h-3" />{e.recurrencePattern?.frequency}</Badge>}
-                  <Badge variant="outline" className="text-xs">{e.status}</Badge>
+                  <Badge variant="outline" className="text-xs">{statusLabel(e.status)}</Badge>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </CardContent>
               </Card>
@@ -263,7 +264,7 @@ export default function ClientDetailWorkspace() {
                 <CardContent className="p-3 flex items-center gap-3">
                   <FolderKanban className="w-4 h-4 text-primary shrink-0" />
                   <span className="font-medium flex-1 truncate">{p.name}</span>
-                  <Badge variant="outline" className="text-xs">{p.status}</Badge>
+                  <Badge variant="outline" className="text-xs">{statusLabel(p.status)}</Badge>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </CardContent>
               </Card>

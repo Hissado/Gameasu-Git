@@ -200,7 +200,7 @@ export default function SuggestionsPage() {
             {myOnly ? "Mes suggestions" : "Toutes les suggestions"}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Partagez vos idées pour améliorer Gaméasù
+            Partagez vos idées pour améliorer Gameasu
           </p>
         </div>
         <div className="flex items-center gap-2">

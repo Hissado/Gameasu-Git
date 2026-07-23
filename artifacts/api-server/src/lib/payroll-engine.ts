@@ -1,5 +1,5 @@
 /**
- * Moteur de calcul paie Gaméasù — Source unique de vérité
+ * Moteur de calcul paie Gameasu — Source unique de vérité
  *
  * Formules conformes au modèle Excel de référence (feuille SALAIRES)
  * et au Code Général des Impôts du Togo.

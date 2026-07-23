@@ -607,7 +607,7 @@ const NAV_GROUPS: NavGroup[] = [
         moduleKey: "workspace_settings",
         permissionKey: "admin.access",
         items: [
-          { name: "Migration & Import", path: "/migration",           moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Importez vos données historiques et migrez depuis d'autres outils vers Gaméasù." },
+          { name: "Migration & Import", path: "/migration",           moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Importez vos données historiques et migrez depuis d'autres outils vers Gameasu." },
           { name: "Données & Exports",  path: "/admin/data-exports",  moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Exportez l'intégralité des données de votre organisation dans un fichier ZIP sécurisé." },
           { name: "Stockage cloud",     path: "/admin/cloud-storage", moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Synchronisez vos documents vers Google Drive ou OneDrive. Sauvegarde automatique des factures, contrats et bulletins de paie." },
         ],
@@ -637,7 +637,7 @@ const NAV_GROUPS: NavGroup[] = [
         items: [
           { name: "Console admin", path: "/admin",    moduleKey: "administration", permissionKey: "admin.access", description: "Administrez votre système : utilisateurs, audits, incidents et diagnostics avancés." },
           { name: "Support",       path: "/tickets",                                                              description: "Soumettez une demande d'assistance et suivez son traitement par l'équipe concernée." },
-          { name: "Centre d'aide", path: "/aide",                                                                 description: "Parcourez tous les guides interactifs et visites guidées de Gaméasù." },
+          { name: "Centre d'aide", path: "/aide",                                                                 description: "Parcourez tous les guides interactifs et visites guidées de Gameasu." },
         ],
       },
     ],

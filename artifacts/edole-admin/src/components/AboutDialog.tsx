@@ -11,7 +11,7 @@ export function AboutDialog() {
         type="button"
         onClick={() => setOpen(true)}
         className="w-full flex items-center justify-center gap-1.5 text-[9.5px] text-white/20 hover:text-white/45 tracking-wide transition-colors py-1"
-        title="À propos de Gaméasù"
+        title="À propos de Gameasu"
       >
         <Info className="w-2.5 h-2.5" />
         À propos de {BRANDING.appName}

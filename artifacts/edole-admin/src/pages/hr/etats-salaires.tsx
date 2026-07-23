@@ -1,5 +1,5 @@
 /**
- * Pointage & Paie BTP — États de salaires (tableau récapitulatif + ajustements)
+ * États de salaires — tableau récapitulatif mensuel + ajustements
  */
 import React, { useState } from "react";
 import { HrShell } from "./_layout";
