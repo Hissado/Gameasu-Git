@@ -15,8 +15,35 @@ import { getCurrentOrganizationId } from "../lib/tenant";
 import { sendEmail, buildInvitationEmail, buildPasswordResetEmail, getPreviewInbox } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
 import { seedDemo } from "../services/demo-seed";
+import { getNumberingSettings, setNumberingPrefix, DEFAULT_PREFIXES, type DocType } from "../services/numbering";
 
 const router = Router();
+
+// ════════════════════════════════════════════════════════════════════
+// NUMÉROTATION DES DOCUMENTS — préfixes configurables par organisation
+// (audit P2 §F #15). Format {PRÉFIXE}-{AAAA}-{NNNNN}, séquence atomique.
+// ════════════════════════════════════════════════════════════════════
+router.get("/admin/numbering", requirePermission("settings.read"), async (req, res, next) => {
+  try {
+    const settings = await getNumberingSettings(req.authUser!.organizationId);
+    return res.json({ data: settings });
+  } catch (e) { return next(e); }
+});
+
+router.put("/admin/numbering/:docType", requirePermission("settings.manage"), async (req, res, next) => {
+  try {
+    const docType = req.params.docType as DocType;
+    if (!(docType in DEFAULT_PREFIXES)) return res.status(400).json({ error: "Type de document inconnu" });
+    const { prefix, padding } = req.body || {};
+    if (typeof prefix !== "string" || !/^[A-Z0-9]{1,8}$/.test(prefix)) {
+      return res.status(400).json({ error: "Préfixe invalide (1 à 8 lettres majuscules ou chiffres)" });
+    }
+    const pad = Number.isInteger(padding) && padding >= 3 && padding <= 8 ? padding : 5;
+    await setNumberingPrefix(req.authUser!.organizationId, docType, prefix, pad);
+    await audit(req, "update", { entityType: "numbering", entityId: docType, payload: { prefix, padding: pad } });
+    return res.json({ docType, prefix, padding: pad });
+  } catch (e) { return next(e); }
+});
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (v: any) => typeof v === "string" && UUID_RE.test(v);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

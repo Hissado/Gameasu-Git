@@ -20,6 +20,7 @@ import { requirePermission } from "../middlewares/permissions";
 import { z } from "zod/v4";
 import { threeWayMatch } from "../services/three-way-match";
 import { postSupplierInvoice } from "../services/postings";
+import { nextDocumentNumber } from "../services/numbering";
 
 const router = Router();
 
@@ -138,17 +139,12 @@ async function nextSupplierCode(orgId: string): Promise<string> {
   return `F${String(lastNum + 1).padStart(4, "0")}`;
 }
 
+// Numérotation unifiée (audit P2 §F #15) — séquence atomique via le service
+// central (préfixe par défaut « BC » pour les bons de commande, configurable
+// par organisation), en remplacement du calcul fragile basé sur le dernier
+// enregistrement.
 async function nextPoReference(orgId: string): Promise<string> {
-  const year = new Date().getFullYear();
-  const result = await db
-    .select({ ref: purchaseOrdersTable.reference })
-    .from(purchaseOrdersTable)
-    .where(and(eq(purchaseOrdersTable.organizationId, orgId), ilike(purchaseOrdersTable.reference, `PO-${year}-%`)))
-    .orderBy(desc(purchaseOrdersTable.createdAt))
-    .limit(1);
-  if (!result.length) return `PO-${year}-0001`;
-  const lastNum = parseInt(result[0].ref.split("-")[2] || "0") || 0;
-  return `PO-${year}-${String(lastNum + 1).padStart(4, "0")}`;
+  return nextDocumentNumber(orgId, "purchase_order");
 }
 
 // ════════════════════════════════════════════════════════════════

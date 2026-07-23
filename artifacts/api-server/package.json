@@ -9,6 +9,7 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:payroll": "tsx src/scripts/payroll-selftest.ts",
+    "test:p2": "tsx src/scripts/p2-selftest.ts",
     "backfill:postings": "tsx src/scripts/backfill-postings.ts"
   },
   "dependencies": {

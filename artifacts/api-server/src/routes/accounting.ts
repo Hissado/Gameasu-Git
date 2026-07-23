@@ -34,6 +34,7 @@ import {
 } from "../services/postings";
 import { getCurrentFiscalPeriod } from "../services/syscohada-seed";
 import { getTreasuryPosition, getReceivablesBalance, getPayablesBalance } from "../services/kpis";
+import { nextDocumentNumber } from "../services/numbering";
 
 const router = Router();
 
@@ -569,8 +570,8 @@ router.get("/accounting/supplier-invoices", async (req, res) => {
 router.post("/accounting/supplier-invoices", requirePermission("accounting.manage"), async (req, res) => {
   try {
     const { supplierId, projectId, invoiceDate, dueDate, totalAmount, taxAmount, currency, expenseAccountId, notes, attachmentUrl, status } = req.body;
-    const cnt = await db.select({ n: sql<string>`COUNT(*)` }).from(supplierInvoicesTable).where(eq(supplierInvoicesTable.organizationId, req.authUser!.organizationId));
-    const refNum = `FF-${new Date().getFullYear()}-${String(Number(cnt[0].n) + 1).padStart(4, "0")}`;
+    // Numérotation unifiée (audit P2 §F #15) — séquence atomique, plus de COUNT.
+    const refNum = await nextDocumentNumber(req.authUser!.organizationId, "supplier_invoice");
     const [inv] = await db.insert(supplierInvoicesTable).values({
       organizationId: req.authUser!.organizationId,
       referenceNumber: refNum, supplierId, projectId,

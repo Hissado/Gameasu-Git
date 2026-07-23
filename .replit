@@ -93,8 +93,13 @@ channel = "stable-25_05"
 EMAIL_FROM = "Gameasu <noreply@gameasu.com>"
 CLOUD_STORAGE_ENCRYPTION_KEY = "Bk0vWRBO46juXypePanYV3Qf7Ztf4TvKYZuOjzZmd+k="
 
+# Production : PAS de seed de données de démonstration (audit P2 §F #12).
+# Le jeu de démo « Hissado Consulting » (≈200 tiers de test) ne doit pas être
+# ré-injecté à chaque démarrage en production. Le catalogue de référence (plans,
+# modules, RBAC) reste semé inconditionnellement ; les données métier de démo
+# ne le sont qu'en développement. Purge d'un éventuel reliquat : réinitialisation
+# usine via le Cockpit (POST /super-admin/factory-reset).
 [userenv.production]
-SEED_HISSADO_DEMO = "true"
 PUBLIC_BASE_URL = "https://erp.gameasu.com"
 
 [userenv.development]

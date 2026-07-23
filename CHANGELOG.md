@@ -2,6 +2,15 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Fiabilisation P2 : dates, numérotation, page 404, purge démo — juillet 2026
+
+Corrections des chantiers **P2** du rapport d'audit consolidé (voir [`docs/RAPPORT_CORRECTIONS_P2.md`](docs/RAPPORT_CORRECTIONS_P2.md)).
+
+- **Contrôles de chronologie des dates** (`lib/date-guards.ts`) : échéance ≥ émission, règlement ≥ facture, fin de contrat ≥ début — 400 avec message français ; l'exercice clôturé était déjà bloqué par le moteur d'écritures. 9 tests purs (`test:p2`).
+- **Numérotation unifiée** : service atomique `{PRÉFIXE}-{AAAA}-{NNNNN}` (INSERT … ON CONFLICT, robuste), préfixes homogènes (FAC/CMD/DEV/AV/FF/BC/PAY) **configurables par organisation** (`GET/PUT /admin/numbering`) ; documents clients et fournisseurs migrés (fin des `INV-<base36>` et des `COUNT(*)` fragiles) ; migration `migrate-document-numbering.ts` (amorce les compteurs au-dessus de l'existant). Les écritures gardent leur numérotation par journal (`VTE-2026-0001`).
+- **Page 404 en français** : `not-found.tsx` réécrite (Réessayer / Retour / Tableau de bord + référence d'erreur), fin du message de dev anglais « Did you forget to add the page… ».
+- **Purge démo en production** : `.replit` ne définit plus `SEED_HISSADO_DEMO=true` en production — le jeu de démo « Hissado » (≈200 tiers de test) n'est plus ré-injecté à chaque démarrage ; catalogue de référence toujours semé ; reliquat purgeable via factory-reset.
+
 ## Fiabilisation P1 : RBAC, KPI trésorerie, rattrapage comptable — juillet 2026
 
 Corrections des chantiers **P1** du rapport d'audit consolidé (voir [`docs/RAPPORT_CORRECTIONS_P1.md`](docs/RAPPORT_CORRECTIONS_P1.md)).

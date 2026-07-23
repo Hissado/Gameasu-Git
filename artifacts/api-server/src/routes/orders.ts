@@ -5,6 +5,8 @@ import { eq, sql, isNull, and, desc, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { requirePermission } from "../middlewares/permissions";
 import { postCustomerInvoice, postCustomerPayment } from "../services/postings";
+import { nextDocumentNumber } from "../services/numbering";
+import { invoiceDatesError, paymentDateError } from "../lib/date-guards";
 import { logger } from "../lib/logger";
 import { sendEmail, buildProformaEmail, buildOrderEmail, buildInvoiceEmail, buildCreditNoteEmail } from "../lib/email";
 
@@ -32,7 +34,7 @@ router.get("/orders", async (req, res) => {
 
 router.post("/orders", requirePermission("commercial.manage"), async (req, res) => {
   const { clientId, status, totalAmount, currency, notes, attachmentUrl } = req.body;
-  const refNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
+  const refNum = await nextDocumentNumber(req.authUser!.organizationId, "order");
   const [order] = await db.insert(ordersTable).values({ organizationId: req.authUser!.organizationId, referenceNumber: refNum, clientId, status: status || "draft", totalAmount: totalAmount?.toString(), currency, notes, attachmentUrl }).returning();
   return res.status(201).json({ ...order, totalAmount: toNum(order.totalAmount) });
 });
@@ -98,7 +100,7 @@ router.get("/proformas", async (req, res) => {
 
 router.post("/proformas", requirePermission("commercial.manage"), async (req, res) => {
   const { orderId, clientId, status, totalAmount, currency, validUntil, notes, caution, paymentTerms, durationDays } = req.body;
-  const refNum = `PRO-${Date.now().toString(36).toUpperCase()}`;
+  const refNum = await nextDocumentNumber(req.authUser!.organizationId, "proforma");
   const [pro] = await db.insert(proformasTable).values({
     organizationId: req.authUser!.organizationId,
     referenceNumber: refNum, orderId, clientId, status: status || "draft",
@@ -131,7 +133,7 @@ router.put("/proformas/:id", requirePermission("commercial.manage"), async (req,
   if (status === "approved" && before.status !== "approved") {
     const existingInvoice = await db.select().from(invoicesTable).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.proformaId, pro.id))).limit(1);
     if (existingInvoice.length === 0) {
-      const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
+      const refNum = await nextDocumentNumber(req.authUser!.organizationId, "invoice");
       const [inv] = await db.insert(invoicesTable).values({
         organizationId: req.authUser!.organizationId,
         referenceNumber: refNum,
@@ -227,9 +229,12 @@ router.post("/invoices", requirePermission("commercial.manage"), async (req, res
       return res.status(400).json({ error: "Montants incohérents : HT + TVA doit égaler le TTC" });
     }
   }
-  const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
   const finalStatus = status || "pending";
   const issued = issuedAt || new Date().toISOString().slice(0, 10);
+  // Contrôle de chronologie (audit P2 §F #11) : échéance ≥ émission.
+  const invDateErr = invoiceDatesError(issued, dueDate);
+  if (invDateErr) return res.status(400).json({ error: invDateErr });
+  const refNum = await nextDocumentNumber(req.authUser!.organizationId, "invoice");
   const [inv] = await db.insert(invoicesTable).values({
     organizationId: req.authUser!.organizationId,
     referenceNumber: refNum, proformaId, clientId,
@@ -339,6 +344,9 @@ router.post("/payments", requirePermission("commercial.manage"), async (req, res
   )).limit(1))[0];
   if (!inv) return res.status(404).json({ error: "Facture introuvable" });
   if (inv.status === "cancelled") return res.status(400).json({ error: "Facture annulée : règlement impossible" });
+  // Contrôle de chronologie (audit P2 §F #11) : pas de règlement antérieur à la facture.
+  const dateErr = paymentDateError(inv.issuedAt, paidAt);
+  if (dateErr) return res.status(400).json({ error: dateErr });
 
   try {
     // Tout le règlement (insertion paiement + mise à jour du solde de la facture
@@ -445,7 +453,7 @@ router.post("/proformas/:id/generate-order", requirePermission("commercial.manag
       .where(and(eq(proformasTable.organizationId, orgId), eq(proformasTable.id, (req.params.id as string)))).limit(1);
     if (!pro) { res.status(404).json({ error: "Devis introuvable" }); return; }
 
-    const refNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
+    const refNum = await nextDocumentNumber(req.authUser!.organizationId, "order");
     const [order] = await db.insert(ordersTable).values({
       organizationId: orgId,
       referenceNumber: refNum,
@@ -489,7 +497,7 @@ router.post("/proformas/:id/generate-invoice", requirePermission("commercial.man
       return;
     }
 
-    const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
+    const refNum = await nextDocumentNumber(req.authUser!.organizationId, "invoice");
     const [inv] = await db.insert(invoicesTable).values({
       organizationId: orgId,
       referenceNumber: refNum,
@@ -538,7 +546,7 @@ router.post("/orders/:id/generate-invoice", requirePermission("commercial.manage
       return;
     }
 
-    const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
+    const refNum = await nextDocumentNumber(req.authUser!.organizationId, "invoice");
     const [inv] = await db.insert(invoicesTable).values({
       organizationId: orgId,
       referenceNumber: refNum,
@@ -1241,7 +1249,7 @@ router.post("/invoices/:id/credit-note", requirePermission("commercial.manage"),
       return;
     }
 
-    const refNum = `AV-${Date.now().toString(36).toUpperCase()}`;
+    const refNum = await nextDocumentNumber(req.authUser!.organizationId, "credit_note");
     const [cn] = await db.insert(creditNotesTable).values({
       organizationId: orgId,
       referenceNumber: refNum,
