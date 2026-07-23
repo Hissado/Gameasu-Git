@@ -2,6 +2,15 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Terminologie & dictionnaire KPI (phases 12 et 3) — juillet 2026
+
+Poursuite des phases 12 (harmonisation du vocabulaire) et 3 (source unique de vérité) du brief initial.
+
+- **Module RH unifié** : « Équipe & RH » / « Équipe » / « RH » → **Ressources Humaines** partout (navigation, breadcrumbs, facturation, modules).
+- **Terme commercial unique** : le document de devis s'appelle **Devis** partout (breadcrumb, rapports, conformité) ; la valeur interne `proforma` est conservée. Le stade de pipeline « Proposition » reste distinct (concept différent, non fusionné).
+- **Formulations orientées action** : titres de page « Gestion de… » → nom simple (Dépenses, Projets, Tâches, Locations) ; sous-titres passifs → verbes d'action (Créez / Suivez / Préparez).
+- **Dictionnaire KPI étendu** (`services/kpis.ts`) : ajout de `getIncomeStatementKpis` (CA / charges / résultat), `getPayrollCost` (masse salariale 66x), `getVatKpis` (TVA collectée 443x / déductible 445x / net). Tableau de bord Comptabilité branché dessus ; nouvel endpoint consolidé `GET /finance/kpis` (source unique pour tous les écrans).
+
 ## Harmonisation P3 : vocabulaire, statuts FR, marque, route générique — juillet 2026
 
 Corrections des chantiers **P3** du rapport d'audit consolidé (voir [`docs/RAPPORT_CORRECTIONS_P3.md`](docs/RAPPORT_CORRECTIONS_P3.md)).

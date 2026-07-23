@@ -60,7 +60,7 @@ const MODULE_GROUPS: ModuleGroupDef[] = [
     colorCls: "text-violet-700", bgCls: "bg-violet-50", borderCls: "border-violet-200", dotCls: "bg-violet-500",
     icon: <UsersRound className="w-4 h-4" />,
     modules: [
-      { key: "team_hr",        name: "Équipe & RH",   description: "Collaborateurs, contrats, congés, présences, kiosk de pointage et paie.", subModules: ["Collaborateurs", "Contrats", "Congés", "Présences & Kiosk", "Badge QR", "Paie", "Formation", "Avantages sociaux", "Simulateur RH", "Rapports RH"], impactOnDisable: ["Menu RH masqué", "Collaborateurs inaccessibles", "Kiosk de pointage désactivé", "Paie indisponible", "Rapports RH masqués", "KPI effectifs masqués dans le tableau de bord"] },
+      { key: "team_hr",        name: "Ressources Humaines",   description: "Collaborateurs, contrats, congés, présences, kiosk de pointage et paie.", subModules: ["Collaborateurs", "Contrats", "Congés", "Présences & Kiosk", "Badge QR", "Paie", "Formation", "Avantages sociaux", "Simulateur RH", "Rapports RH"], impactOnDisable: ["Menu RH masqué", "Collaborateurs inaccessibles", "Kiosk de pointage désactivé", "Paie indisponible", "Rapports RH masqués", "KPI effectifs masqués dans le tableau de bord"] },
       { key: "communications", name: "Communications", description: "Messagerie interne DM/groupes, appels et notifications temps réel.", subModules: ["Messagerie", "Groupes", "Appels", "Présence temps réel"], impactOnDisable: ["Messagerie masquée", "Appels désactivés", "Notifications temps réel coupées"] },
     ],
   },

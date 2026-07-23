@@ -57,7 +57,7 @@ const LABELS: Record<string, string> = {
   projects: "Projets", tasks: "Tâches", sales_crm: "Ventes & Relation client",
   accounting: "Comptabilité", financial_planning: "Planification financière",
   operations: "Opérations", inventory_assets: "Parc & équipements",
-  rentals: "Locations", documents: "Documents", team_hr: "Équipe & RH",
+  rentals: "Locations", documents: "Documents", team_hr: "Ressources Humaines",
   communications: "Communications", reports: "Rapports",
   client_portal: "Portail client", marketing: "Marketing",
   administration: "Administration", billing_subscription: "Abonnement & facturation",

@@ -59,7 +59,7 @@ export const PLAN_CATALOG = [
       "Tout Starter inclus",
       "Ventes, CRM & pipeline commercial",
       "Comptabilité SYSCOHADA",
-      "Équipe & RH complet",
+      "Ressources Humaines complet",
       "Support prioritaire",
     ],
   },

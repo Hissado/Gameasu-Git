@@ -104,7 +104,7 @@ export default function PayrollDashboard() {
   ];
 
   return (
-    <HrShell title="Paie" subtitle="Gestion des cycles de paie, bulletins et cotisations">
+    <HrShell title="Paie" subtitle="Préparez et validez les cycles de paie, bulletins et cotisations">
       {isLoading ? (
         <div className="py-20 text-center text-muted-foreground">Chargement…</div>
       ) : (

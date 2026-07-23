@@ -33,7 +33,7 @@ import {
   postAmortization,
 } from "../services/postings";
 import { getCurrentFiscalPeriod } from "../services/syscohada-seed";
-import { getTreasuryPosition, getReceivablesBalance, getPayablesBalance } from "../services/kpis";
+import { getTreasuryPosition, getReceivablesBalance, getPayablesBalance, getIncomeStatementKpis } from "../services/kpis";
 import { nextDocumentNumber } from "../services/numbering";
 
 const router = Router();
@@ -987,29 +987,10 @@ router.get("/accounting/dashboard", async (req, res) => {
   ]);
   const cashTotal = treasuryPosition.total;
 
-  // P&L mois courant
-  const pl = await db
-    .select({
-      classNum: chartOfAccountsTable.classNum,
-      d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
-      c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
-    })
-    .from(journalEntryLinesTable)
-    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(
-      eq(journalEntriesTable.organizationId, orgId),
-      eq(journalEntriesTable.status, "posted"),
-      gte(journalEntriesTable.entryDate, startOfMonth),
-      lte(journalEntriesTable.entryDate, endOfMonth),
-      sql`${chartOfAccountsTable.classNum} IN (6, 7)`,
-    ))
-    .groupBy(chartOfAccountsTable.classNum);
-  let revenusMois = 0; let chargesMois = 0;
-  for (const r of pl) {
-    if (r.classNum === 7) revenusMois += toNum(r.c) - toNum(r.d);
-    if (r.classNum === 6) chargesMois += toNum(r.d) - toNum(r.c);
-  }
+  // P&L mois courant — dictionnaire central des KPI (audit phase 3).
+  const incomeMois = await getIncomeStatementKpis(orgId, startOfMonth, endOfMonth);
+  const revenusMois = incomeMois.revenue;
+  const chargesMois = incomeMois.expenses;
 
   // 6 derniers mois — produits/charges (une seule requête, group by mois + classe)
   const firstMonthDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);

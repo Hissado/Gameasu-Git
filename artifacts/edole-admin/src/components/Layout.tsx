@@ -41,7 +41,7 @@ type NavItem = {
   excludeRoles?: string[];
 };
 
-// ── Navigation 3 niveaux (ex : module Équipe & RH) ───────────────────────────
+// ── Navigation 3 niveaux (ex : module Ressources Humaines) ───────────────────────────
 type NavSectionItem = {
   name: string;
   path?: string;           // undefined → "Bientôt disponible"
@@ -178,7 +178,7 @@ const NAV_GROUPS: NavGroup[] = [
     sections: [
       {
         id: "projets-gestion",
-        name: "Gestion de projets",
+        name: "Projets & Tâches",
         icon: FolderKanban,
         items: [
           { name: "Projets", path: "/projets", moduleKey: "projects", permissionKey: "projects.read", description: "Créez et pilotez les objectifs, budgets, responsables et échéances de vos projets." },
@@ -350,7 +350,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
 
   {
-    title: "Équipe",
+    title: "Ressources Humaines",
     icon: Users2,
     description: "Gérez vos collaborateurs, contrats, congés, présences, paie, recrutements et réclamations.",
     moduleKey: "team_hr",

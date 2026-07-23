@@ -227,7 +227,7 @@ export default function TasksList() {
       <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
-          title="Gestion des Tâches"
+          title="Tâches"
           subtitle="Planifiez, assignez et suivez toutes vos tâches d'équipe en un seul endroit."
           icon={CheckSquare}
           steps={activeSteps}

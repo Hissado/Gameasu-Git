@@ -12,7 +12,14 @@ import { Router, type IRouter } from "express";
 import { db, invoicesTable, paymentsTable, clientsTable, clientEmailLogsTable } from "@workspace/db";
 import { and, eq, ne, desc } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions";
-import { getTreasuryPosition } from "../services/kpis";
+import {
+  getTreasuryPosition,
+  getReceivablesBalance,
+  getPayablesBalance,
+  getIncomeStatementKpis,
+  getPayrollCost,
+  getVatKpis,
+} from "../services/kpis";
 
 const router: IRouter = Router();
 
@@ -174,6 +181,40 @@ router.get("/finance/treasury-position", requirePermission("accounting.read"), a
     const asOf = typeof req.query["asOf"] === "string" ? (req.query["asOf"] as string) : undefined;
     const position = await getTreasuryPosition(req.authUser!.organizationId, asOf);
     return res.json(position);
+  } catch (e) { return next(e); }
+});
+
+// ─── KPI consolidés (source unique — audit phase 3) ────────────────────
+// Un seul endpoint pour tous les indicateurs financiers, chacun défini une
+// seule fois dans services/kpis.ts (grand livre). Les écrans (tableau de bord,
+// rapports, Cockpit) doivent consommer ces valeurs plutôt que recalculer.
+router.get("/finance/kpis", requirePermission("accounting.read"), async (req, res, next) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const from = typeof req.query["from"] === "string" ? (req.query["from"] as string) : undefined;
+    const to = typeof req.query["to"] === "string" ? (req.query["to"] as string) : undefined;
+    const [treasury, receivables, payables, income, payrollCost, vat] = await Promise.all([
+      getTreasuryPosition(orgId, to),
+      getReceivablesBalance(orgId, to),
+      getPayablesBalance(orgId, to),
+      getIncomeStatementKpis(orgId, from, to),
+      getPayrollCost(orgId, from, to),
+      getVatKpis(orgId, to),
+    ]);
+    return res.json({
+      treasury: treasury.total,
+      treasuryUnlinked: treasury.unlinked,
+      receivables,
+      payables,
+      revenue: income.revenue,
+      expenses: income.expenses,
+      result: income.result,
+      payrollCost,
+      vatCollected: vat.collected,
+      vatDeductible: vat.deductible,
+      vatNet: vat.net,
+      period: { from: from ?? null, to: to ?? null },
+    });
   } catch (e) { return next(e); }
 });
 

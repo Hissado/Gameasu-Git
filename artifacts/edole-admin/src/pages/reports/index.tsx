@@ -317,7 +317,7 @@ const REPORT_CATALOG: CatalogCategory[] = [
       { id: "sales-summary",       name: "Résumé des ventes",                 desc: "CA, commandes et proformas sur la période",           tab: "sales" },
       { id: "sales-by-client",     name: "Ventes par client",                 desc: "Top clients et détail des ventes",                    tab: "sales" },
       { id: "pipeline",            name: "Pipeline commercial",               desc: "Opportunités par étape (Lead → Signé)",               tab: "sales" },
-      { id: "conversion-rate",     name: "Taux de conversion proformas",      desc: "Proformas converties en commandes",                   tab: "sales" },
+      { id: "conversion-rate",     name: "Taux de conversion des devis",      desc: "Devis convertis en commandes",                   tab: "sales" },
     ],
   },
   {
@@ -601,7 +601,7 @@ function KpisTab({ periodQuery }: { periodQuery: string }) {
       kpis: [
         { label: "Commandes", value: String(s.ordersCount), accent: "default" as const, hint: formatFCFA(s.ordersAmount) },
         { label: "CA commandes", value: formatFCFA(s.ordersAmount), accent: "primary" as const },
-        { label: "Proformas", value: String(s.proformasCount), accent: "default" as const },
+        { label: "Devis", value: String(s.proformasCount), accent: "default" as const },
         { label: "Taux conversion", value: `${s.conversionRate.toFixed(0)}%`, accent: s.conversionRate >= 50 ? "success" as const : s.conversionRate >= 25 ? "warning" as const : "danger" as const },
         { label: "Pipeline actif", value: formatFCFA(s.pipelineValue), accent: "default" as const, hint: `${s.pipelineCount} opportunité${s.pipelineCount > 1 ? "s" : ""}` },
       ],
@@ -4009,7 +4009,7 @@ function SalesTab({ periodQuery, period, comparePeriod, compareMode = "none" }: 
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Kpi label="Commandes" value={String(data.kpi.ordersCount)} hint={formatFCFA(data.kpi.ordersAmount)} accent="primary" />
-            <Kpi label="Proformas" value={String(data.kpi.proformasCount)} hint={formatFCFA(data.kpi.proformasAmount)} />
+            <Kpi label="Devis" value={String(data.kpi.proformasCount)} hint={formatFCFA(data.kpi.proformasAmount)} />
             <Kpi label="Conversion proforma" value={`${data.kpi.conversionRate} %`} hint={`${data.kpi.proformasConverted} converties`} accent="success" />
             <Kpi label="Opportunités" value={formatFCFA(data.kpi.pipelineValue)} hint={`${data.kpi.pipelineCount} opportunité(s)`} />
           </div>
