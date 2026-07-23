@@ -77,7 +77,7 @@ type NavGroup = {
 const NAV_GROUPS: NavGroup[] = [
   // ── ACCUEIL ─────────────────────────────────────────────────────────────────
   {
-    title: "Accueil",
+    title: "Pilotage",
     icon: Gauge,
     description: "Retrouvez une vue d'ensemble de votre activité, vos indicateurs clés et les actions prioritaires.",
     items: [],
@@ -286,7 +286,7 @@ const NAV_GROUPS: NavGroup[] = [
 
   // ── FINANCE ─────────────────────────────────────────────────────────────────
   {
-    title: "Finance",
+    title: "Comptabilité & Finance",
     icon: Landmark,
     description: "Suivez votre trésorerie, vos budgets, votre comptabilité, vos prévisions et vos obligations fiscales.",
     items: [],
@@ -360,8 +360,12 @@ const NAV_GROUPS: NavGroup[] = [
     description: "Gérez vos collaborateurs, contrats, congés, présences, paie, recrutements et réclamations.",
     moduleKey: "team_hr",
     items: [],
+    // Navigation RH consolidée (audit §J : « menus RH surchargés ») :
+    // 14 sections ramenées à 8 rubriques logiques (pôle 4 « Capital humain »),
+    // doublons supprimés (Modèles de contrats, Fiche collaborateur). Toutes les
+    // pages restent accessibles ; hiérarchie Module → Rubrique → Sous-rubrique.
     sections: [
-      // ── 1. Mon espace ──────────────────────────────────────────────────────
+      // ── Mon espace (self-service, tous rôles) ──────────────────────────────
       {
         id: "rh-mon-espace",
         name: "Mon espace",
@@ -371,172 +375,101 @@ const NAV_GROUPS: NavGroup[] = [
         moduleKey: "team_hr",
         items: [],
       },
-      // ── 2. Collaborateurs ─────────────────────────────────────────────────
+      // ── Collaborateurs & organisation ─────────────────────────────────────
       {
         id: "rh-collaborateurs",
         name: "Collaborateurs",
         icon: UsersRound,
-        directPath: "/rh",
-        description: "Fiches, contrats, documents et informations professionnelles de votre équipe.",
+        description: "Fiches, contrats, documents, structure et mouvements de votre équipe.",
         moduleKey: "team_hr",
         permissionKey: "hr.read",
         excludeRoles: ["collaborator"],
-        items: [],
+        items: [
+          { name: "Fiches collaborateurs",  path: "/rh" },
+          { name: "Onboarding",             path: "/rh/integration" },
+          { name: "Contrats signés",        path: "/rh/contrats" },
+          { name: "Documents RH",           path: "/rh/documents" },
+          { name: "Départements",           path: "/rh/departements" },
+          { name: "Postes",                 path: "/rh/postes" },
+          { name: "Organigramme",           path: "/rh/organigramme" },
+          { name: "Affectations",           path: "/rh/affectations" },
+          { name: "Mouvements du personnel", path: "/rh/mouvements" },
+        ],
       },
-      // ── 3. Recrutement ─────────────────────────────────────────────────────
+      // ── Recrutement & formation ───────────────────────────────────────────
       {
         id: "rh-recrutement",
-        name: "Recrutement",
+        name: "Recrutement & Formation",
         icon: GraduationCap,
-        description: "Publiez vos offres, suivez les candidatures et gérez le processus d'embauche.",
+        description: "Candidatures, modèles de lettres et formations.",
         moduleKey: "team_hr",
         permissionKey: "hr.read",
         excludeRoles: ["collaborator"],
         items: [
           { name: "Dossiers de candidature", path: "/rh/recrutement" },
-          { name: "Modèles de lettres",       path: "/rh/modeles-contrats" },
+          { name: "Modèles de contrats",     path: "/rh/modeles-contrats" },
+          { name: "Formations",              path: "/rh/formations" },
         ],
       },
-      // ── 4. Intégration ─────────────────────────────────────────────────────
-      {
-        id: "rh-integration",
-        name: "Intégration",
-        icon: Sparkles,
-        description: "Accueillez et intégrez vos nouveaux collaborateurs.",
-        moduleKey: "team_hr",
-        permissionKey: "hr.read",
-        excludeRoles: ["collaborator"],
-        items: [
-          { name: "Fiche collaborateur", path: "/rh" },
-          { name: "Onboarding",          path: "/rh/integration" },
-        ],
-      },
-      // ── 5. Structure ───────────────────────────────────────────────────────
-      {
-        id: "rh-structure",
-        name: "Structure",
-        icon: Network,
-        description: "Organisez votre entreprise : postes, départements, organigramme et mouvements.",
-        moduleKey: "team_hr",
-        permissionKey: "hr.read",
-        excludeRoles: ["collaborator"],
-        items: [
-          { name: "Départements",           path: "/rh/departements" },
-          { name: "Postes",                 path: "/rh/postes" },
-          { name: "Organigramme",           path: "/rh/organigramme" },
-          { name: "Affectations",           path: "/rh/affectations" },
-          { name: "Formations",             path: "/rh/formations" },
-          { name: "Mouvements du personnel", path: "/rh/mouvements" },
-        ],
-      },
-      // ── 6. Temps & Présence ────────────────────────────────────────────────
+      // ── Temps, présence & congés ──────────────────────────────────────────
       {
         id: "rh-temps-presence",
         name: "Temps & Présence",
         icon: Clock,
-        description: "Suivez les horaires, pointages, absences et missions de vos équipes.",
+        description: "Horaires, pointages, absences, congés et missions de vos équipes.",
         moduleKey: "team_hr",
         permissionKey: "attendance.view",
         excludeRoles: ["collaborator"],
         items: [
-          { name: "Présence & absence",  path: "/presences" },
-          { name: "Feuilles de temps",   path: "/rh/feuilles-temps" },
-          { name: "Calendrier équipe",   path: "/rh/calendrier-equipe" },
+          { name: "Présence & absence",   path: "/presences" },
+          { name: "Feuilles de temps",    path: "/rh/feuilles-temps" },
+          { name: "Calendrier équipe",    path: "/rh/calendrier-equipe" },
+          { name: "Congés",               path: "/rh/conges" },
+          { name: "Politiques de congés", path: "/rh/politiques-conges" },
           { name: "Kiosques de pointage", path: "/kiosques", permissionKey: "attendance.manage_settings" },
         ],
       },
-      // ── 7. Paie ────────────────────────────────────────────────────────────
+      // ── Paie & déclarations ───────────────────────────────────────────────
       {
         id: "rh-paie",
         name: "Paie",
         icon: Banknote,
-        description: "Bulletins, calendrier, avances, congés, notes de frais et paiements.",
+        description: "Bulletins, avances, notes de frais, avantages, virements et déclarations.",
         moduleKey: "team_hr",
         permissionKey: "hr.read",
         excludeRoles: ["collaborator"],
         items: [
-          { name: "Bulletins de paie",   path: "/rh/paie" },
-          { name: "Avances sur salaire", path: "/rh/avances-salaire" },
-          { name: "Notes de frais",      path: "/rh/notes-frais" },
-          { name: "Congés",              path: "/rh/conges" },
-          { name: "Avantages",           path: "/rh/avantages" },
-          { name: "Virements",           path: "/rh/virements" },
-          { name: "Corrections",         path: "/rh/paie/corrections" },
-          { name: "Hors cycle",          path: "/rh/paie/hors-cycle" },
-        ],
-      },
-      // ── 8. Formalités administratives ──────────────────────────────────────
-      {
-        id: "rh-formalites",
-        name: "Formalités administratives",
-        icon: CheckCircle2,
-        description: "Déclarations de paie, obligations fiscales et sociales.",
-        moduleKey: "team_hr",
-        permissionKey: "hr.read",
-        excludeRoles: ["collaborator"],
-        items: [
+          { name: "Bulletins de paie",    path: "/rh/paie" },
+          { name: "Avances sur salaire",  path: "/rh/avances-salaire" },
+          { name: "Notes de frais",       path: "/rh/notes-frais" },
+          { name: "Avantages",            path: "/rh/avantages" },
+          { name: "Virements",            path: "/rh/virements" },
+          { name: "Corrections",          path: "/rh/paie/corrections" },
+          { name: "Hors cycle",           path: "/rh/paie/hors-cycle" },
           { name: "Déclarations de paie", path: "/rh/paie/declarations" },
+          { name: "États de salaires",    path: "/rh/etats-paie" },
           { name: "Paramètres fiscaux",   path: "/rh/fiscalite" },
+          { name: "Simulateur de coût",   path: "/rh/simulateur" },
         ],
       },
-      // ── 9. Documents du personnel ──────────────────────────────────────────
+      // ── Pilotage RH ───────────────────────────────────────────────────────
       {
-        id: "rh-documents-personnel",
-        name: "Documents du personnel",
-        icon: FolderOpen,
-        description: "Modèles de contrats, contrats signés et documents RH.",
-        moduleKey: "team_hr",
-        permissionKey: "hr.read",
-        excludeRoles: ["collaborator"],
-        items: [
-          { name: "Modèles de contrats", path: "/rh/modeles-contrats" },
-          { name: "Contrats signés",     path: "/rh/contrats" },
-          { name: "Documents RH",        path: "/rh/documents" },
-        ],
-      },
-      // ── 10. Documents légaux ───────────────────────────────────────────────
-      {
-        id: "rh-documents-legaux",
-        name: "Registre légal",
-        icon: FileSignature,
-        directPath: "/rh/registre-legal",
-        description: "Registre du personnel et obligations légales.",
-        moduleKey: "team_hr",
-        permissionKey: "hr.read",
-        excludeRoles: ["collaborator"],
-        items: [],
-      },
-      // ── 11. Notation & Rapports ────────────────────────────────────────────
-      {
-        id: "rh-notation-rapports",
-        name: "Notation & Rapports",
+        id: "rh-pilotage",
+        name: "Pilotage & Rapports",
         icon: BarChart3,
-        description: "Évaluations, objectifs, indicateurs et rapports RH.",
+        description: "Évaluations, indicateurs, rapports, registre légal et intelligence RH.",
         moduleKey: "team_hr",
         permissionKey: "hr.read",
         excludeRoles: ["collaborator"],
         items: [
           { name: "Évaluations",     path: "/rh/evaluations" },
           { name: "Indicateurs",     path: "/rh/indicateurs" },
-          { name: "Rapports",        path: "/rh/rapports" },
-          { name: "Simulateur paie", path: "/rh/simulateur" },
+          { name: "Rapports RH",     path: "/rh/rapports" },
+          { name: "Registre légal",  path: "/rh/registre-legal" },
           { name: "Intelligence RH", path: "/rh/intelligence", permissionKey: "ai.view_insights" },
         ],
       },
-      // ── 12. Paramètres RH ──────────────────────────────────────────────────
-      {
-        id: "rh-parametres",
-        name: "Paramètres",
-        icon: Settings,
-        description: "Configurez les politiques de congés et de paie.",
-        moduleKey: "team_hr",
-        permissionKey: "hr.read",
-        excludeRoles: ["collaborator"],
-        items: [
-          { name: "Politiques de congés", path: "/rh/politiques-conges" },
-        ],
-      },
-      // ── 13. Réclamations & Suggestions ────────────────────────────────────
+      // ── Réclamations & Suggestions ────────────────────────────────────────
       {
         id: "rh-reclamations",
         name: "Réclamations & Suggestions",
@@ -548,7 +481,7 @@ const NAV_GROUPS: NavGroup[] = [
         excludeRoles: ["collaborator"],
         items: [],
       },
-      // ── 15. Journal d'audit ────────────────────────────────────────────────
+      // ── Journal d'audit RH ────────────────────────────────────────────────
       {
         id: "rh-journal-audit",
         name: "Journal d'audit",

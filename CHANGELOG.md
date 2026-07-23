@@ -2,6 +2,14 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Navigation — application des 5 pôles + désencombrement RH — juillet 2026
+
+Deuxième passe des phases 10-11 (voir [`docs/RAPPORT_NAVIGATION_PH10-11.md`](docs/RAPPORT_NAVIGATION_PH10-11.md)).
+
+- **Alignement 5 pôles** : groupes renommés `Accueil → Pilotage` et `Finance → Comptabilité & Finance` ; les autres portaient déjà le bon intitulé (Ventes, Achats, Ressources Humaines). Projets/Logistique/Expert conservés comme modules additionnels.
+- **Menu RH désencombré** (§J) : 14 sections → 8 rubriques logiques, doublons supprimés (« Modèles de lettres/contrats », « Fiche collaborateur/Collaborateurs »), sans perdre aucune page ; « États de salaires » de nouveau exposé sous Paie.
+- **Barre bleue / panneau blanc** : le code actuel n'a qu'une seule barre latérale (la duplication de l'audit correspondait à une mise en page antérieure déjà consolidée).
+
 ## Navigation & architecture (phases 10-11) — juillet 2026
 
 Traitement prudent et vérifiable des phases 10-11 (voir [`docs/RAPPORT_NAVIGATION_PH10-11.md`](docs/RAPPORT_NAVIGATION_PH10-11.md)).
