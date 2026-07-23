@@ -1,6 +1,77 @@
-# Changelog Nexora
+# Changelog Gaméasù
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
+
+## Navigation & architecture (phases 10-11) — juillet 2026
+
+Traitement prudent et vérifiable des phases 10-11 (voir [`docs/RAPPORT_NAVIGATION_PH10-11.md`](docs/RAPPORT_NAVIGATION_PH10-11.md)).
+
+- **États financiers rattachés à la Comptabilité** : Bilan, Compte de résultat et Balance générale ajoutés comme entrées directes de la section Comptabilité de la barre latérale (ils existaient sous `/comptabilite/*` mais n'étaient accessibles que via Rapports / le tableau de bord).
+- Constat : le reste de la phase 11 était déjà en place (Trésorerie & Recouvrement sous Finance, Fiscalité & Conformité, Simulateur et Avances sous RH, aucun doublon Bilan/Résultat). La structure des 5 pôles est déjà globalement respectée.
+- Non traité (risque, validation visuelle requise) : duplication barre/panneau et allègement des menus RH — documentés comme chantier UI dédié.
+
+## Terminologie & dictionnaire KPI (phases 12 et 3) — juillet 2026
+
+Poursuite des phases 12 (harmonisation du vocabulaire) et 3 (source unique de vérité) du brief initial.
+
+- **Module RH unifié** : « Équipe & RH » / « Équipe » / « RH » → **Ressources Humaines** partout (navigation, breadcrumbs, facturation, modules).
+- **Terme commercial unique** : le document de devis s'appelle **Devis** partout (breadcrumb, rapports, conformité) ; la valeur interne `proforma` est conservée. Le stade de pipeline « Proposition » reste distinct (concept différent, non fusionné).
+- **Formulations orientées action** : titres de page « Gestion de… » → nom simple (Dépenses, Projets, Tâches, Locations) ; sous-titres passifs → verbes d'action (Créez / Suivez / Préparez).
+- **Dictionnaire KPI étendu** (`services/kpis.ts`) : ajout de `getIncomeStatementKpis` (CA / charges / résultat), `getPayrollCost` (masse salariale 66x), `getVatKpis` (TVA collectée 443x / déductible 445x / net). Tableau de bord Comptabilité branché dessus ; nouvel endpoint consolidé `GET /finance/kpis` (source unique pour tous les écrans).
+
+## Harmonisation P3 : vocabulaire, statuts FR, marque, route générique — juillet 2026
+
+Corrections des chantiers **P3** du rapport d'audit consolidé (voir [`docs/RAPPORT_CORRECTIONS_P3.md`](docs/RAPPORT_CORRECTIONS_P3.md)).
+
+- **Statuts en français** : dictionnaire central `statusLabel()` (~40 statuts) appliqué aux écrans qui affichaient encore le code brut (écritures, fournisseurs, clients, opérations) ; « Month-end close » → « Clôture mensuelle ».
+- **Vestige `/rh/btp-paie`** : page renommée `etats-salaires.tsx`, route `/rh/etats-paie`, redirection de l'ancienne URL, vocabulaire « chantier » retiré.
+- **Graphie de marque unique** : « Gaméasù » → « Gameasu » (16 occurrences en dur) ; l'identité reste pilotée par `branding.ts`.
+- **KPI dettes fournisseurs** (§F #19) : la carte du tableau de bord Comptabilité lit la source unique (`getPayablesBalance`, 401 grand livre) — plus de valeurs contradictoires (aligné au lot P1.h, confirmé ici).
+
+## Fiabilisation P2 : dates, numérotation, page 404, purge démo — juillet 2026
+
+Corrections des chantiers **P2** du rapport d'audit consolidé (voir [`docs/RAPPORT_CORRECTIONS_P2.md`](docs/RAPPORT_CORRECTIONS_P2.md)).
+
+- **Contrôles de chronologie des dates** (`lib/date-guards.ts`) : échéance ≥ émission, règlement ≥ facture, fin de contrat ≥ début — 400 avec message français ; l'exercice clôturé était déjà bloqué par le moteur d'écritures. 9 tests purs (`test:p2`).
+- **Numérotation unifiée** : service atomique `{PRÉFIXE}-{AAAA}-{NNNNN}` (INSERT … ON CONFLICT, robuste), préfixes homogènes (FAC/CMD/DEV/AV/FF/BC/PAY) **configurables par organisation** (`GET/PUT /admin/numbering`) ; documents clients et fournisseurs migrés (fin des `INV-<base36>` et des `COUNT(*)` fragiles) ; migration `migrate-document-numbering.ts` (amorce les compteurs au-dessus de l'existant). Les écritures gardent leur numérotation par journal (`VTE-2026-0001`).
+- **Page 404 en français** : `not-found.tsx` réécrite (Réessayer / Retour / Tableau de bord + référence d'erreur), fin du message de dev anglais « Did you forget to add the page… ».
+- **Purge démo en production** : `.replit` ne définit plus `SEED_HISSADO_DEMO=true` en production — le jeu de démo « Hissado » (≈200 tiers de test) n'est plus ré-injecté à chaque démarrage ; catalogue de référence toujours semé ; reliquat purgeable via factory-reset.
+
+## Fiabilisation P1 : RBAC, KPI trésorerie, rattrapage comptable — juillet 2026
+
+Corrections des chantiers **P1** du rapport d'audit consolidé (voir [`docs/RAPPORT_CORRECTIONS_P1.md`](docs/RAPPORT_CORRECTIONS_P1.md)).
+
+- **RBAC réparé (cause racine de l'audit §D)** : le seed échouait silencieusement à cause d'une dérive schéma/code (`label/category` + `permission_id` vs `name/module` + `permission_code`) → catalogue des 133 droits vide et matrice de rôles figée. Seed, résolution des droits (avec repli transitoire), routes admin et schéma des surcharges alignés sur le modèle canonique ; migration de réconciliation `migrate-rbac-align.ts` ; états d'erreur explicites côté UI (plus d'échec silencieux). 24 erreurs de typecheck pré-existantes résolues (65 → 41).
+- **Super Admin ≠ Administrateur** : l'Administrateur perd `roles.manage` (garde la lecture) — recommandation de l'audit appliquée.
+- **Trésorerie — source unique (91,8 M vs 0)** : nouveau dictionnaire central des KPI (`services/kpis.ts`) — « Trésorerie disponible » = solde grand livre classe 5, identique au bilan par construction ; endpoint `GET /finance/treasury-position` ; page Trésorerie branchée dessus (part non rattachée à un compte bancaire affichée, jamais masquée).
+- **Notes de frais → comptabilité** : approbation (D 618 / C 421) et remboursement (D 421 / C 5xx) comptabilisés atomiquement ; compte 618 ajouté au plan.
+- **Rattrapage historique** : script idempotent `backfill:postings` (simulation par défaut, `--apply` pour écrire) re-postant factures, encaissements, factures fournisseurs, paiements et paies validés sans écriture.
+- **Liens inertes** : les 5 cibles de l'audit ont toutes route + page réelles ; garde statique `check-routes` vert (484 fichiers, 199 routes). Cause résiduelle (permissions jamais semées) traitée par la réparation RBAC.
+- **Cycle d'achat — rapprochement 3 pièces** : service `threeWayMatch` (facture sans BC/réception, réception partielle, écart de prix, doublon, dépassement de seuil) ; contrôle **bloquant à l'approbation** (422 sauf force motivée) ; **comptabilisation à l'approbation** dans le module Achats (facture approuvée = écriture garantie) ; endpoints `/purchases/invoices/:id/three-way-match` et `/purchases/three-way-match/exceptions`.
+- **Tableau de bord comptable — source unique** : trésorerie/créances/dettes lues via le dictionnaire KPI (identiques au bilan et à la page Trésorerie) ; produits/charges du mois et graphique 6 mois issus du même grand livre — fin des valeurs contradictoires sur un même écran (audit §13.4).
+
+## Fiabilisation comptable P0 (audit consolidé) — juillet 2026
+
+Corrections des chantiers **P0** du rapport d'audit consolidé du 22 juillet 2026 (voir [`docs/RAPPORT_CORRECTIONS_P0.md`](docs/RAPPORT_CORRECTIONS_P0.md)).
+
+- **Paie → comptabilité** : nouvelle écriture automatique `postPayrollRun` (661/664 → 421/431/4471/4472), idempotente, générée **atomiquement** à la validation d'un cycle (v1 et v2). Comptes 4471/4472 ajoutés au plan seedé (+ `ensureAccount` pour les organisations existantes).
+- **Aucune facture sans écriture** : les deux chemins d'émission qui avalaient l'échec de comptabilisation (« non bloquant ») annulent désormais la facture et renvoient une erreur explicite.
+- **TVA ventes** : colonnes `subtotal_amount`/`tax_rate`/`tax_amount` sur `invoices` (additives), écriture éclatée 411 TTC / 706 HT / 4431 TVA, garde de cohérence backend HT + TVA = TTC.
+- **TVA achats** : `postSupplierInvoice` comptabilise la charge HT et la TVA récupérable au 4452 (le champ existait, il était ignoré).
+- **Moteur de paie unique** : suppression des copies locales divergentes (CNSS 4 % vs 9 %, patronal 16,4 % vs 22,5 %, double barème IRPP, IPTS 2 % en doublon) — `payroll-v2`, `payroll-extended` et `payroll` délèguent tous à `lib/payroll-engine` ; barèmes **versionnés** en base (`payroll_rate_scales`, org NULL = national) avec repli intégré ; endpoints de transparence `GET /payroll/rates` et `GET /payroll/simulate` ; simulateur frontend synchronisé sur le barème actif ; libellés d'exports dérivés du barème.
+- **Tests** : `pnpm --filter @workspace/api-server run test:payroll` — 28 cas de non-régression (référence Excel IRPP 330 FCFA, équilibre débit/crédit du bulletin, inversion net→brut…).
+- **Migrations** (additives, idempotentes) : `lib/db/src/migrate-payroll-scales.ts`, `lib/db/src/migrate-invoice-vat.ts`.
+- ⚠️ Les cycles de paie futurs appliquent le barème de référence (9 %/22,5 %, IRPP CGI) au lieu des taux recodés (4 %/16,4 %) — bulletins historiques inchangés ; à valider par l'expert-comptable, ajustable par barème d'organisation sans redéploiement.
+
+## Audit & nettoyage de la base de code — juillet 2026
+
+Audit complet du monorepo en vue d'une reprise par un développeur externe (voir [`docs/CODEBASE_AUDIT.md`](docs/CODEBASE_AUDIT.md)).
+
+- **Documentation** : `README.md` réécrit (reprise professionnelle) ; dossier `docs/` créé (`ARCHITECTURE`, `DEPLOYMENT`, `CONTRIBUTING`, `SECURITY`, `CODEBASE_AUDIT`).
+- **`.env.example`** réaligné sur la marque Gaméasù et complété avec l'intégralité des variables réellement utilisées (Stripe, CinetPay, Google, emails, `VITE_*`), sans valeur secrète.
+- **Nettoyage** : suppression de `attached_assets/` (619 fichiers, 133 Mo, inutilisés) et de l'alias Vite `@assets` ; retrait des uploads runtime versionnés (`api-server/uploads/*.webm`) + ajout au `.gitignore` ; déplacement des documents internes vers `docs/archive/` ; lockfile nettoyé (importer fantôme `edole-deck`). Contenu versionné réduit de ~150 à ~21 Mo (hors `.git`).
+- **Typage** : correction sûre du type `req.id` (`ReqId`) dans `audit()` — erreurs de typecheck `api-server` ramenées de 122 à 65, sans impact runtime.
+- **Sécurité** : documentation de la clé `CLOUD_STORAGE_ENCRYPTION_KEY` exposée dans `.replit` (rotation requise, voir `docs/SECURITY.md`). Aucun secret en dur détecté dans le code applicatif.
 
 ## Réinitialisation usine & base propre pour la production — juin 2026
 

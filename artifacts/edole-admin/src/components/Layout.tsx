@@ -41,7 +41,7 @@ type NavItem = {
   excludeRoles?: string[];
 };
 
-// ── Navigation 3 niveaux (ex : module Équipe & RH) ───────────────────────────
+// ── Navigation 3 niveaux (ex : module Ressources Humaines) ───────────────────────────
 type NavSectionItem = {
   name: string;
   path?: string;           // undefined → "Bientôt disponible"
@@ -178,7 +178,7 @@ const NAV_GROUPS: NavGroup[] = [
     sections: [
       {
         id: "projets-gestion",
-        name: "Gestion de projets",
+        name: "Projets & Tâches",
         icon: FolderKanban,
         items: [
           { name: "Projets", path: "/projets", moduleKey: "projects", permissionKey: "projects.read", description: "Créez et pilotez les objectifs, budgets, responsables et échéances de vos projets." },
@@ -307,7 +307,12 @@ const NAV_GROUPS: NavGroup[] = [
         moduleKey: "accounting",
         permissionKey: "accounting.read",
         items: [
-          { name: "Grand livre",          path: "/comptabilite",                 moduleKey: "accounting", permissionKey: "accounting.read",   description: "Gérez vos écritures, journaux, comptes, états financiers et contrôles comptables." },
+          { name: "Grand livre",          path: "/comptabilite",                 moduleKey: "accounting", permissionKey: "accounting.read",   description: "Gérez vos écritures, journaux, comptes et contrôles comptables." },
+          // États financiers rattachés à la Comptabilité qui les produit
+          // (audit phase 11) ; également accessibles en lecture depuis Rapports.
+          { name: "Bilan",                path: "/comptabilite/bilan",              moduleKey: "accounting", permissionKey: "accounting.read",   description: "Consultez votre bilan SYSCOHADA : actif, passif et équilibre à une date donnée." },
+          { name: "Compte de résultat",   path: "/comptabilite/compte-de-resultat", moduleKey: "accounting", permissionKey: "accounting.read",   description: "Analysez vos produits, charges et résultat sur une période." },
+          { name: "Balance générale",     path: "/comptabilite/balance",            moduleKey: "accounting", permissionKey: "accounting.read",   description: "Vérifiez les soldes de tous les comptes : mouvements débiteurs, créditeurs et contrôle d'équilibre." },
           { name: "Immobilisations",      path: "/comptabilite/immobilisations", moduleKey: "accounting", permissionKey: "accounting.read",   description: "Gérez vos actifs immobilisés : acquisitions, calcul des amortissements et enregistrement des cessions." },
           { name: "Clôture des périodes", path: "/comptabilite/cloture",         moduleKey: "accounting", permissionKey: "accounting.manage", description: "Clôturez vos périodes comptables, verrouillez les écritures et générez les états de synthèse." },
         ],
@@ -350,7 +355,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
 
   {
-    title: "Équipe",
+    title: "Ressources Humaines",
     icon: Users2,
     description: "Gérez vos collaborateurs, contrats, congés, présences, paie, recrutements et réclamations.",
     moduleKey: "team_hr",
@@ -607,7 +612,7 @@ const NAV_GROUPS: NavGroup[] = [
         moduleKey: "workspace_settings",
         permissionKey: "admin.access",
         items: [
-          { name: "Migration & Import", path: "/migration",           moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Importez vos données historiques et migrez depuis d'autres outils vers Gaméasù." },
+          { name: "Migration & Import", path: "/migration",           moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Importez vos données historiques et migrez depuis d'autres outils vers Gameasu." },
           { name: "Données & Exports",  path: "/admin/data-exports",  moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Exportez l'intégralité des données de votre organisation dans un fichier ZIP sécurisé." },
           { name: "Stockage cloud",     path: "/admin/cloud-storage", moduleKey: "workspace_settings", permissionKey: "admin.access", description: "Synchronisez vos documents vers Google Drive ou OneDrive. Sauvegarde automatique des factures, contrats et bulletins de paie." },
         ],
@@ -637,7 +642,7 @@ const NAV_GROUPS: NavGroup[] = [
         items: [
           { name: "Console admin", path: "/admin",    moduleKey: "administration", permissionKey: "admin.access", description: "Administrez votre système : utilisateurs, audits, incidents et diagnostics avancés." },
           { name: "Support",       path: "/tickets",                                                              description: "Soumettez une demande d'assistance et suivez son traitement par l'équipe concernée." },
-          { name: "Centre d'aide", path: "/aide",                                                                 description: "Parcourez tous les guides interactifs et visites guidées de Gaméasù." },
+          { name: "Centre d'aide", path: "/aide",                                                                 description: "Parcourez tous les guides interactifs et visites guidées de Gameasu." },
         ],
       },
     ],

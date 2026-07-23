@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Receipt, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { statusLabel } from "@/lib/status-labels";
 
 type Supplier = { id: string; code: string; name: string; email?: string; phone?: string; isActive: boolean };
 type Account = { id: string; code: string; label: string; classNum: number };
@@ -124,7 +125,7 @@ export default function SuppliersPage() {
                       {formatFCFA(inv.totalAmount)}
                       {inv.paidAmount > 0 && <div className="text-xs text-emerald-600">Réglé : {formatFCFA(inv.paidAmount)}</div>}
                     </td>
-                    <td className="p-3"><Badge variant={inv.status === "paid" ? "default" : inv.status === "overdue" ? "destructive" : "secondary"}>{inv.status}</Badge></td>
+                    <td className="p-3"><Badge variant={inv.status === "paid" ? "default" : inv.status === "overdue" ? "destructive" : "secondary"}>{statusLabel(inv.status)}</Badge></td>
                     <td className="p-3 text-right">
                       {inv.status !== "paid" && (
                         <Button size="sm" variant="outline" onClick={() => { setOpenPayment(inv.id); setPaymentForm({ ...paymentForm, amount: String(inv.totalAmount - inv.paidAmount) }); }}>Régler</Button>

@@ -7,6 +7,7 @@ import { expenseReportsTable, expenseItemsTable, collaboratorsTable } from "@wor
 import { and, eq, desc, sql } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 import { z } from "zod/v4";
+import { postExpenseReport, postExpensePayment } from "../services/postings";
 
 const router = Router();
 router.use(requireAuth);
@@ -183,10 +184,21 @@ router.post("/hr/expenses/:id/submit", async (req, res, next) => {
 router.post("/hr/expenses/:id/approve", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const [row] = await db.update(expenseReportsTable)
-      .set({ status: "approved", approvedById: req.authUser!.id, approvedAt: new Date() })
-      .where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "submitted")))
-      .returning();
+    // Approbation ATOMIQUE : statut + écriture comptable (D 618 / C 421)
+    // dans une même transaction — une note approuvée est toujours écriturée
+    // (audit P0.3/P1 : les charges doivent alimenter la comptabilité).
+    const row = await db.transaction(async (txn) => {
+      const [updated] = await txn.update(expenseReportsTable)
+        .set({ status: "approved", approvedById: req.authUser!.id, approvedAt: new Date() })
+        .where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "submitted")))
+        .returning();
+      if (!updated) return null;
+      await postExpenseReport(orgId, {
+        id: updated.id, title: updated.title,
+        totalAmount: toNum(updated.totalAmount), approvedAt: updated.approvedAt,
+      }, req.authUser!.id, txn);
+      return updated;
+    });
     if (!row) return res.status(404).json({ error: "Non trouvé ou non soumis" });
     res.json({ ...row, totalAmount: toNum(row.totalAmount) });
   } catch (e) { next(e); }
@@ -208,10 +220,19 @@ router.post("/hr/expenses/:id/reject", requireManagerOrAbove, async (req, res, n
 router.post("/hr/expenses/:id/pay", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
-    const [row] = await db.update(expenseReportsTable)
-      .set({ status: "paid", paidAt: new Date(), paidById: req.authUser!.id })
-      .where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "approved")))
-      .returning();
+    const method = req.body?.method === "cash" ? "cash" as const : "bank" as const;
+    // Paiement ATOMIQUE : statut + écriture de trésorerie (D 421 / C 5xx).
+    const row = await db.transaction(async (txn) => {
+      const [updated] = await txn.update(expenseReportsTable)
+        .set({ status: "paid", paidAt: new Date(), paidById: req.authUser!.id })
+        .where(and(eq(expenseReportsTable.id, (req.params.id as string)), eq(expenseReportsTable.organizationId, orgId), eq(expenseReportsTable.status, "approved")))
+        .returning();
+      if (!updated) return null;
+      await postExpensePayment(orgId, {
+        id: updated.id, title: updated.title, totalAmount: toNum(updated.totalAmount),
+      }, { method, userId: req.authUser!.id, tx: txn });
+      return updated;
+    });
     if (!row) return res.status(404).json({ error: "Non trouvé ou non approuvé" });
     res.json({ ...row, totalAmount: toNum(row.totalAmount) });
   } catch (e) { next(e); }

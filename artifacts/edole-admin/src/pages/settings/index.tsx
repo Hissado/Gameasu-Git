@@ -435,7 +435,7 @@ function AccountingFrameworkTab() {
               )}
               <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-amber-200 bg-amber-50/60 text-sm text-amber-800">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>La modification du référentiel comptable est réservée aux super-administrateurs Gaméasù. Contactez le support si votre organisation change de statut légal.</span>
+                <span>La modification du référentiel comptable est réservée aux super-administrateurs Gameasu. Contactez le support si votre organisation change de statut légal.</span>
               </div>
             </>
           ) : (
@@ -819,7 +819,7 @@ function CustomRolesSection() {
               Rôles personnalisés
             </CardTitle>
             <CardDescription className="mt-1">
-              Créez des rôles adaptés à votre organisation avec un ensemble de permissions sur mesure. Les rôles système sont gérés par Gaméasù.
+              Créez des rôles adaptés à votre organisation avec un ensemble de permissions sur mesure. Les rôles système sont gérés par Gameasu.
             </CardDescription>
           </div>
           <Button size="sm" onClick={openCreate} className="shrink-0 gap-1.5">

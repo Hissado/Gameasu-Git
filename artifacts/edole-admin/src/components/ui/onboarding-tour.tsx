@@ -693,7 +693,7 @@ export const TOUR_PATHS: Record<string, TourPath[]> = {
         {
           target: "users-list",
           title: "Annuaire des utilisateurs",
-          description: "Tous les comptes ayant accès à votre espace Gaméasù : rôle, statut (actif / inactif) et dernière connexion. Seuls les Super Admins et Admins peuvent inviter de nouveaux membres.",
+          description: "Tous les comptes ayant accès à votre espace Gameasu : rôle, statut (actif / inactif) et dernière connexion. Seuls les Super Admins et Admins peuvent inviter de nouveaux membres.",
         },
         {
           target: "users-list",

@@ -230,7 +230,7 @@ export default function RentalsList() {
       <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
-          title="Gestion des Locations"
+          title="Locations"
           subtitle="Gérez vos contrats de location d'équipements de la réservation à la restitution."
           icon={Truck}
           steps={activeSteps}

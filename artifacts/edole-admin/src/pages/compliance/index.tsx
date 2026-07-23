@@ -109,7 +109,7 @@ function SealsTab() {
   });
 
   const DOC_TYPE_LABELS: Record<string, string> = {
-    invoice: "Facture", proforma: "Proforma", contract: "Contrat", report: "Rapport", other: "Autre",
+    invoice: "Facture", proforma: "Devis", contract: "Contrat", report: "Rapport", other: "Autre",
   };
 
   return (
@@ -185,7 +185,7 @@ function SealsTab() {
                 onChange={(e) => setForm({ ...form, documentType: e.target.value })}
               >
                 <option value="invoice">Facture</option>
-                <option value="proforma">Proforma</option>
+                <option value="proforma">Devis</option>
                 <option value="contract">Contrat</option>
                 <option value="report">Rapport</option>
                 <option value="other">Autre</option>
@@ -437,7 +437,7 @@ function SignaturesTab() {
                   onChange={(e) => setForm({ ...form, documentType: e.target.value })}
                 >
                   <option value="invoice">Facture</option>
-                  <option value="proforma">Proforma</option>
+                  <option value="proforma">Devis</option>
                   <option value="contract">Contrat</option>
                   <option value="report">Rapport</option>
                   <option value="other">Autre</option>

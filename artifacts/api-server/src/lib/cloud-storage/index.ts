@@ -28,7 +28,7 @@ export const PROVIDER_CATALOG: StorageProviderMeta[] = [
   {
     id:          "google_drive",
     label:       "Google Drive",
-    description: "Synchronisez vos documents vers votre Google Drive ou Google Workspace. Accès limité aux fichiers créés par Gaméasù.",
+    description: "Synchronisez vos documents vers votre Google Drive ou Google Workspace. Accès limité aux fichiers créés par Gameasu.",
     icon:        "google_drive",
     available:   !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
   },

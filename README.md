@@ -1,148 +1,259 @@
-# Nexora
+# Gaméasù
 
-**Le pilotage d'entreprise nouvelle génération.**
+**Gérer aujourd'hui. Construire demain.**
 
-Nexora est une plateforme SaaS B2B multi-tenant conçue pour les organisations du Togo et d'Afrique de l'Ouest francophone. Elle réunit dans un seul espace de travail le pilotage commercial, projet, comptable, RH, opérationnel et financier — facturé en FCFA.
+Gaméasù est une plateforme **ERP SaaS B2B multi-tenant** conçue pour les
+organisations du Togo et d'Afrique de l'Ouest francophone. Elle réunit dans un
+seul espace de travail le pilotage **commercial (CRM), projet, comptable, RH,
+opérationnel, logistique et financier**, facturé en FCFA (XOF).
 
-> Nexora est issu d'une refonte du socle EDOLE Africa, dont elle reprend la base technique (Express + Vite + Drizzle + Postgres) et ajoute :
-> organisations multi-tenant, plans d'abonnement, catalogue de modules, facturation, paramétrage de l'espace de travail et identité visuelle dédiée.
+En production : **[erp.gameasu.com](https://erp.gameasu.com)**.
 
-## Stack
+> Gaméasù est issu d'une refonte du socle *EDOLE Africa*. On peut encore
+> croiser d'anciennes appellations (« EDOLE », « Nexora ») dans quelques
+> commentaires ou données historiques ; l'identité active du produit est
+> **Gaméasù**, centralisée dans `artifacts/edole-admin/src/config/branding.ts`.
 
-| Couche             | Technologie                                                       |
-| ------------------ | ----------------------------------------------------------------- |
-| Monorepo           | pnpm workspaces                                                   |
-| Backend            | Node.js 24 · Express 5 · TypeScript 5.9 (port 8080)               |
-| Frontend           | React + Vite + shadcn/ui + Tailwind CSS (port 25655)              |
-| Base de données    | PostgreSQL + Drizzle ORM                                          |
-| Validation         | Zod (`zod/v4`), `drizzle-zod`                                     |
-| API codegen        | Orval (depuis l'OpenAPI spec)                                     |
-| Build              | esbuild (CJS bundle)                                              |
-| Realtime           | Socket.IO sur `/api/realtime`                                     |
-| Charts             | Recharts                                                          |
-| Routing            | Wouter                                                            |
+---
 
-## Démarrage rapide
+## 1. Fonctionnalités principales
+
+| Domaine        | Contenu                                                                       |
+| -------------- | ----------------------------------------------------------------------------- |
+| **CRM & Ventes** | Clients, contacts, activités, pipeline commercial, devis, appels             |
+| **Facturation**  | Factures, avoirs, commandes, paiements (Stripe + CinetPay Mobile Money)      |
+| **Projets**      | Projets, tâches, suivi d'avancement, approbations                            |
+| **RH**           | Collaborateurs, contrats, congés, notes de frais, avantages, onboarding, paie BTP |
+| **Pointage**     | Application kiosque (borne QR / photo / GPS) pour le pointage des équipes    |
+| **Comptabilité** | Écritures, fiscalité, recouvrement, exports comptables                       |
+| **Finance / F&A**| Intelligence financière, anomalies, tableaux de bord, briefing quotidien     |
+| **Logistique**   | Équipements, mouvements de stock, locations, achats                          |
+| **Documents**    | GED, synchronisation cloud (Google Drive), intelligence documentaire         |
+| **IA**           | Assistant IA, auto-traduction, détection d'anomalies                          |
+| **Plateforme**   | Cockpit super-admin : organisations, plans, modules, facturation, équipe     |
+
+**Public cible :** PME et organisations structurées (BTP, services, négoce)
+d'Afrique de l'Ouest francophone cherchant un outil de gestion intégré en FCFA.
+
+---
+
+## 2. Stack technique
+
+| Couche              | Technologie                                                        |
+| ------------------- | ----------------------------------------------------------------- |
+| **Monorepo**        | pnpm workspaces (`pnpm-workspace.yaml`)                            |
+| **Backend**         | Node.js 24 · Express 5 · TypeScript 5.9 (port 8080)               |
+| **Frontend**        | React 19 · Vite 7 · Tailwind CSS 4 · shadcn/ui                    |
+| **Routing (front)** | Wouter                                                            |
+| **Données serveur** | TanStack Query (React Query)                                      |
+| **Base de données** | PostgreSQL 16 · Drizzle ORM                                       |
+| **Validation**      | Zod (schémas partagés `@workspace/api-zod`)                       |
+| **Temps réel**      | Socket.IO (`/api/realtime`)                                       |
+| **Auth**            | Bearer token (session en base) · `bcryptjs` · RBAC maison        |
+| **Emails**          | Resend (principal) / SendGrid (fallback) · templates maison       |
+| **Paiement**        | Stripe (carte) · CinetPay (Mobile Money)                          |
+| **Stockage cloud**  | Google Drive (OAuth2, tokens chiffrés AES-256-GCM)               |
+| **IA**              | OpenAI / proxy IA Replit                                          |
+| **Build**           | esbuild (backend, bundle ESM) · Vite (frontends)                 |
+| **Hébergement**     | Replit Autoscale Deployment (`.replit`)                          |
+
+---
+
+## 3. Architecture du projet
+
+Monorepo pnpm : **applications** dans `artifacts/*`, **bibliothèques
+partagées** dans `lib/*`, **outillage** dans `scripts/`.
+
+```
+Gameasu-Git/
+├── artifacts/                    # Applications déployables
+│   ├── api-server/               # API REST + WebSocket (Express 5) — port 8080
+│   │   └── src/
+│   │       ├── routes/           # ~97 modules de routes (auth, crm, hr, billing…)
+│   │       ├── services/         # Logique métier (seed démo, etc.)
+│   │       ├── middlewares/      # auth, RBAC, gestion d'erreurs
+│   │       ├── lib/              # email, paiement, cloud-storage, audit, realtime…
+│   │       └── app.ts            # Assemblage Express (helmet, cors, routes)
+│   ├── edole-admin/              # Frontend ERP principal (React) — port 25655
+│   │   └── src/
+│   │       ├── pages/            # ~211 pages, regroupées par domaine métier
+│   │       ├── components/       # Composants (dont ui/ = shadcn)
+│   │       ├── hooks/            # Hooks React réutilisables
+│   │       ├── lib/              # Client API, helpers (saas, query…)
+│   │       ├── config/           # branding.ts (identité centralisée)
+│   │       └── assets/           # Logos et images de l'app
+│   ├── gameasu-cockpit/          # Cockpit plateforme super-admin (React)
+│   ├── kiosk/                    # Borne de pointage collaborateurs (React)
+│   └── mockup-sandbox/           # Maquettes/prototypes — hors production
+├── lib/                          # Paquets partagés (@workspace/*)
+│   ├── db/                       # Schéma Drizzle + migrations + seeds
+│   │   └── src/schema/           # Tables (saas, hr, crm, accounting…)
+│   ├── api-zod/                  # Schémas de validation Zod partagés
+│   ├── api-spec/                 # Spécification d'API
+│   └── api-client-react/         # Client API typé (React Query)
+├── scripts/                      # Outillage (vérification des routes, post-merge)
+├── docs/                         # Documentation technique détaillée (voir §10)
+├── .env.example                  # Modèle de configuration d'environnement
+├── pnpm-workspace.yaml           # Déclaration des paquets + catalog de versions
+└── .replit                       # Config d'hébergement Replit
+```
+
+### Logique générale
+
+1. **Le frontend** (`edole-admin`) est une SPA React servie par Vite. Il ne
+   contient **aucun secret** et communique avec le backend via `/api/*`.
+2. **Le backend** (`api-server`) expose une API REST sous `/api` et un canal
+   temps réel Socket.IO. Chaque domaine métier a son module de route dans
+   `src/routes/`, monté dans `src/routes/index.ts`.
+3. **L'authentification** repose sur un Bearer token vérifié par le middleware
+   `requireAuth`, complété par un contrôle de permissions **RBAC**
+   (`src/lib/rbac`, `src/middlewares`). Les routes protégées valident rôle et
+   organisation courante.
+4. **Les données** sont modélisées avec **Drizzle** dans `lib/db/src/schema`.
+   Les validations d'entrée passent par **Zod** (`lib/api-zod`), partagé entre
+   front et back pour une source de vérité unique.
+5. **Le multi-tenant** s'articule autour des organisations
+   (`organizations`, `organization_members`), des plans d'abonnement et d'un
+   **gating par module** appliqué côté front (sidebar, écran *Upgrade*) et
+   côté back (403 si le plan ne couvre pas le module).
+6. **Les variables d'environnement** sont lues via `process.env` (backend) et
+   `import.meta.env.VITE_*` (frontend). Voir `.env.example` — jamais de secret
+   côté frontend.
+
+Détails complets dans [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+---
+
+## 4. Installation locale
+
+**Pré-requis :** Node.js 24, [pnpm](https://pnpm.io) 9+, PostgreSQL 16 accessible.
 
 ```bash
-# Pré-requis : Node 24 + pnpm + PostgreSQL accessible via DATABASE_URL
-cp .env.example .env
+# 1. Cloner le dépôt
+git clone <url-du-depot> && cd Gameasu-Git
+
+# 2. Installer les dépendances (pnpm imposé — voir le hook preinstall)
 pnpm install
-pnpm --filter @workspace/db run push        # applique le schéma
-pnpm --filter @workspace/api-server run dev # ou via les workflows Replit
+
+# 3. Créer le fichier d'environnement
+cp .env.example .env
+#    puis renseigner au minimum DATABASE_URL
+
+# 4. Appliquer le schéma de base de données
+pnpm --filter @workspace/db run push
+
+# 5. (Optionnel) Charger un jeu de données de démonstration
+cd lib/db && pnpm exec tsx src/seed-gameasu-master.ts && cd -
+
+# 6. Lancer le backend en développement
+pnpm --filter @workspace/api-server run dev   # http://localhost:8080
+
+# 7. Lancer un frontend (ex. l'ERP admin) dans un autre terminal
+pnpm --filter @workspace/edole-admin run dev  # http://localhost:25655
 ```
 
-L'API démarre sur le port `8080` et exécute automatiquement les seeds idempotents :
-RBAC (rôles + permissions), HR (départements + postes) et **SaaS Nexora**
-(catalogue de modules, 4 plans, organisation par défaut, abonnement Professional, modules activés, historique de facturation de démo).
+### Comptes de démonstration (après seed)
 
-Identifiants de démonstration :
+| Rôle        | Email                     | Mot de passe    |
+| ----------- | ------------------------- | --------------- |
+| Super Admin | `admin@gameasu.com`       | `admin123`      |
+| Manager     | `directeur@gameasu.com`   | `admin123`      |
+| Commercial  | `commercial@gameasu.com`  | `commercial123` |
+| Collaborateur | `collab@gameasu.com`    | `collab123`     |
 
-| Rôle              | Email                          | Mot de passe   |
-| ----------------- | ------------------------------ | -------------- |
-| Super Admin       | `admin@edole.africa`           | `admin123`     |
-| Manager           | `manager@edole.africa`         | `manager123`   |
-| Commercial        | `commercial@edole.africa`      | `commercial123`|
-| Collaborateur     | `collab@edole.africa`          | `collab123`    |
+> ⚠️ Identifiants de **démonstration uniquement**. Ne jamais activer le seed
+> démo (`SEED_HISSADO_DEMO` / `SEED_DEMO_DATA`) sur une base de production
+> réelle avec des comptes à mot de passe par défaut.
 
-## Architecture
+---
 
-```
-artifacts/
-  api-server/                Express API server (port 8080)
-    src/routes/              Route handlers
-      organizations.ts       /api/organizations(/current|/:id) + membres
-      subscriptions.ts       /api/subscription-plans, /api/subscriptions/*,
-                             /api/organization-modules/*, /api/billing/*,
-                             /api/workspace-settings/*
-      …                      auth, users, clients, crm, projects, tasks,
-                             accounting, fpa, messaging, equipment, rentals, etc.
-    src/lib/tenant.ts        getCurrentOrganizationId / getCurrentSubscription
+## 5. Scripts disponibles
 
-  edole-admin/               React + Vite frontend (port 25655)
-    src/config/branding.ts   Identité Nexora (logo, slogan, couleurs)
-    src/lib/saas.ts          Hooks SaaS (plans, abonnement, modules, billing)
-    src/components/
-      Layout.tsx             Sidebar Nexora 3 groupes + PlanBadge + module gating
-      PlanBadge.tsx          Badge plan (Starter/Growth/Professional/Enterprise)
-      FeatureGate.tsx        Gating par module + UpgradeRequired
-      branding/AppLogo.tsx
-    src/pages/
-      billing.tsx            Abonnement, plans, cycle, historique
-      workspace-settings.tsx Identité, branding, préférences, modules
-      upgrade-required.tsx   Écran upsell pour module non inclus
+Depuis la racine du monorepo :
 
-lib/
-  api-spec/                  OpenAPI spec + Orval codegen
-  api-client-react/          Hooks React Query générés
-  api-zod/                   Schémas Zod générés
-  db/                        Drizzle schema + DB client
-    src/schema/saas.ts       organizations, organization_members,
-                             module_catalog, subscription_plans (+ features),
-                             organization_subscriptions, organization_modules,
-                             billing_events, workspace_invitations
-    src/seed-saas.ts         Seed SaaS idempotent
-```
+| Commande                                             | Rôle                                             |
+| ---------------------------------------------------- | ------------------------------------------------ |
+| `pnpm install`                                       | Installe toutes les dépendances (pnpm requis)    |
+| `pnpm run typecheck`                                 | Typecheck de l'ensemble du monorepo + routes     |
+| `pnpm run build`                                     | Typecheck puis build de tous les paquets         |
+| `pnpm run check-routes`                              | Vérifie la cohérence des routes déclarées        |
+| `pnpm --filter @workspace/api-server run dev`        | Backend en développement                         |
+| `pnpm --filter @workspace/api-server run build`      | Build backend (esbuild → `dist/`)                |
+| `pnpm --filter @workspace/edole-admin run dev`       | Frontend ERP en développement                    |
+| `pnpm --filter @workspace/edole-admin run build`     | Build frontend                                   |
+| `pnpm --filter @workspace/db run push`               | Applique le schéma Drizzle en base               |
+| `cd lib/db && pnpm exec tsx src/seed-gameasu-master.ts` | Charge le jeu de données de démonstration     |
 
-## Modèle SaaS
+Remplacer `edole-admin` par `gameasu-cockpit` ou `kiosk` pour les autres apps.
 
-### Plans (FCFA, par utilisateur)
+---
 
-| Code            | /mois     | /an       | Setup       | Cible                                        |
-| --------------- | --------- | --------- | ----------- | -------------------------------------------- |
-| `STARTER`       | 8 000     | 80 000    | 0           | Petites équipes structurant leur activité    |
-| `GROWTH`        | 18 000    | 180 000   | 250 000     | Organisations en expansion (ventes + compta) |
-| `PROFESSIONAL`  | 35 000    | 350 000   | 750 000     | Structures multi-services (finance + ops)    |
-| `ENTERPRISE`    | 60 000    | 600 000   | 2 500 000   | Groupes & grandes organisations              |
+## 6. Déploiement
 
-### Modules
+Le projet est déployé sur **Replit Autoscale** (voir `.replit`) sous
+`erp.gameasu.com`.
 
-20 modules organisés en trois catégories : `core` (toujours inclus), `business`
-(à la carte selon le plan) et `admin` (toujours inclus). Le gating est appliqué
-côté frontend (sidebar + écran *Upgrade required*) et côté backend (`/api/organization-modules/:key/toggle` renvoie 403 si le plan ne couvre pas le module).
+- **Build de déploiement :** `pnpm run build` puis `pnpm store prune`
+  (`deployment.postBuild`).
+- **Variables d'environnement de production :** fournies via **Replit Secrets**
+  (et non versionnées). La liste des variables attendues est dans `.env.example`.
+- **Points d'attention avant mise en production :**
+  - `DATABASE_URL` pointe vers la base de production.
+  - `SEED_HISSADO_DEMO` / `SEED_DEMO_DATA` désactivés en production réelle.
+  - Secrets Stripe/CinetPay/Google/`CLOUD_STORAGE_ENCRYPTION_KEY` renseignés
+    via le gestionnaire de secrets — **jamais** dans un fichier versionné.
+  - `NODE_ENV=production` (active HSTS + désactive les traces de debug).
 
-## Endpoints clés (SaaS)
+Procédure détaillée : [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
-| Méthode | Route                                            | Description                                 |
-| ------- | ------------------------------------------------ | ------------------------------------------- |
-| GET     | `/api/organizations/current`                     | Organisation de l'utilisateur courant       |
-| PATCH   | `/api/organizations/current`                     | Mise à jour (admin)                         |
-| GET     | `/api/organization-members`                      | Membres de l'espace de travail              |
-| GET     | `/api/subscription-plans`                        | Tous les plans publics + features           |
-| GET     | `/api/subscriptions/current`                     | Abonnement courant + plan                   |
-| POST    | `/api/subscriptions/change-plan`                 | Change la formule (recalcule les modules)   |
-| POST    | `/api/subscriptions/change-billing-cycle`        | Mensuel ↔ Annuel                            |
-| GET     | `/api/organization-modules`                      | Liste des modules de l'organisation         |
-| PATCH   | `/api/organization-modules/:moduleKey/toggle`    | Activer/désactiver un module                |
-| GET     | `/api/billing/summary`                           | Résumé facturation + 12 derniers évènements |
-| GET     | `/api/billing/events`                            | Historique complet                          |
-| GET     | `/api/billing/usage`                             | Sièges utilisés vs sièges totaux            |
-| GET     | `/api/workspace-settings`                        | Org + abonnement + plan + modules           |
-| PATCH   | `/api/workspace-settings/{general\|branding\|preferences}` | MAJ par section          |
+---
 
-## Variables d'environnement
+## 7. Contribution
 
-Voir `.env.example`. Les principales :
+- **Branches :** `feature/<sujet>`, `fix/<sujet>`, `chore/<sujet>` à partir de `main`.
+- **Commits :** messages clairs et impératifs (idéalement
+  [Conventional Commits](https://www.conventionalcommits.org/) : `feat:`, `fix:`, `docs:`…).
+- **Avant de pousser :** `pnpm run typecheck` doit passer sans erreur.
+- **Pull requests :** description du changement, captures si UI, mention des
+  éventuelles migrations de schéma.
+- **Formatage :** Prettier (`pnpm exec prettier --write .`).
 
-- `DATABASE_URL` — connexion PostgreSQL (obligatoire)
-- `APP_NAME`, `APP_TAGLINE_FR`, `APP_TAGLINE_EN` — identité produit (override possible côté frontend via `VITE_APP_*`)
-- `BILLING_CURRENCY` (`XOF`), `DEFAULT_BILLING_CYCLE`, `DEFAULT_PLAN_CODE`
-- `SENDGRID_API_KEY` / `RESEND_API_KEY` — email transactionnel (fallback `preview`)
-- `OPENAI_API_KEY` / `OPENAI_BASE_URL` — IA (auto-traduction + transcription, optionnel)
+Détails : [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md).
 
-## Commandes utiles
+---
 
-- `pnpm run typecheck` — typecheck complet
-- `pnpm run build` — typecheck + build
-- `pnpm --filter @workspace/api-spec run codegen` — regénère les hooks et Zod schemas
-- `pnpm --filter @workspace/db run push` — pousse le schéma en DB (dev)
-- `cd lib/db && pnpm exec tsx src/seed.ts` — seed métier (clients, projets, etc.)
-- `cd lib/db && pnpm exec tsx src/seed-saas.ts` — seed SaaS manuel (idempotent)
+## 8. Maintenance
 
-## Roadmap technique
+- **Mettre à jour les dépendances :** `pnpm update -r --latest` (par paquet),
+  puis `pnpm run typecheck` et test manuel. Les versions communes sont pinnées
+  dans le `catalog` de `pnpm-workspace.yaml`.
+- **Ajouter une page (frontend) :** créer le composant dans
+  `artifacts/edole-admin/src/pages/<domaine>/` et l'enregistrer dans le routeur.
+- **Ajouter un composant réutilisable :** `artifacts/edole-admin/src/components/`
+  (UI générique dans `components/ui/`).
+- **Ajouter une route API :** créer `artifacts/api-server/src/routes/<nom>.ts`,
+  la monter dans `routes/index.ts`, définir le schéma Zod dans `lib/api-zod`.
+- **Ajouter une variable d'environnement :** l'ajouter à `.env.example` (avec
+  commentaire), la lire via `process.env` / `import.meta.env`, la documenter.
+- **Ajouter une table :** modifier `lib/db/src/schema/`, générer/appliquer la
+  migration, ajouter le schéma Zod correspondant.
 
-Les tables métier existantes (clients, projets, factures, etc.) n'ont pas encore
-été partitionnées par `organization_id`. Elles vivent implicitement dans
-l'organisation par défaut (`nexora-demo`). L'introduction d'une colonne
-`organizationId` sur ces tables et le filtrage automatique dans chaque route
-constituent la prochaine étape pour un multi-tenant strict.
+---
+
+## 9. Sécurité
+
+Points d'attention et bonnes pratiques : [`docs/SECURITY.md`](docs/SECURITY.md).
+Aucun secret ne doit être committé ; les fichiers `.env` sont ignorés par git.
+
+---
+
+## 10. Documentation
+
+| Fichier                                       | Contenu                                    |
+| --------------------------------------------- | ------------------------------------------ |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)   | Architecture technique détaillée           |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)       | Procédure de déploiement                   |
+| [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)   | Règles de contribution                     |
+| [`docs/SECURITY.md`](docs/SECURITY.md)           | Bonnes pratiques de sécurité               |
+| [`docs/CODEBASE_AUDIT.md`](docs/CODEBASE_AUDIT.md) | Audit : problèmes détectés & corrections |
+| [`CHANGELOG.md`](CHANGELOG.md)                   | Historique des modifications               |

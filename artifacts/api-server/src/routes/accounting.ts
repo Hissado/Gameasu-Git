@@ -33,6 +33,8 @@ import {
   postAmortization,
 } from "../services/postings";
 import { getCurrentFiscalPeriod } from "../services/syscohada-seed";
+import { getTreasuryPosition, getReceivablesBalance, getPayablesBalance, getIncomeStatementKpis } from "../services/kpis";
+import { nextDocumentNumber } from "../services/numbering";
 
 const router = Router();
 
@@ -568,8 +570,8 @@ router.get("/accounting/supplier-invoices", async (req, res) => {
 router.post("/accounting/supplier-invoices", requirePermission("accounting.manage"), async (req, res) => {
   try {
     const { supplierId, projectId, invoiceDate, dueDate, totalAmount, taxAmount, currency, expenseAccountId, notes, attachmentUrl, status } = req.body;
-    const cnt = await db.select({ n: sql<string>`COUNT(*)` }).from(supplierInvoicesTable).where(eq(supplierInvoicesTable.organizationId, req.authUser!.organizationId));
-    const refNum = `FF-${new Date().getFullYear()}-${String(Number(cnt[0].n) + 1).padStart(4, "0")}`;
+    // Numérotation unifiée (audit P2 §F #15) — séquence atomique, plus de COUNT.
+    const refNum = await nextDocumentNumber(req.authUser!.organizationId, "supplier_invoice");
     const [inv] = await db.insert(supplierInvoicesTable).values({
       organizationId: req.authUser!.organizationId,
       referenceNumber: refNum, supplierId, projectId,
@@ -974,65 +976,21 @@ router.get("/accounting/dashboard", async (req, res) => {
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
 
-  // Trésorerie totale (une seule requête agrégée par accountId, au lieu d'un query par banque)
-  const banks = await db.select().from(bankAccountsTable).where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.isActive, true)));
-  const bankAccountIds = banks.map((b) => b.accountId).filter(Boolean);
-  let cashTotal = banks.reduce((s, b) => s + toNum(b.openingBalance), 0);
-  if (bankAccountIds.length > 0) {
-    const bankSums = await db.select({
-      accountId: journalEntryLinesTable.accountId,
-      d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
-      c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
-    }).from(journalEntryLinesTable)
-      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-      .where(and(eq(journalEntriesTable.organizationId, orgId), inArray(journalEntryLinesTable.accountId, bankAccountIds), eq(journalEntriesTable.status, "posted")))
-      .groupBy(journalEntryLinesTable.accountId);
-    for (const s of bankSums) cashTotal += toNum(s.d) - toNum(s.c);
-  }
+  // Trésorerie / créances / dettes : DICTIONNAIRE CENTRAL DES KPI
+  // (services/kpis.ts — audit phase 3). Mêmes définitions que le bilan et la
+  // page Trésorerie : solde grand livre classe 5 (y compris comptes non
+  // rattachés à une banque déclarée), 411x et 401x avec leurs subdivisions.
+  const [treasuryPosition, creances, dettes] = await Promise.all([
+    getTreasuryPosition(orgId),
+    getReceivablesBalance(orgId),
+    getPayablesBalance(orgId),
+  ]);
+  const cashTotal = treasuryPosition.total;
 
-  // Créances clients (soldes débiteurs 411)
-  const ar = await db.select({
-    d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
-    c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
-  }).from(journalEntryLinesTable)
-    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(eq(journalEntriesTable.organizationId, orgId), eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, "411"), eq(journalEntriesTable.status, "posted")));
-  const creances = toNum(ar[0]?.d) - toNum(ar[0]?.c);
-
-  // Dettes fournisseurs (soldes créditeurs 401)
-  const ap = await db.select({
-    d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
-    c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
-  }).from(journalEntryLinesTable)
-    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(eq(journalEntriesTable.organizationId, orgId), eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, "401"), eq(journalEntriesTable.status, "posted")));
-  const dettes = toNum(ap[0]?.c) - toNum(ap[0]?.d);
-
-  // P&L mois courant
-  const pl = await db
-    .select({
-      classNum: chartOfAccountsTable.classNum,
-      d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
-      c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
-    })
-    .from(journalEntryLinesTable)
-    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(
-      eq(journalEntriesTable.organizationId, orgId),
-      eq(journalEntriesTable.status, "posted"),
-      gte(journalEntriesTable.entryDate, startOfMonth),
-      lte(journalEntriesTable.entryDate, endOfMonth),
-      sql`${chartOfAccountsTable.classNum} IN (6, 7)`,
-    ))
-    .groupBy(chartOfAccountsTable.classNum);
-  let revenusMois = 0; let chargesMois = 0;
-  for (const r of pl) {
-    if (r.classNum === 7) revenusMois += toNum(r.c) - toNum(r.d);
-    if (r.classNum === 6) chargesMois += toNum(r.d) - toNum(r.c);
-  }
+  // P&L mois courant — dictionnaire central des KPI (audit phase 3).
+  const incomeMois = await getIncomeStatementKpis(orgId, startOfMonth, endOfMonth);
+  const revenusMois = incomeMois.revenue;
+  const chargesMois = incomeMois.expenses;
 
   // 6 derniers mois — produits/charges (une seule requête, group by mois + classe)
   const firstMonthDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);

@@ -15,8 +15,35 @@ import { getCurrentOrganizationId } from "../lib/tenant";
 import { sendEmail, buildInvitationEmail, buildPasswordResetEmail, getPreviewInbox } from "../lib/email";
 import { getPublicBaseUrl } from "../lib/url";
 import { seedDemo } from "../services/demo-seed";
+import { getNumberingSettings, setNumberingPrefix, DEFAULT_PREFIXES, type DocType } from "../services/numbering";
 
 const router = Router();
+
+// ════════════════════════════════════════════════════════════════════
+// NUMÉROTATION DES DOCUMENTS — préfixes configurables par organisation
+// (audit P2 §F #15). Format {PRÉFIXE}-{AAAA}-{NNNNN}, séquence atomique.
+// ════════════════════════════════════════════════════════════════════
+router.get("/admin/numbering", requirePermission("settings.read"), async (req, res, next) => {
+  try {
+    const settings = await getNumberingSettings(req.authUser!.organizationId);
+    return res.json({ data: settings });
+  } catch (e) { return next(e); }
+});
+
+router.put("/admin/numbering/:docType", requirePermission("settings.manage"), async (req, res, next) => {
+  try {
+    const docType = req.params.docType as DocType;
+    if (!(docType in DEFAULT_PREFIXES)) return res.status(400).json({ error: "Type de document inconnu" });
+    const { prefix, padding } = req.body || {};
+    if (typeof prefix !== "string" || !/^[A-Z0-9]{1,8}$/.test(prefix)) {
+      return res.status(400).json({ error: "Préfixe invalide (1 à 8 lettres majuscules ou chiffres)" });
+    }
+    const pad = Number.isInteger(padding) && padding >= 3 && padding <= 8 ? padding : 5;
+    await setNumberingPrefix(req.authUser!.organizationId, docType, prefix, pad);
+    await audit(req, "update", { entityType: "numbering", entityId: docType, payload: { prefix, padding: pad } });
+    return res.json({ docType, prefix, padding: pad });
+  } catch (e) { return next(e); }
+});
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (v: any) => typeof v === "string" && UUID_RE.test(v);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,7 +61,14 @@ function genToken(): string { return randomBytes(32).toString("hex"); }
 // PERMISSIONS — catalogue (lecture seule)
 // ════════════════════════════════════════════════════════════════════
 router.get("/admin/permissions", requirePermission("roles.read"), async (_req, res) => {
-  const rows = await db.select().from(permissionsTable).orderBy(permissionsTable.category, permissionsTable.code);
+  // Alias label/category (vocabulaire du frontend) sur name/module (colonnes canoniques).
+  const rows = await db.select({
+    id: permissionsTable.id,
+    code: permissionsTable.code,
+    label: permissionsTable.name,
+    category: permissionsTable.module,
+    description: permissionsTable.description,
+  }).from(permissionsTable).orderBy(permissionsTable.module, permissionsTable.code);
   return res.json({ data: rows });
 });
 
@@ -90,7 +124,7 @@ router.get("/admin/roles/:id", requirePermission("roles.read"), async (req, res)
   const perms = await db
     .select({ id: permissionsTable.id, code: permissionsTable.code })
     .from(rolePermissionsTable)
-    .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
+    .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionCode, permissionsTable.code))
     .where(eq(rolePermissionsTable.roleId, role.id));
   return res.json({ ...role, permissionIds: perms.map(p => p.id), permissionCodes: perms.map(p => p.code) });
 });
@@ -164,22 +198,26 @@ router.put("/admin/roles/:id/permissions", requirePermission("roles.manage"), as
   const { permissionIds } = req.body || {};
   if (!Array.isArray(permissionIds)) return res.status(400).json({ error: "permissionIds doit être un tableau" });
   const cleanIds = permissionIds.filter(isUuid);
-  // Vérifie que toutes les permissions existent.
+  // Résout les IDs en CODES (modèle canonique : role_permissions.permission_code)
+  // et vérifie que toutes les permissions existent.
+  let codes: string[] = [];
   if (cleanIds.length > 0) {
-    const found = await db.select({ id: permissionsTable.id }).from(permissionsTable).where(inArray(permissionsTable.id, cleanIds));
+    const found = await db.select({ id: permissionsTable.id, code: permissionsTable.code })
+      .from(permissionsTable).where(inArray(permissionsTable.id, cleanIds));
     if (found.length !== cleanIds.length) return res.status(400).json({ error: "Permission inconnue dans la liste" });
+    codes = found.map((f) => f.code);
   }
   await db.transaction(async (tx) => {
     await tx.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, role.id));
-    if (cleanIds.length > 0) {
-      await tx.insert(rolePermissionsTable).values(cleanIds.map((pid) => ({
-        roleId: role.id, permissionId: pid, grantedById: req.authUser?.id ?? null,
+    if (codes.length > 0) {
+      await tx.insert(rolePermissionsTable).values(codes.map((permissionCode) => ({
+        roleId: role.id, permissionCode, organizationId: orgId,
       })));
     }
   });
   invalidatePermissionsCache();
-  await audit(req, "permission_change", { entityType: "role", entityId: role.id, payload: { permissionIds: cleanIds } });
-  return res.json({ success: true, count: cleanIds.length });
+  await audit(req, "permission_change", { entityType: "role", entityId: role.id, payload: { permissionCodes: codes } });
+  return res.json({ success: true, count: codes.length });
 });
 
 // ════════════════════════════════════════════════════════════════════
@@ -201,7 +239,7 @@ router.post("/admin/roles/:id/duplicate", requirePermission("roles.manage"), asy
       .where(and(eq(rolesTable.code, rawCode), eq(rolesTable.isSystem, true))).limit(1);
     if (sysConflict) return res.status(409).json({ error: "Ce code est réservé à un rôle système" });
     const srcPerms = await db
-      .select({ permissionId: rolePermissionsTable.permissionId })
+      .select({ permissionCode: rolePermissionsTable.permissionCode })
       .from(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, src.id));
     const [newRole] = await db.insert(rolesTable).values({
       code: rawCode, name: rawName,
@@ -210,7 +248,7 @@ router.post("/admin/roles/:id/duplicate", requirePermission("roles.manage"), asy
     }).returning();
     if (srcPerms.length > 0) {
       await db.insert(rolePermissionsTable).values(srcPerms.map((p) => ({
-        roleId: newRole.id, permissionId: p.permissionId, grantedById: req.authUser?.id ?? null,
+        roleId: newRole.id, permissionCode: p.permissionCode, organizationId: orgId,
       })));
     }
     invalidatePermissionsCache();
@@ -236,14 +274,14 @@ router.get("/admin/users/:id/effective-permissions", requirePermission("users.re
     if (!u) return res.status(404).json({ error: "Introuvable" });
     const isFullAccess = u.role === "super_admin" || u.role === "admin";
     const [roleRow] = await db.select().from(rolesTable).where(eq(rolesTable.code, u.role)).limit(1);
-    let rolePermDetails: { code: string; label: string; category: string }[] = [];
+    let rolePermDetails: { code: string; label: string; category: string | null }[] = [];
     if (roleRow) {
       rolePermDetails = await db
-        .select({ code: permissionsTable.code, label: permissionsTable.label, category: permissionsTable.category })
+        .select({ code: permissionsTable.code, label: permissionsTable.name, category: permissionsTable.module })
         .from(rolePermissionsTable)
-        .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
+        .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionCode, permissionsTable.code))
         .where(eq(rolePermissionsTable.roleId, roleRow.id))
-        .orderBy(permissionsTable.category, permissionsTable.code);
+        .orderBy(permissionsTable.module, permissionsTable.code);
     }
     const projectAccess = await db
       .select({

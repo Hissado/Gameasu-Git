@@ -198,7 +198,7 @@ export default function CloudStoragePage() {
       <Alert>
         <ShieldCheck className="w-4 h-4" />
         <AlertDescription className="text-xs">
-          <strong>Accès limité.</strong> Gaméasù ne peut accéder qu'aux fichiers qu'il a lui-même créés dans votre Drive (scope <code>drive.file</code>).
+          <strong>Accès limité.</strong> Gameasu ne peut accéder qu'aux fichiers qu'il a lui-même créés dans votre Drive (scope <code>drive.file</code>).
           Vos fichiers personnels et professionnels existants ne sont jamais lus ni modifiés.
           Les tokens d'accès sont chiffrés en base (AES-256-GCM) et jamais exposés côté client.
         </AlertDescription>

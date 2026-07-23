@@ -252,7 +252,7 @@ export default function AidePage() {
                 <h1 className="text-xl font-semibold text-foreground">Centre d'aide</h1>
               </div>
               <p className="text-sm text-muted-foreground">
-                Guides interactifs et visites guidées pour maîtriser chaque fonctionnalité de Gaméasù.
+                Guides interactifs et visites guidées pour maîtriser chaque fonctionnalité de Gameasu.
               </p>
             </div>
             {/* Progress */}

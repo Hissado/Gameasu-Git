@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 import { formatFCFA } from "@/lib/format";
 import { FieldTooltip } from "@/components/ui/field-tooltip";
+import { statusLabel } from "@/lib/status-labels";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -118,7 +119,7 @@ function InvoiceStatusBadge({ status }: { status: string }) {
     case "cancelled":         return <Badge variant="outline" className="text-muted-foreground text-xs">Annulée</Badge>;
     case "review":            return <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">À revoir</Badge>;
     case "approved":          return <Badge className="bg-teal-100 text-teal-800 border-teal-200 text-xs">Approuvée</Badge>;
-    default:                  return <Badge variant="outline" className="text-xs">{status}</Badge>;
+    default:                  return <Badge variant="outline" className="text-xs">{statusLabel(status)}</Badge>;
   }
 }
 

@@ -115,7 +115,7 @@ export default function FiscalPeriodsPage() {
   return (
     <AccountingShell
       title="Exercices comptables"
-      subtitle="Gestion des exercices fiscaux — référentiel SYSCOHADA"
+      subtitle="Créez, suivez et clôturez vos exercices fiscaux — référentiel SYSCOHADA"
       actions={
         <Button onClick={openCreateDialog} className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-2" /> Nouvel exercice

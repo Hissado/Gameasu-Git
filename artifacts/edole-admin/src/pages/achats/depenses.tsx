@@ -469,7 +469,7 @@ export default function DepensesPage() {
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">
       <PageHeader
-        title="Gestion des dépenses"
+        title="Dépenses"
         subtitle="Notes de frais — vue manager toutes équipes"
         actions={
           <div className="flex items-center gap-2">

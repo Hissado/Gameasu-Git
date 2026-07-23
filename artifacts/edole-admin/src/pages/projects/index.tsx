@@ -331,7 +331,7 @@ export default function ProjectsList() {
       <ReadOnlyBanner />
       {showWelcome && (
         <WelcomeModal
-          title="Gestion de Projets"
+          title="Projets"
           subtitle="Apprenez à créer, planifier et suivre vos projets en temps réel."
           icon={FolderKanban}
           steps={activeSteps}
@@ -354,7 +354,7 @@ export default function ProjectsList() {
       <PageHeader
         title="Projets"
         icon={FolderKanban}
-        subtitle="Gestion et suivi de vos projets"
+        subtitle="Créez et suivez vos projets"
         actions={
           <>
             <Link href="/portefeuille">

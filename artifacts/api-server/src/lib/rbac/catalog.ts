@@ -221,10 +221,13 @@ export const SYSTEM_ROLES: RoleSeed[] = [
   {
     code: "admin",
     name: "Administrateur",
-    description: "Gestion des utilisateurs, rôles, départements, configuration.",
+    description: "Gestion des utilisateurs, départements et configuration. La gestion des rôles reste réservée au Super Administrateur.",
     level: 90,
     isSystem: true,
-    permissions: "*",
+    // Différenciation demandée par l'audit (§D) : l'Administrateur détient tout
+    // SAUF la gestion des rôles (roles.manage), réservée au Super Administrateur.
+    // Il conserve roles.read pour consulter la matrice.
+    permissions: PERMISSIONS.map((p) => p.code).filter((c) => c !== "roles.manage"),
   },
   {
     code: "manager",

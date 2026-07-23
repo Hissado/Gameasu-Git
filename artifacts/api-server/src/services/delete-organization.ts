@@ -62,10 +62,9 @@ export async function deleteOrganization(organizationId: string): Promise<Delete
       .update(incidentsTable)
       .set({ createdById: null })
       .where(inArray(incidentsTable.createdById, orgUserIds));
-    await tx
-      .update(rolePermissionsTable)
-      .set({ grantedById: null })
-      .where(inArray(rolePermissionsTable.grantedById, orgUserIds));
+    // role_permissions : les liens scopés à l'organisation sont supprimés par
+    // le cascade FK (organization_id) — plus de colonne granted_by_id dans le
+    // modèle canonique (réconcilié par migrate-rbac-align).
 
     // Le cascade FK nettoie toutes les tables enfants scoppées par organizationId.
     await tx.delete(organizationsTable).where(eq(organizationsTable.id, organizationId));

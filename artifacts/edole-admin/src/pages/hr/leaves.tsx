@@ -229,7 +229,7 @@ export default function LeavesPage() {
   return (
     <HrShell
       title="Absences & Congés"
-      subtitle="Gestion des demandes de congé et suivi des soldes"
+      subtitle="Suivez et validez les demandes de congé et les soldes"
       actions={
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => window.open(`/api/hr/leaves/export.xlsx?token=${localStorage.getItem("auth_token")}`, "_blank")}>

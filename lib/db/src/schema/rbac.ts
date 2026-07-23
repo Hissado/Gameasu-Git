@@ -65,17 +65,23 @@ export const userProjectAccessTable = pgTable("user_project_access", {
 // ─────────────────────────────────────────────────────────────────
 // USER_PERMISSION_OVERRIDES
 // ─────────────────────────────────────────────────────────────────
-export const userPermissionOverridesTable = pgTable("user_perm_overrides", {
+// Surcharges individuelles de permissions : grant (ajoute) / deny (retire),
+// avec expiration optionnelle. Nom et colonnes alignés sur la table réelle
+// utilisée par la résolution des droits et les routes admin (audit P1 §D).
+export const userPermissionOverridesTable = pgTable("user_permission_overrides", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   permissionCode: text("permission_code").notNull(),
   organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "cascade" }),
-  granted: boolean("granted").notNull().default(true),
+  // grant | deny
+  type: text("type").notNull().default("grant"),
+  reason: text("reason"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
   grantedBy: uuid("granted_by").references(() => usersTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
-  uniqueUserPerm: uniqueIndex("user_perm_overrides_uidx").on(t.userId, t.permissionCode),
-  userIdx: index("user_perm_overrides_user_idx").on(t.userId),
+  uniqueUserPerm: uniqueIndex("user_permission_overrides_uidx").on(t.userId, t.permissionCode),
+  userIdx: index("user_permission_overrides_user_idx").on(t.userId),
 }));
 
 // ─────────────────────────────────────────────────────────────────

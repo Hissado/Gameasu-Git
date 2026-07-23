@@ -9,9 +9,36 @@ import {
   paymentsTable,
   supplierInvoicesTable,
   supplierPaymentsTable,
+  payrollRunsTable,
 } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
 import { getCurrentFiscalPeriod } from "./syscohada-seed";
+
+/**
+ * Garantit l'existence d'un compte du plan comptable pour l'organisation
+ * (idempotent). Utilisé pour les comptes ajoutés après le seed initial
+ * (ex. 4471/4472) afin que les organisations existantes ne bloquent pas.
+ */
+async function ensureAccount(
+  tx: any,
+  organizationId: string,
+  account: { code: string; label: string; classNum: number; type: string; normalBalance: string },
+): Promise<void> {
+  const existing = await tx.select({ id: chartOfAccountsTable.id }).from(chartOfAccountsTable).where(and(
+    eq(chartOfAccountsTable.organizationId, organizationId),
+    eq(chartOfAccountsTable.code, account.code),
+  )).limit(1);
+  if (existing[0]) return;
+  await tx.insert(chartOfAccountsTable).values({
+    organizationId,
+    code: account.code,
+    label: account.label,
+    classNum: account.classNum,
+    type: account.type,
+    normalBalance: account.normalBalance,
+    isPostable: true,
+  });
+}
 
 /**
  * Service de comptabilisation automatique (génération d'écritures en partie double).
@@ -268,16 +295,28 @@ export async function reverseEntry(organizationId: string, entryId: string, user
 // HOOKS MÉTIER → ÉCRITURES AUTOMATIQUES (orgId dérivé de l'entité)
 // ────────────────────────────────────────────────────────────────
 
-export async function postCustomerInvoice(organizationId: string, invoiceId: string, userId?: string) {
-  const inv = (await db.select().from(invoicesTable).where(and(
+export async function postCustomerInvoice(organizationId: string, invoiceId: string, userId?: string, tx?: any) {
+  const exec = tx ?? db;
+  const inv = (await exec.select().from(invoicesTable).where(and(
     eq(invoicesTable.organizationId, organizationId),
     eq(invoicesTable.id, invoiceId),
   )).limit(1))[0];
   if (!inv) throw new Error("Facture introuvable");
-  const amount = Number(inv.totalAmount ?? 0);
+  const amount = Number(inv.totalAmount ?? 0); // TTC
   if (amount <= 0) return null;
 
-  return postEntry({
+  // TVA (audit P0.1) : si la facture porte une TVA, l'écriture éclate
+  //   Débit 411 TTC / Crédit 706 HT / Crédit 4431 TVA facturée.
+  // Sans TVA renseignée (factures historiques), comportement inchangé.
+  const taxAmount = Number(inv.taxAmount ?? 0);
+  const subtotal = Number(inv.subtotalAmount ?? 0) || (amount - taxAmount);
+  if (taxAmount > 0 && Math.abs(subtotal + taxAmount - amount) > 1) {
+    throw new Error(
+      `Facture ${inv.referenceNumber} incohérente : HT ${subtotal} + TVA ${taxAmount} ≠ TTC ${amount}`,
+    );
+  }
+
+  const entryOpts: PostEntryOpts = {
     organizationId: inv.organizationId,
     journalCode: "VTE",
     entryDate: inv.issuedAt ?? new Date().toISOString().slice(0, 10),
@@ -286,11 +325,18 @@ export async function postCustomerInvoice(organizationId: string, invoiceId: str
     sourceType: "invoice",
     sourceId: inv.id,
     createdById: userId,
-    lines: [
-      { accountCode: "411", debit: amount, thirdPartyType: "client", thirdPartyId: inv.clientId ?? undefined, description: "Client" },
-      { accountCode: "706", credit: amount, description: "Prestations de services" },
-    ],
-  });
+    lines: taxAmount > 0
+      ? [
+          { accountCode: "411", debit: amount, thirdPartyType: "client", thirdPartyId: inv.clientId ?? undefined, description: "Client (TTC)" },
+          { accountCode: "706", credit: amount - taxAmount, description: "Prestations de services (HT)" },
+          { accountCode: "4431", credit: taxAmount, description: "TVA facturée" },
+        ]
+      : [
+          { accountCode: "411", debit: amount, thirdPartyType: "client", thirdPartyId: inv.clientId ?? undefined, description: "Client" },
+          { accountCode: "706", credit: amount, description: "Prestations de services" },
+        ],
+  };
+  return tx ? postEntryTx(tx, entryOpts) : postEntry(entryOpts);
 }
 
 export async function postCustomerPayment(organizationId: string, paymentId: string, opts: { bankAccountId?: string; userId?: string; tx?: any } = {}) {
@@ -363,6 +409,10 @@ export async function postSupplierInvoice(organizationId: string, supplierInvoic
     expenseAccountId = fallback.id;
   }
 
+  // TVA déductible (audit P0.3) : la charge est comptabilisée HT et la TVA
+  // récupérable au 4452. `taxAmount` existe déjà sur les factures fournisseurs.
+  const taxAmount = Math.min(Math.max(Number(sInv.taxAmount ?? 0), 0), amount);
+
   return postEntry({
     organizationId: sInv.organizationId,
     journalCode: "ACH",
@@ -372,10 +422,16 @@ export async function postSupplierInvoice(organizationId: string, supplierInvoic
     sourceType: "supplier_invoice",
     sourceId: sInv.id,
     createdById: userId,
-    lines: [
-      { accountId: expenseAccountId, debit: amount, projectId: sInv.projectId ?? undefined, description: "Charge" },
-      { accountCode: "401", credit: amount, thirdPartyType: "supplier", thirdPartyId: sInv.supplierId, description: "Fournisseur" },
-    ],
+    lines: taxAmount > 0
+      ? [
+          { accountId: expenseAccountId, debit: amount - taxAmount, projectId: sInv.projectId ?? undefined, description: "Charge (HT)" },
+          { accountCode: "4452", debit: taxAmount, description: "TVA récupérable sur achats" },
+          { accountCode: "401", credit: amount, thirdPartyType: "supplier", thirdPartyId: sInv.supplierId, description: "Fournisseur (TTC)" },
+        ]
+      : [
+          { accountId: expenseAccountId, debit: amount, projectId: sInv.projectId ?? undefined, description: "Charge" },
+          { accountCode: "401", credit: amount, thirdPartyType: "supplier", thirdPartyId: sInv.supplierId, description: "Fournisseur" },
+        ],
   });
 }
 
@@ -424,6 +480,134 @@ export async function postSupplierPayment(organizationId: string, paymentId: str
       { accountCode: treasuryCode, credit: amount, description: "Décaissement" },
     ],
   });
+}
+
+/**
+ * Comptabilise un cycle de paie VALIDÉ en partie double (audit P0.1/P0.3).
+ *
+ * Écriture générée (journal OD, idempotente par sourceType=payroll_run) :
+ *   Débit  661  Rémunérations directes        = total brut
+ *   Débit  664  Charges sociales (patronales) = CNSS patronal
+ *   Crédit 421  Personnel - rémunérations dues = total net
+ *   Crédit 431  Sécurité sociale               = CNSS salarié + patronal
+ *   Crédit 4471 État - IRPP retenu à la source = total IRPP
+ *   Crédit 4472 État - IPTS retenu à la source = total IPTS (si non nul)
+ *
+ * Équilibre garanti par construction : brut + patronal
+ *   = net + (CNSS sal + pat) + IRPP + IPTS  (identité du bulletin).
+ * `postEntryTx` re-vérifie l'équilibre et rejette tout écart.
+ */
+export async function postPayrollRun(
+  organizationId: string,
+  payrollRunId: string,
+  userId?: string,
+  tx?: any,
+) {
+  const exec = tx ?? db;
+  const run = (await exec.select().from(payrollRunsTable).where(and(
+    eq(payrollRunsTable.organizationId, organizationId),
+    eq(payrollRunsTable.id, payrollRunId),
+  )).limit(1))[0];
+  if (!run) throw new Error("Cycle de paie introuvable");
+
+  const gross = Number(run.totalGrossSalary ?? 0);
+  const cnssEmployee = Number(run.totalCnssEmployee ?? 0);
+  const cnssEmployer = Number(run.totalCnssEmployer ?? 0);
+  const irpp = Number(run.totalIrpp ?? 0);
+  const ipts = Number(run.totalIpts ?? 0);
+  const net = Number(run.totalNetSalary ?? 0);
+  if (gross <= 0) return null;
+
+  const doPost = async (t: any) => {
+    await ensureAccount(t, organizationId, { code: "4471", label: "État - IRPP retenu à la source", classNum: 4, type: "liability", normalBalance: "credit" });
+    if (ipts > 0) {
+      await ensureAccount(t, organizationId, { code: "4472", label: "État - IPTS retenu à la source", classNum: 4, type: "liability", normalBalance: "credit" });
+    }
+    return postEntryTx(t, {
+      organizationId,
+      journalCode: "OD",
+      entryDate: run.paymentDate ?? new Date().toISOString().slice(0, 10),
+      reference: `PAIE-${run.period}`,
+      description: `Paie ${run.period} (${run.employeeCount ?? 0} collaborateur(s))`,
+      sourceType: "payroll_run",
+      sourceId: run.id,
+      createdById: userId,
+      lines: [
+        { accountCode: "661", debit: gross, description: "Salaires bruts" },
+        ...(cnssEmployer > 0 ? [{ accountCode: "664", debit: cnssEmployer, description: "Charges sociales patronales" }] : []),
+        { accountCode: "421", credit: net, description: "Net à payer au personnel" },
+        ...(cnssEmployee + cnssEmployer > 0 ? [{ accountCode: "431", credit: cnssEmployee + cnssEmployer, description: "CNSS (parts salariale et patronale)" }] : []),
+        ...(irpp > 0 ? [{ accountCode: "4471", credit: irpp, description: "IRPP retenu à la source" }] : []),
+        ...(ipts > 0 ? [{ accountCode: "4472", credit: ipts, description: "IPTS retenu à la source" }] : []),
+      ],
+    });
+  };
+
+  return tx ? doPost(tx) : db.transaction(doPost);
+}
+
+/**
+ * Comptabilise une note de frais APPROUVÉE (audit P1) :
+ *   Débit  618 Divers frais (voyages et déplacements) = montant
+ *   Crédit 421 Personnel - rémunérations dues         = montant
+ * La dette envers le collaborateur est soldée par postExpensePayment.
+ */
+export async function postExpenseReport(
+  organizationId: string,
+  expense: { id: string; title: string; totalAmount: number; approvedAt?: Date | null },
+  userId?: string,
+  tx?: any,
+) {
+  const amount = Number(expense.totalAmount ?? 0);
+  if (amount <= 0) return null;
+  const doPost = async (t: any) => {
+    await ensureAccount(t, organizationId, { code: "618", label: "Divers frais (voyages et déplacements)", classNum: 6, type: "expense", normalBalance: "debit" });
+    return postEntryTx(t, {
+      organizationId,
+      journalCode: "OD",
+      entryDate: (expense.approvedAt ?? new Date()).toISOString().slice(0, 10),
+      reference: expense.title,
+      description: `Note de frais approuvée : ${expense.title}`,
+      sourceType: "expense_report",
+      sourceId: expense.id,
+      createdById: userId,
+      lines: [
+        { accountCode: "618", debit: amount, description: "Frais professionnels" },
+        { accountCode: "421", credit: amount, description: "Dette envers le collaborateur" },
+      ],
+    });
+  };
+  return tx ? doPost(tx) : db.transaction(doPost);
+}
+
+/**
+ * Comptabilise le REMBOURSEMENT d'une note de frais :
+ *   Débit  421 Personnel        / Crédit 521 Banque (ou 571 Caisse)
+ */
+export async function postExpensePayment(
+  organizationId: string,
+  expense: { id: string; title: string; totalAmount: number },
+  opts: { method?: "bank" | "cash"; userId?: string; tx?: any } = {},
+) {
+  const amount = Number(expense.totalAmount ?? 0);
+  if (amount <= 0) return null;
+  const treasuryCode = opts.method === "cash" ? "571" : "521";
+  const journalCode = opts.method === "cash" ? "CAI" : "BNQ";
+  const entryOpts: PostEntryOpts = {
+    organizationId,
+    journalCode,
+    entryDate: new Date().toISOString().slice(0, 10),
+    reference: expense.title,
+    description: `Remboursement note de frais : ${expense.title}`,
+    sourceType: "expense_report_payment",
+    sourceId: expense.id,
+    createdById: opts.userId,
+    lines: [
+      { accountCode: "421", debit: amount, description: "Solde de la dette collaborateur" },
+      { accountCode: treasuryCode, credit: amount, description: "Décaissement" },
+    ],
+  };
+  return opts.tx ? postEntryTx(opts.tx, entryOpts) : postEntry(entryOpts);
 }
 
 export async function postAmortization(opts: {

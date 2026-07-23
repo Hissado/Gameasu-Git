@@ -2,6 +2,7 @@ import { Router } from "express";
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
 import { calcIrppMensuel, brutVersNet } from "../lib/payroll-engine";
+import { contractDatesError } from "../lib/date-guards";
 import { db } from "@workspace/db";
 import {
   departmentsTable,
@@ -172,6 +173,9 @@ router.get("/hr/contracts", async (req, res) => {
 router.post("/hr/contracts", requirePermission("hr.manage"), async (req, res) => {
   const { collaboratorId, type, status, startDate, endDate, monthlySalary, currency, jobTitle, workLocation, weeklyHours, terms, signedAt, fileUrl } = req.body;
   if (!collaboratorId || !type || !startDate) return res.status(400).json({ error: "collaboratorId, type, startDate requis" });
+  // Contrôle de chronologie (audit P2 §F #11) : fin de contrat ≥ début.
+  const ctrDateErr = contractDatesError(startDate, endDate);
+  if (ctrDateErr) return res.status(400).json({ error: ctrDateErr });
   const [c] = await db.insert(contractsTable).values({
       organizationId: req.authUser!.organizationId,
     collaboratorId, type, status: status || "active",

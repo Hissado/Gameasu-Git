@@ -41,7 +41,7 @@ const NAV_GROUPS = [
     label: "Paie",
     items: [
       { name: "Fiches de paie",   path: "/rh/paie",               icon: Banknote, exact: true, description: "Préparez et validez les bulletins de paie du mois : éléments variables, retenues et net à payer." },
-      { name: "États de salaires",path: "/rh/btp-paie",              icon: FileSpreadsheet, description: "Tableau récapitulatif des salaires du chantier : base, primes, déductions et totaux." },
+      { name: "États de salaires",path: "/rh/etats-paie",            icon: FileSpreadsheet, description: "Tableau récapitulatif des salaires : base, primes, déductions et totaux." },
       { name: "Calendrier paie",  path: "/rh/paie/calendrier",      icon: CalendarRange, description: "Planifiez les cycles de paie : dates de fermeture, de traitement et de virement." },
       { name: "Déclarations",     path: "/rh/paie/declarations",  icon: ClipboardList, description: "Déclarations sociales et fiscales liées à la paie : CNSS, retenues à la source et bordereau." },
       { name: "Corrections",      path: "/rh/paie/corrections",   icon: Wrench, description: "Ajustements de paie après clôture : régularisations, rappels et corrections d'éléments variables." },
