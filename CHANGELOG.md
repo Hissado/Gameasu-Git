@@ -2,6 +2,14 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Navigation & architecture (phases 10-11) — juillet 2026
+
+Traitement prudent et vérifiable des phases 10-11 (voir [`docs/RAPPORT_NAVIGATION_PH10-11.md`](docs/RAPPORT_NAVIGATION_PH10-11.md)).
+
+- **États financiers rattachés à la Comptabilité** : Bilan, Compte de résultat et Balance générale ajoutés comme entrées directes de la section Comptabilité de la barre latérale (ils existaient sous `/comptabilite/*` mais n'étaient accessibles que via Rapports / le tableau de bord).
+- Constat : le reste de la phase 11 était déjà en place (Trésorerie & Recouvrement sous Finance, Fiscalité & Conformité, Simulateur et Avances sous RH, aucun doublon Bilan/Résultat). La structure des 5 pôles est déjà globalement respectée.
+- Non traité (risque, validation visuelle requise) : duplication barre/panneau et allègement des menus RH — documentés comme chantier UI dédié.
+
 ## Terminologie & dictionnaire KPI (phases 12 et 3) — juillet 2026
 
 Poursuite des phases 12 (harmonisation du vocabulaire) et 3 (source unique de vérité) du brief initial.
