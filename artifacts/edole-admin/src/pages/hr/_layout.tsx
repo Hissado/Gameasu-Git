@@ -16,6 +16,7 @@ const NAV_GROUPS = [
       { name: "Indicateurs RH",   path: "/rh/indicateurs", icon: BarChart3, description: "KPIs RH : taux d'absentéisme, turnover, masse salariale et répartition par département." },
       { name: "Rapports RH",      path: "/rh/rapports",    icon: FileBarChart2, description: "Rapports exportables : état des effectifs, synthèse des congés et rapport de masse salariale." },
       { name: "Simulateur de coût", path: "/rh/simulateur", icon: Calculator, description: "Simulez le coût total employeur d'un recrutement ou d'une augmentation de salaire." },
+      { name: "Intelligence RH",  path: "/rh/intelligence", icon: BarChart3, description: "Analyses prédictives RH : risques de départ, tendances d'effectif et recommandations." },
     ],
   },
   {
@@ -30,17 +31,20 @@ const NAV_GROUPS = [
   {
     label: "Temps & Présence",
     items: [
+      { name: "Présence & absence", path: "/presences",           icon: ClipboardCheck, description: "Suivi quotidien des présences et absences des collaborateurs, avec validation." },
       { name: "Calendrier",        path: "/rh/calendrier-equipe",  icon: CalendarRange, description: "Planning d'équipe : visualisez les présences, absences et congés de vos collaborateurs sur le mois." },
       { name: "Feuilles de temps", path: "/rh/feuilles-temps",     icon: Timer, description: "Heures travaillées déclarées par les collaborateurs : validation et suivi par projet ou activité." },
       { name: "Grille de pointage",path: "/rh/btp-pointage",   icon: ClipboardCheck, description: "Relevé de présence quotidien au format chantier : pointages par salarié et par jour." },
       { name: "Absences & Congés", path: "/rh/conges",         icon: CalendarOff, description: "Demandes de congés : soumission, validation, soldes restants et historique des absences." },
       { name: "Politiques congés", path: "/rh/politiques-conges", icon: Settings2, description: "Configurez les règles d'acquisition, de report et de plafonnement des congés par type." },
+      { name: "Kiosques de pointage", path: "/kiosques",          icon: ClipboardCheck, description: "Configurez les bornes de pointage : QR, photo, géolocalisation et rattachement aux sites." },
     ],
   },
   {
     label: "Paie",
     items: [
       { name: "Fiches de paie",   path: "/rh/paie",               icon: Banknote, exact: true, description: "Préparez et validez les bulletins de paie du mois : éléments variables, retenues et net à payer." },
+      { name: "Avances sur salaire", path: "/rh/avances-salaire", icon: Banknote, description: "Demandes et suivi des avances sur salaire : validation, échéancier et retenues sur paie." },
       { name: "États de salaires",path: "/rh/etats-paie",            icon: FileSpreadsheet, description: "Tableau récapitulatif des salaires : base, primes, déductions et totaux." },
       { name: "Calendrier paie",  path: "/rh/paie/calendrier",      icon: CalendarRange, description: "Planifiez les cycles de paie : dates de fermeture, de traitement et de virement." },
       { name: "Déclarations",     path: "/rh/paie/declarations",  icon: ClipboardList, description: "Déclarations sociales et fiscales liées à la paie : CNSS, retenues à la source et bordereau." },
