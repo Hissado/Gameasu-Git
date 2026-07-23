@@ -2,6 +2,19 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Fiabilisation comptable P0 (audit consolidé) — juillet 2026
+
+Corrections des chantiers **P0** du rapport d'audit consolidé du 22 juillet 2026 (voir [`docs/RAPPORT_CORRECTIONS_P0.md`](docs/RAPPORT_CORRECTIONS_P0.md)).
+
+- **Paie → comptabilité** : nouvelle écriture automatique `postPayrollRun` (661/664 → 421/431/4471/4472), idempotente, générée **atomiquement** à la validation d'un cycle (v1 et v2). Comptes 4471/4472 ajoutés au plan seedé (+ `ensureAccount` pour les organisations existantes).
+- **Aucune facture sans écriture** : les deux chemins d'émission qui avalaient l'échec de comptabilisation (« non bloquant ») annulent désormais la facture et renvoient une erreur explicite.
+- **TVA ventes** : colonnes `subtotal_amount`/`tax_rate`/`tax_amount` sur `invoices` (additives), écriture éclatée 411 TTC / 706 HT / 4431 TVA, garde de cohérence backend HT + TVA = TTC.
+- **TVA achats** : `postSupplierInvoice` comptabilise la charge HT et la TVA récupérable au 4452 (le champ existait, il était ignoré).
+- **Moteur de paie unique** : suppression des copies locales divergentes (CNSS 4 % vs 9 %, patronal 16,4 % vs 22,5 %, double barème IRPP, IPTS 2 % en doublon) — `payroll-v2`, `payroll-extended` et `payroll` délèguent tous à `lib/payroll-engine` ; barèmes **versionnés** en base (`payroll_rate_scales`, org NULL = national) avec repli intégré ; endpoints de transparence `GET /payroll/rates` et `GET /payroll/simulate` ; simulateur frontend synchronisé sur le barème actif ; libellés d'exports dérivés du barème.
+- **Tests** : `pnpm --filter @workspace/api-server run test:payroll` — 28 cas de non-régression (référence Excel IRPP 330 FCFA, équilibre débit/crédit du bulletin, inversion net→brut…).
+- **Migrations** (additives, idempotentes) : `lib/db/src/migrate-payroll-scales.ts`, `lib/db/src/migrate-invoice-vat.ts`.
+- ⚠️ Les cycles de paie futurs appliquent le barème de référence (9 %/22,5 %, IRPP CGI) au lieu des taux recodés (4 %/16,4 %) — bulletins historiques inchangés ; à valider par l'expert-comptable, ajustable par barème d'organisation sans redéploiement.
+
 ## Audit & nettoyage de la base de code — juillet 2026
 
 Audit complet du monorepo en vue d'une reprise par un développeur externe (voir [`docs/CODEBASE_AUDIT.md`](docs/CODEBASE_AUDIT.md)).

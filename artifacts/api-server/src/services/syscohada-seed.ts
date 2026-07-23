@@ -55,6 +55,8 @@ const ACCOUNTS: Acc[] = [
   { code: "421",    label: "Personnel - Rémunérations dues",               classNum: 4, type: "liability",   normalBalance: "credit" },
   { code: "431",    label: "Sécurité sociale (CNPS)",                      classNum: 4, type: "liability",   normalBalance: "credit" },
   { code: "441",    label: "État - Impôts sur les bénéfices",              classNum: 4, type: "liability",   normalBalance: "credit" },
+  { code: "4471",   label: "État - IRPP retenu à la source",               classNum: 4, type: "liability",   normalBalance: "credit" },
+  { code: "4472",   label: "État - IPTS retenu à la source",               classNum: 4, type: "liability",   normalBalance: "credit" },
   { code: "4431",   label: "État - TVA facturée (collectée)",              classNum: 4, type: "liability",   normalBalance: "credit" },
   { code: "4452",   label: "État - TVA récupérable sur achats",            classNum: 4, type: "asset",       normalBalance: "debit" },
   { code: "4455",   label: "État - TVA due",                               classNum: 4, type: "liability",   normalBalance: "credit" },

@@ -37,6 +37,14 @@ import { and, desc, eq, gte, lte, sql, asc, inArray, notInArray } from "drizzle-
 import ExcelJS from "exceljs";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 import { z } from "zod/v4";
+import {
+  computePayslipAmounts,
+  calcIrppAnnuel,
+  brutVersNet,
+  getActivePayrollScale,
+  DEFAULT_SCALE_TG,
+} from "../lib/payroll-engine";
+import { postPayrollRun } from "../services/postings";
 
 const router = Router();
 router.use(requireAuth);
@@ -52,35 +60,39 @@ const OVERTIME_MULTIPLIER = 1.20;
 const hourlyRate = (baseSalary: number) =>
   baseSalary > 0 ? baseSalary / STANDARD_MONTHLY_HOURS : 0;
 
-// ─── Calculs SYSCOHADA Togo (identiques à payroll.ts) ─────────────────────
+// ─── Calculs de paie — délégués au MOTEUR UNIQUE (lib/payroll-engine) ───────
+// Plus aucun taux en dur ici : le moteur applique le barème actif
+// (`payroll_rate_scales`, repli barème national TG). Voir audit P0.4.
 function computeIrppAnnuel(revenuImposableAnnuel: number): number {
-  const tranches = [
-    { plafond: 900_000, taux: 0 },
-    { plafond: 1_500_000, taux: 0.07 },
-    { plafond: 2_500_000, taux: 0.11 },
-    { plafond: 4_000_000, taux: 0.15 },
-    { plafond: 6_000_000, taux: 0.20 },
-    { plafond: 10_000_000, taux: 0.25 },
-    { plafond: Infinity, taux: 0.35 },
-  ];
-  let irpp = 0, prev = 0;
-  for (const { plafond, taux } of tranches) {
-    if (revenuImposableAnnuel <= prev) break;
-    const base = Math.min(revenuImposableAnnuel, plafond) - prev;
-    irpp += base * taux;
-    prev = plafond;
-  }
-  return Math.round(irpp);
+  return calcIrppAnnuel(revenuImposableAnnuel).irpp;
 }
-function computePayslipAmounts(grossSalary: number) {
-  const cnssEmployee = Math.round(grossSalary * 0.04);
-  const cnssEmployer = Math.round(grossSalary * 0.164);
-  const ipts = Math.round(grossSalary * 0.02);
-  const revenuImposableMensuel = Math.max(0, grossSalary - cnssEmployee);
-  const irppMensuel = Math.round(computeIrppAnnuel(revenuImposableMensuel * 12) / 12);
-  const netSalary = Math.round(grossSalary - cnssEmployee - irppMensuel - ipts);
-  return { cnssEmployee, cnssEmployer, irpp: irppMensuel, ipts, netSalary };
-}
+
+// ════════════════════════════════════════════════════════
+// BARÈME ACTIF & SIMULATION (transparence des calculs — audit §4.4)
+// ════════════════════════════════════════════════════════
+
+// GET /payroll/rates — barème actif (version, taux, tranches, source)
+router.get("/payroll/rates", async (req, res, next) => {
+  try {
+    const scale = await getActivePayrollScale(req.authUser!.organizationId);
+    res.json(scale);
+  } catch (e) { next(e); }
+});
+
+// GET /payroll/simulate?gross=&dependents= — calcul détaillé par le moteur
+// unique : base, taux, tranche par tranche, arrondis, version du barème.
+router.get("/payroll/simulate", async (req, res, next) => {
+  try {
+    const gross = Number(req.query.gross ?? 0);
+    const dependents = Number(req.query.dependents ?? 0);
+    if (!Number.isFinite(gross) || gross < 0 || gross > 1_000_000_000) {
+      return res.status(400).json({ error: "Paramètre gross invalide" });
+    }
+    const scale = await getActivePayrollScale(req.authUser!.organizationId);
+    const detail = brutVersNet(gross, dependents, scale);
+    res.json({ bareme: { version: scale.version, source: scale.source }, ...detail });
+  } catch (e) { next(e); }
+});
 
 // ════════════════════════════════════════════════════════
 // DASHBOARD
@@ -725,6 +737,8 @@ router.post("/payroll/runs/:id/import-rows", requireManagerOrAbove, async (req, 
 router.post("/payroll/runs/:id/submit", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
+    // Barème actif chargé UNE fois pour tout le cycle (cohérence + traçabilité)
+    const scale = await getActivePayrollScale(orgId);
     const [run] = await db.select().from(payrollRunsTable)
       .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string)))!)
       .limit(1);
@@ -772,7 +786,7 @@ router.post("/payroll/runs/:id/submit", requireManagerOrAbove, async (req, res, 
         + toNum(line.reimbursement) + toNum(line.payrollCorrection) + toNum(line.overtimePay);
       const deduction = toNum(line.deduction) + toNum(line.absenceDeduction);
       const gross = Math.max(0, base + transport + housing + variable - deduction);
-      const { cnssEmployee, cnssEmployer, irpp, ipts, netSalary } = computePayslipAmounts(gross);
+      const { cnssEmployee, cnssEmployer, irpp, ipts, netSalary } = computePayslipAmounts(gross, { scale });
 
       totalGrossSalary += gross;
       totalCnssEmployee += cnssEmployee;
@@ -800,23 +814,31 @@ router.post("/payroll/runs/:id/submit", requireManagerOrAbove, async (req, res, 
       };
     });
 
-    // Delete and re-insert payslips (atomic replacement)
-    await db.delete(payslipsTable).where(eq(payslipsTable.payrollRunId, run.id));
-    if (payslipRows.length > 0) await db.insert(payslipsTable).values(payslipRows);
+    // Validation ATOMIQUE : bulletins + totaux + écriture comptable dans une
+    // même transaction. Si la comptabilisation échoue (exercice clôturé,
+    // journal manquant…), la validation est annulée — aucune divergence
+    // possible entre la paie et la comptabilité (audit P0.1/P0.3).
+    const updated = await db.transaction(async (txn) => {
+      await txn.delete(payslipsTable).where(eq(payslipsTable.payrollRunId, run.id));
+      if (payslipRows.length > 0) await txn.insert(payslipsTable).values(payslipRows);
 
-    // Update run totals and validate
-    const [updated] = await db.update(payrollRunsTable).set({
-      status: "validated",
-      validatedById: req.authUser!.id,
-      validatedAt: new Date(),
-      employeeCount: payslipRows.length,
-      totalGrossSalary: String(Math.round(totalGrossSalary)),
-      totalCnssEmployee: String(Math.round(totalCnssEmployee)),
-      totalCnssEmployer: String(Math.round(totalCnssEmployer)),
-      totalIrpp: String(Math.round(totalIrpp)),
-      totalIpts: String(Math.round(totalIpts)),
-      totalNetSalary: String(Math.round(totalNetSalary)),
-    }).where(eq(payrollRunsTable.id, run.id)).returning();
+      const [row] = await txn.update(payrollRunsTable).set({
+        status: "validated",
+        validatedById: req.authUser!.id,
+        validatedAt: new Date(),
+        employeeCount: payslipRows.length,
+        totalGrossSalary: String(Math.round(totalGrossSalary)),
+        totalCnssEmployee: String(Math.round(totalCnssEmployee)),
+        totalCnssEmployer: String(Math.round(totalCnssEmployer)),
+        totalIrpp: String(Math.round(totalIrpp)),
+        totalIpts: String(Math.round(totalIpts)),
+        totalNetSalary: String(Math.round(totalNetSalary)),
+      }).where(eq(payrollRunsTable.id, run.id)).returning();
+
+      // Écriture de paie en partie double (661/664 → 421/431/447x)
+      await postPayrollRun(orgId, run.id, req.authUser!.id, txn);
+      return row;
+    });
 
     res.json({
       ...updated,
@@ -1314,9 +1336,10 @@ router.post("/payroll/seed-demo", requireManagerOrAbove, async (req, res, next) 
       .limit(1);
     if (existingOffCycle.length === 0 && actives.length > 0) {
       const offCycleGross = 150_000;
-      const offCycleIrpp = Math.round(offCycleGross * 0.05);
-      const offCycleCnss = Math.round(offCycleGross * 0.04);
-      const offCycleNet = offCycleGross - offCycleIrpp - offCycleCnss;
+      const offCycleAmounts = computePayslipAmounts(offCycleGross);
+      const offCycleIrpp = offCycleAmounts.irpp;
+      const offCycleCnss = offCycleAmounts.cnssEmployee;
+      const offCycleNet = offCycleAmounts.netSalary;
       await db.insert(offCyclePaymentsTable).values({
         organizationId: orgId,
         collaboratorId: actives[0].collaboratorId,
@@ -1370,6 +1393,9 @@ function applyHeaderStyle(row: ExcelJS.Row) {
 router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
+    const scale = await getActivePayrollScale(orgId);
+    const pctSal = `${(scale.cnssEmployeeRate * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %`;
+    const pctPat = `${(scale.cnssEmployerRate * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %`;
     const [run] = await db.select().from(payrollRunsTable)
       .where(and(eq(payrollRunsTable.organizationId, orgId), eq(payrollRunsTable.id, (req.params.id as string))))
       .limit(1);
@@ -1438,7 +1464,7 @@ router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (
 
       // Sous-titre
       ws.mergeCells("A2:I2");
-      ws.getCell("A2").value = `Taux salarié : 4 % | Taux patronal : 16,4 % | Total employés : ${rows.length}`;
+      ws.getCell("A2").value = `Taux salarié : ${pctSal} | Taux patronal : ${pctPat} (barème ${scale.version}) | Total employés : ${rows.length}`;
       ws.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF666666" } };
       ws.getCell("A2").alignment = { horizontal: "center" };
       ws.getRow(2).height = 18;
@@ -1446,7 +1472,7 @@ router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (
       ws.addRow([]);
 
       // En-têtes
-      const headerRow = ws.addRow(["N°", "Matricule", "Nom & Prénom", "Département", "Poste", "Salaire Brut", "Part Salariale (4%)", "Part Patronale (16,4%)", "Total CNSS"]);
+      const headerRow = ws.addRow(["N°", "Matricule", "Nom & Prénom", "Département", "Poste", "Salaire Brut", `Part Salariale (${pctSal})`, `Part Patronale (${pctPat})`, "Total CNSS"]);
       applyHeaderStyle(headerRow);
 
       // Données
@@ -1479,7 +1505,7 @@ router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (
 
     res.json({
       run: { id: run.id, period: run.period, status: run.status, employeeCount: run.employeeCount },
-      taux: { salarie: 0.04, patronal: 0.164 },
+      taux: { salarie: scale.cnssEmployeeRate, patronal: scale.cnssEmployerRate, bareme: scale.version },
       rows,
       totaux: { totalBrut, totalSal, totalPat, totalCnss },
     });
@@ -1487,31 +1513,22 @@ router.get("/payroll/runs/:id/declarations/cnss", requireManagerOrAbove, async (
 });
 
 // ─── IRPP ─────────────────────────────────────────────────────────────────────
-const IRPP_TRANCHES = [
-  { de: 0, a: 900_000, taux: 0 },
-  { de: 900_001, a: 1_500_000, taux: 0.07 },
-  { de: 1_500_001, a: 2_500_000, taux: 0.11 },
-  { de: 2_500_001, a: 4_000_000, taux: 0.15 },
-  { de: 4_000_001, a: 6_000_000, taux: 0.20 },
-  { de: 6_000_001, a: 10_000_000, taux: 0.25 },
-  { de: 10_000_001, a: null, taux: 0.35 },
-];
+// Barème IRPP affiché/exporté — dérivé du barème actif du moteur unique
+// (tranches MENSUELLES, forme {de, a, taux} conservée pour les exports Excel).
+const IRPP_TRANCHES = DEFAULT_SCALE_TG.irppBracketsMonthly.map((b, i, arr) => ({
+  de: i === 0 ? 0 : (arr[i - 1].up ?? 0) + 1,
+  a: b.up,
+  taux: b.rate,
+}));
 
 function irppDetail(grossSalary: number) {
-  const cnssEmployee = Math.round(grossSalary * 0.04);
-  const revImposableAnnuel = Math.max(0, grossSalary - cnssEmployee) * 12;
-  const detail: Array<{ tranche: string; base: number; taux: number; montant: number }> = [];
-  let prev = 0;
-  for (const { de, a, taux } of IRPP_TRANCHES) {
-    if (revImposableAnnuel <= prev) break;
-    const plafond = a ?? Infinity;
-    const base = Math.min(revImposableAnnuel, plafond) - prev;
-    if (base > 0 && taux > 0) {
-      detail.push({ tranche: a ? `${de.toLocaleString("fr-FR")} – ${a.toLocaleString("fr-FR")}` : `> ${de.toLocaleString("fr-FR")}`, base: Math.round(base / 12), taux, montant: Math.round(base * taux / 12) });
-    }
-    prev = plafond;
-  }
-  return detail;
+  // Détail des tranches calculé par le moteur unique (transparence audit §4.4)
+  return brutVersNet(grossSalary).irppDetail.map((d) => ({
+    tranche: d.label,
+    base: d.base,
+    taux: d.taux / 100,
+    montant: d.montant,
+  }));
 }
 
 router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (req, res, next) => {
@@ -1632,7 +1649,7 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
         { key: "a", width: 20 },
         { key: "taux", width: 12 },
       ];
-      const hdrBar = wsBar.addRow(["De (XOF/an)", "À (XOF/an)", "Taux"]);
+      const hdrBar = wsBar.addRow(["De (XOF/mois)", "À (XOF/mois)", "Taux"]);
       applyHeaderStyle(hdrBar);
       for (const t of IRPP_TRANCHES) {
         wsBar.addRow([
@@ -1664,6 +1681,9 @@ router.get("/payroll/runs/:id/declarations/irpp", requireManagerOrAbove, async (
 router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
+    const scale = await getActivePayrollScale(orgId);
+    const pctSal = `${(scale.cnssEmployeeRate * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %`;
+    const pctPat = `${(scale.cnssEmployerRate * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %`;
     const year = String((req.query.year as string) ?? new Date().getFullYear());
     if (!/^\d{4}$/.test(year)) {
       return res.status(400).json({ error: "Paramètre year invalide (format YYYY attendu)" });
@@ -1859,13 +1879,13 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       wsCnss.getRow(1).height = 28;
 
       wsCnss.mergeCells("A2:J2");
-      wsCnss.getCell("A2").value = `Périodes : ${months.join(", ")} (${months.length} mois) | Taux salarié : 4 % | Taux patronal : 16,4 %`;
+      wsCnss.getCell("A2").value = `Périodes : ${months.join(", ")} (${months.length} mois) | Taux salarié : ${pctSal} | Taux patronal : ${pctPat} (barème ${scale.version})`;
       wsCnss.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF666666" } };
       wsCnss.getCell("A2").alignment = { horizontal: "center" };
       wsCnss.getRow(2).height = 18;
       wsCnss.addRow([]);
 
-      const cnssHdr = wsCnss.addRow(["N°", "Matricule", "Nom & Prénom", "Département", "Poste", "Mois traités", "Cumul Brut", "Cotis. Salariales (4%)", "Cotis. Patronales (16,4%)", "Total CNSS"]);
+      const cnssHdr = wsCnss.addRow(["N°", "Matricule", "Nom & Prénom", "Département", "Poste", "Mois traités", "Cumul Brut", `Cotis. Salariales (${pctSal})`, `Cotis. Patronales (${pctPat})`, "Total CNSS"]);
       applyHeaderStyle(cnssHdr);
 
       for (const r of cnssRows) {
@@ -1936,7 +1956,7 @@ router.get("/payroll/declarations/annual", requireManagerOrAbove, async (req, re
       // ── Onglet Barème IRPP ────────────────────────────────────────
       const wsBar = wb.addWorksheet("Barème IRPP");
       wsBar.columns = [{ key: "de", width: 22 }, { key: "a", width: 22 }, { key: "taux", width: 12 }];
-      const barHdr = wsBar.addRow(["De (XOF/an)", "À (XOF/an)", "Taux"]);
+      const barHdr = wsBar.addRow(["De (XOF/mois)", "À (XOF/mois)", "Taux"]);
       applyHeaderStyle(barHdr);
       for (const t of IRPP_TRANCHES) {
         wsBar.addRow([t.de.toLocaleString("fr-FR"), t.a ? t.a.toLocaleString("fr-FR") : "Illimité", `${(t.taux * 100).toFixed(0)} %`]);

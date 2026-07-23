@@ -45,6 +45,11 @@ export const invoicesTable = pgTable("invoices", {
   clientId: uuid("client_id").references(() => clientsTable.id),
   status: text("status").notNull().default("draft"),
   totalAmount: numeric("total_amount", { precision: 15, scale: 2 }),
+  // ── TVA (audit P0.1) : montant HT + taux + montant de TVA. totalAmount = TTC.
+  // Colonnes nullables : les factures antérieures restent valides (TVA inconnue).
+  subtotalAmount: numeric("subtotal_amount", { precision: 15, scale: 2 }),
+  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }),
+  taxAmount: numeric("tax_amount", { precision: 15, scale: 2 }),
   paidAmount: numeric("paid_amount", { precision: 15, scale: 2 }).default("0"),
   currency: text("currency").default("XOF"),
   dueDate: text("due_date"),

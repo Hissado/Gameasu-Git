@@ -5,7 +5,7 @@
  *  #14 Ordres de virement bancaire
  */
 import { Router } from "express";
-import { DEFAULT_IRPP_BRACKETS_API } from "../lib/payroll-engine";
+import { DEFAULT_IRPP_BRACKETS_API, computePayslipAmounts, getActivePayrollScale } from "../lib/payroll-engine";
 import { db } from "@workspace/db";
 import {
   offCyclePaymentsTable,
@@ -238,11 +238,14 @@ router.post("/payroll/off-cycle", requireManagerOrAbove, async (req, res, next) 
       payrollRunId: z.string().uuid().optional(),
     }).parse(req.body);
 
-    // Calcul fiscal simplifié (prime est soumise à IRPP + CNSS + IPTS)
-    const cnssEmployee = Math.round(body.amount * 0.04);
-    const irppMensuel = Math.round((body.amount * 12 * 0.15) / 12); // approx 15% marginal
-    const ipts = Math.round(body.amount * 0.02);
-    const netAmount = body.amount - cnssEmployee - irppMensuel - ipts;
+    // Prime soumise aux cotisations et à l'IRPP — calcul par le MOTEUR UNIQUE
+    // (barème actif versionné ; plus d'approximation à taux fixe).
+    const scale = await getActivePayrollScale(orgId);
+    const amounts = computePayslipAmounts(body.amount, { scale });
+    const cnssEmployee = amounts.cnssEmployee;
+    const irppMensuel = amounts.irpp;
+    const ipts = amounts.ipts;
+    const netAmount = amounts.netSalary;
 
     const [row] = await db.insert(offCyclePaymentsTable).values({
       organizationId: orgId,

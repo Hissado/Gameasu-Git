@@ -65,6 +65,49 @@ export const TAUX_TOGO = {
   smig:               35_000, // SMIG mensuel FCFA
 };
 
+// ─── Barème versionné (table unique de règles) ───────────────────────────────
+// Le moteur lit un `PayrollScale` : soit le barème actif en base
+// (`payroll_rate_scales`, paramétrable par organisation avec dates d'effet),
+// soit le barème national intégré ci-dessous. TOUT calcul de paie de
+// l'application doit passer par ce moteur — aucun taux ne doit être codé en
+// dur ailleurs (routes, exports, frontend).
+
+export interface PayrollScaleBracket {
+  /** Plafond mensuel de la tranche (null = dernière tranche, sans plafond). */
+  up: number | null;
+  rate: number;
+}
+
+export interface PayrollScale {
+  version: string;               // ex. "TG-2026.01"
+  country: string;               // ISO-3166 alpha-2
+  regime: string;                // "general" (extensible : régimes sectoriels)
+  cnssEmployeeRate: number;      // part salariale CNSS (0.09 = 9 %)
+  cnssEmployerRate: number;      // part patronale (0.225 = 22,5 %)
+  abatementRate: number;         // abattement base imposable (0.28 = 28 %)
+  dependentDeduction: number;    // FCFA/mois/personne à charge
+  smig: number;                  // SMIG mensuel FCFA
+  iptsRate: number;              // 0 au Togo : l'IRPP couvre les salaires
+  irppBracketsMonthly: PayrollScaleBracket[];
+}
+
+/** Barème national par défaut (Togo) — repli si aucun barème actif en base. */
+export const DEFAULT_SCALE_TG: PayrollScale = {
+  version: "TG-2026.01",
+  country: "TG",
+  regime: "general",
+  cnssEmployeeRate: TAUX_TOGO.cnss_salarie,
+  cnssEmployerRate: TAUX_TOGO.cnss_patronal,
+  abatementRate: TAUX_TOGO.abattement_base,
+  dependentDeduction: TAUX_TOGO.deduction_charge,
+  smig: TAUX_TOGO.smig,
+  iptsRate: 0,
+  irppBracketsMonthly: IRPP_BRACKETS_TOGO_MENSUEL.map((b) => ({
+    up: b.up === Infinity ? null : b.up,
+    rate: b.rate,
+  })),
+};
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface IrppTranche {
@@ -102,13 +145,15 @@ export interface PayrollDetail {
  */
 export function calcIrppMensuel(
   baseMensuelle: number,
+  brackets: ReadonlyArray<{ up: number | null; rate: number }> = DEFAULT_SCALE_TG.irppBracketsMonthly,
 ): { irpp: number; detail: IrppTranche[] } {
   const base = Math.max(0, baseMensuelle);
   let tax = 0;
   let prev = 0;
   const detail: IrppTranche[] = [];
 
-  for (const { up, rate } of IRPP_BRACKETS_TOGO_MENSUEL) {
+  for (const { up: upRaw, rate } of brackets) {
+    const up = upRaw ?? Infinity;
     if (base <= prev) break;
     const plafond = up === Infinity ? base : up;
     const slice   = Math.min(base, plafond) - prev;
@@ -154,20 +199,21 @@ export function calcIrppMensuel(
 export function brutVersNet(
   brut: number,
   nbPersonnesCharge = 0,
+  scale: PayrollScale = DEFAULT_SCALE_TG,
 ): PayrollDetail {
   const nbCharge = Math.min(6, Math.max(0, Math.round(nbPersonnesCharge)));
 
   // AX — Cotisations salariales CNSS (9 %)
-  const cnssEmployee = Math.round(brut * TAUX_TOGO.cnss_salarie);
+  const cnssEmployee = Math.round(brut * scale.cnssEmployeeRate);
 
   // AY — Assiette après CNSS
   const ay = brut - cnssEmployee;
 
   // AZ — Abattement 28 %
-  const az = ay * TAUX_TOGO.abattement_base;
+  const az = ay * scale.abatementRate;
 
   // BA — Base avant arrondi : AY − AZ − déductions charges
-  const deductionCharges = nbCharge * TAUX_TOGO.deduction_charge;
+  const deductionCharges = nbCharge * scale.dependentDeduction;
   const ba = ay - az - deductionCharges;  // = AY × 72 % − charges
 
   // BB — Base imposable arrondie au millier inférieur
@@ -177,7 +223,7 @@ export function brutVersNet(
   const baseApresAbattement = Math.round(ay - az);
 
   // BC — IRPP mensuel (barème progressif)
-  const { irpp: irppMensuel, detail } = calcIrppMensuel(baseImposableMensuel);
+  const { irpp: irppMensuel, detail } = calcIrppMensuel(baseImposableMensuel, scale.irppBracketsMonthly);
 
   // BD — Total retenues légales
   const totalRetenues = cnssEmployee + irppMensuel;
@@ -186,7 +232,7 @@ export function brutVersNet(
   const net = brut - totalRetenues;
 
   // BF — CNSS patronal (22,5 %)
-  const cnssEmployer = Math.round(brut * TAUX_TOGO.cnss_patronal);
+  const cnssEmployer = Math.round(brut * scale.cnssEmployerRate);
 
   // BG — Provision congés payés : (Brut + CNSS patron) / 30 × 2,5
   const provisionConges = Math.round((brut + cnssEmployer) / 30 * 2.5);
@@ -195,8 +241,8 @@ export function brutVersNet(
   const coutEmployeurMensuel = brut + cnssEmployer + provisionConges;
 
   const alerts: string[] = [];
-  if (brut > 0 && brut < TAUX_TOGO.smig) {
-    alerts.push(`Salaire brut inférieur au SMIG (${TAUX_TOGO.smig.toLocaleString("fr-FR")} FCFA/mois).`);
+  if (brut > 0 && brut < scale.smig) {
+    alerts.push(`Salaire brut inférieur au SMIG (${scale.smig.toLocaleString("fr-FR")} FCFA/mois).`);
   }
 
   return {
@@ -226,18 +272,19 @@ export function brutVersNet(
 export function netVersBrut(
   netSouhaite: number,
   nbPersonnesCharge = 0,
+  scale: PayrollScale = DEFAULT_SCALE_TG,
 ): PayrollDetail {
-  if (netSouhaite <= 0) return brutVersNet(0, nbPersonnesCharge);
+  if (netSouhaite <= 0) return brutVersNet(0, nbPersonnesCharge, scale);
 
-  let brut = netSouhaite / (1 - TAUX_TOGO.cnss_salarie);
+  let brut = netSouhaite / (1 - scale.cnssEmployeeRate);
   for (let i = 0; i < 300; i++) {
-    const r = brutVersNet(brut, nbPersonnesCharge);
+    const r = brutVersNet(brut, nbPersonnesCharge, scale);
     const ecart = netSouhaite - r.net;
     if (Math.abs(ecart) < 0.5) break;
     brut += ecart * 0.9;
   }
   brut = Math.round(brut);
-  const result = brutVersNet(brut, nbPersonnesCharge);
+  const result = brutVersNet(brut, nbPersonnesCharge, scale);
   return { ...result, convergenceEcart: Math.abs(netSouhaite - result.net) };
 }
 
@@ -249,6 +296,89 @@ export const DEFAULT_IRPP_BRACKETS_API = IRPP_BRACKETS_TOGO_MENSUEL.map((b, i) =
   rate:       b.rate,
   sortOrder:  i,
 }));
+
+// ─── Barème actif (base de données, repli barème national) ──────────────────
+
+/**
+ * Charge le barème de paie actif pour une organisation à une date donnée.
+ * Priorité : barème propre à l'organisation > barème national (organizationId
+ * NULL) > barème intégré `DEFAULT_SCALE_TG`. La table peut ne pas encore
+ * exister (migration non appliquée) : le repli intégré garantit le service.
+ */
+export async function getActivePayrollScale(
+  organizationId?: string,
+  forDate?: string,
+): Promise<PayrollScale & { source: "organization" | "national" | "builtin" }> {
+  const target = forDate ?? new Date().toISOString().slice(0, 10);
+  try {
+    const { db, payrollRateScalesTable } = await import("@workspace/db");
+    const { and, eq, isNull, lte, sql, desc } = await import("drizzle-orm");
+    const activeCond = and(
+      eq(payrollRateScalesTable.regime, "general"),
+      lte(payrollRateScalesTable.effectiveFrom, target),
+      sql`(${payrollRateScalesTable.effectiveTo} IS NULL OR ${payrollRateScalesTable.effectiveTo} >= ${target})`,
+    );
+    const pick = async (orgCond: ReturnType<typeof eq> | ReturnType<typeof isNull>) => {
+      const rows = await db.select().from(payrollRateScalesTable)
+        .where(and(activeCond, orgCond))
+        .orderBy(desc(payrollRateScalesTable.effectiveFrom))
+        .limit(1);
+      return rows[0];
+    };
+    const row = (organizationId ? await pick(eq(payrollRateScalesTable.organizationId, organizationId)) : undefined)
+      ?? await pick(isNull(payrollRateScalesTable.organizationId));
+    if (row) {
+      return {
+        version: row.version,
+        country: row.country,
+        regime: row.regime,
+        cnssEmployeeRate: Number(row.cnssEmployeeRate),
+        cnssEmployerRate: Number(row.cnssEmployerRate),
+        abatementRate: Number(row.abatementRate),
+        dependentDeduction: Number(row.dependentDeduction),
+        smig: Number(row.smig),
+        iptsRate: Number(row.iptsRate),
+        irppBracketsMonthly: (row.irppBrackets ?? DEFAULT_SCALE_TG.irppBracketsMonthly) as PayrollScaleBracket[],
+        source: row.organizationId ? "organization" : "national",
+      };
+    }
+  } catch {
+    // Table absente ou base indisponible : repli sur le barème intégré.
+  }
+  return { ...DEFAULT_SCALE_TG, source: "builtin" };
+}
+
+// ─── Montants de bulletin (forme attendue par les cycles de paie) ────────────
+
+export interface PayslipAmounts {
+  cnssEmployee: number;
+  cnssEmployer: number;
+  irpp: number;
+  ipts: number;
+  netSalary: number;
+}
+
+/**
+ * Calcule les montants d'un bulletin à partir du brut — UNIQUE point d'entrée
+ * pour les cycles de paie, bulletins, simulateurs, exports et comptabilité.
+ * L'IPTS n'existe pas au Togo pour les salaires (couverts par l'IRPP) : il ne
+ * devient non nul que si le barème actif définit un `iptsRate` explicite.
+ */
+export function computePayslipAmounts(
+  grossSalary: number,
+  opts: { dependents?: number; scale?: PayrollScale } = {},
+): PayslipAmounts {
+  const scale = opts.scale ?? DEFAULT_SCALE_TG;
+  const r = brutVersNet(grossSalary, opts.dependents ?? 0, scale);
+  const ipts = Math.round(grossSalary * scale.iptsRate);
+  return {
+    cnssEmployee: r.cnssEmployee,
+    cnssEmployer: r.cnssEmployer,
+    irpp: r.irppMensuel,
+    ipts,
+    netSalary: r.net - ipts,
+  };
+}
 
 // ─── Compat. ancienne signature (nbParts / reductionParPart → nbPersonnesCharge) ─
 // Conservé pour ne pas casser les imports existants dans payroll.ts

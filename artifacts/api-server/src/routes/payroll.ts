@@ -36,24 +36,14 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
 import { generatePayslipPdf } from "../lib/payslip-pdf";
 import { sendEmail } from "../lib/email";
-import { brutVersNet } from "../lib/payroll-engine";
+import { computePayslipAmounts } from "../lib/payroll-engine";
+import { postPayrollRun } from "../services/postings";
 
 const router = Router();
 router.use(requireAuth);
 
-// ──────────────────────────────────────────────────────────
-// Calcul des montants du bulletin — délégué au moteur unique
-// ──────────────────────────────────────────────────────────
-function computePayslipAmounts(grossSalary: number) {
-  const r = brutVersNet(grossSalary);
-  return {
-    cnssEmployee: r.cnssEmployee,
-    cnssEmployer: r.cnssEmployer,
-    irpp: r.irppMensuel,
-    ipts: 0,                    // IPTS intégré dans l'abattement base imposable
-    netSalary: r.net,
-  };
-}
+// Calcul des montants du bulletin — importé du moteur unique
+// (`computePayslipAmounts` de lib/payroll-engine, barème actif versionné).
 
 const toNum = (v: string | number | null | undefined) => (v == null ? 0 : Number(v));
 
@@ -292,14 +282,21 @@ router.post("/payroll/runs/:id/validate", requireManagerOrAbove, async (req, res
     if (!run) { res.status(404).json({ error: "Cycle introuvable" }); return; }
     if (run.status !== "draft") { res.status(400).json({ error: "Seul un brouillon peut être validé" }); return; }
 
-    const [updated] = await db.update(payrollRunsTable).set({
-      status: "validated",
-      validatedById: req.authUser!.id,
-      validatedAt: new Date(),
-    }).where(eq(payrollRunsTable.id, run.id)).returning();
+    // Validation atomique : statuts + écriture comptable de paie dans une même
+    // transaction (audit P0.1/P0.3 — la paie doit alimenter la comptabilité).
+    const updated = await db.transaction(async (txn) => {
+      const [row] = await txn.update(payrollRunsTable).set({
+        status: "validated",
+        validatedById: req.authUser!.id,
+        validatedAt: new Date(),
+      }).where(eq(payrollRunsTable.id, run.id)).returning();
 
-    await db.update(payslipsTable).set({ status: "validated" })
-      .where(eq(payslipsTable.payrollRunId, run.id));
+      await txn.update(payslipsTable).set({ status: "validated" })
+        .where(eq(payslipsTable.payrollRunId, run.id));
+
+      await postPayrollRun(orgId, run.id, req.authUser!.id, txn);
+      return row;
+    });
 
     res.json(updated);
   } catch (e) { next(e); }

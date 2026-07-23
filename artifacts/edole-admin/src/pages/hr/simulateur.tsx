@@ -3,7 +3,7 @@
  * Outil bidirectionnel : Net → Brut / Brut → Net + Scénarios d'impact
  * Barème IRPP Togo, taux configurables, décomposition transparente
  */
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { HrShell } from "./_layout";
@@ -46,6 +46,38 @@ const DEFAULT_RATES: SalaryRates = {
   deductionParCharge: 10_000,  // 10 000 FCFA/mois/personne à charge — feuille SALAIRES col. BA
   smig: 35_000,
 };
+
+/**
+ * Barème actif servi par le backend (moteur de paie unique — audit P0.4).
+ * Le simulateur démarre sur DEFAULT_RATES (identiques au barème national
+ * intégré) puis se synchronise sur le barème actif du tenant : tout barème
+ * personnalisé en base est ainsi reflété partout, sans divergence.
+ */
+function useActiveRates(): SalaryRates | undefined {
+  const { data } = useQuery<any>({
+    queryKey: ["payroll-active-scale"],
+    queryFn: () => apiFetch("/api/payroll/rates"),
+    staleTime: 5 * 60 * 1000,
+  });
+  return useMemo(() => {
+    if (!data || typeof data.cnssEmployeeRate !== "number") return undefined;
+    return {
+      tauxSalarial: data.cnssEmployeeRate * 100,
+      tauxPatronal: data.cnssEmployerRate * 100,
+      abattementFraisPro: data.abatementRate * 100,
+      deductionParCharge: data.dependentDeduction,
+      smig: data.smig,
+    };
+  }, [data]);
+}
+
+/** Synchronise l'état local des taux avec le barème serveur dès qu'il arrive. */
+function useSyncRates(serverRates: SalaryRates | undefined, setRates: (r: SalaryRates) => void) {
+  useEffect(() => {
+    if (serverRates) setRates(serverRates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverRates]);
+}
 
 // Barème IRPP Togo — 8 tranches — seuils MENSUELS (XOF)
 // Source : feuille SALAIRES col. BC — "seuils annuels CGI ÷ 12"
@@ -516,6 +548,8 @@ function NetVersBrutTab() {
   const [nbParts, setNbParts] = useState(0);
   const [avances, setAvances] = useState(0);
   const [rates, setRates] = useState<SalaryRates>(DEFAULT_RATES);
+  const serverRates = useActiveRates();
+  useSyncRates(serverRates, setRates);
 
   const result = useMemo(() => netVersBrutCalc(net, rates, nbParts), [net, nbParts, rates]);
 
@@ -582,6 +616,8 @@ function BrutVersNetTab() {
   const [nbParts, setNbParts] = useState(0);
   const [avances, setAvances] = useState(0);
   const [rates, setRates] = useState<SalaryRates>(DEFAULT_RATES);
+  const serverRates = useActiveRates();
+  useSyncRates(serverRates, setRates);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [salaireBase, setSalaireBase] = useState(250_000);
   const [indemnites, setIndemnites] = useState(50_000);
@@ -753,6 +789,8 @@ function ScenariosTab() {
   const collaborateurs = collaborateursData?.data ?? [];
 
   const [rates, setRates] = useState<SalaryRates>(DEFAULT_RATES);
+  const serverRates = useActiveRates();
+  useSyncRates(serverRates, setRates);
   const [params, setParams] = useState<ScenParams>({
     scenario: "augmentation",
     collaborateurId: "",

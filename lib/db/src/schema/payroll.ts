@@ -140,6 +140,39 @@ export const offCyclePaymentsTable = pgTable("off_cycle_payments", {
 }));
 
 // ─────────────────────────────────────────────────────────
+// BARÈMES DE PAIE VERSIONNÉS — table unique de règles
+// Source de vérité des taux (CNSS, abattement, IRPP…) pour TOUS
+// les calculs de paie : cycles, bulletins, simulateurs, exports,
+// comptabilité. organizationId NULL = barème national par défaut.
+// ─────────────────────────────────────────────────────────
+export const payrollRateScalesTable = pgTable("payroll_rate_scales", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  // NULL = barème national (s'applique à toute organisation sans barème propre)
+  organizationId: uuid("organization_id").references(() => organizationsTable.id, { onDelete: "cascade" }),
+  country: text("country").notNull().default("TG"),
+  regime: text("regime").notNull().default("general"),
+  version: text("version").notNull(),                 // ex. "TG-2026.01"
+  effectiveFrom: text("effective_from").notNull(),    // ISO date
+  effectiveTo: text("effective_to"),                  // NULL = toujours en vigueur
+  cnssEmployeeRate: numeric("cnss_employee_rate", { precision: 6, scale: 4 }).notNull(),
+  cnssEmployerRate: numeric("cnss_employer_rate", { precision: 6, scale: 4 }).notNull(),
+  abatementRate: numeric("abatement_rate", { precision: 6, scale: 4 }).notNull().default("0"),
+  dependentDeduction: numeric("dependent_deduction", { precision: 14, scale: 2 }).notNull().default("0"),
+  smig: numeric("smig", { precision: 14, scale: 2 }).notNull().default("0"),
+  iptsRate: numeric("ipts_rate", { precision: 6, scale: 4 }).notNull().default("0"),
+  // Tranches IRPP MENSUELLES : [{up: number|null, rate: number}] (null = sans plafond)
+  irppBrackets: jsonb("irpp_brackets").$type<Array<{ up: number | null; rate: number }>>(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgRegimeIdx: index("payroll_scales_org_regime_idx").on(t.organizationId, t.regime, t.effectiveFrom),
+  versionUidx: uniqueIndex("payroll_scales_org_regime_version_uidx").on(t.organizationId, t.regime, t.version),
+}));
+
+export type PayrollRateScale = typeof payrollRateScalesTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────
 // TRANCHES IRPP PARAMÉTRABLES (#9)
 // ─────────────────────────────────────────────────────────
 export const irppBracketsTable = pgTable("irpp_brackets", {

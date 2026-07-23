@@ -219,7 +219,14 @@ router.get("/invoices", async (req, res) => {
 });
 
 router.post("/invoices", requirePermission("commercial.manage"), async (req, res) => {
-  const { proformaId, clientId, status, totalAmount, currency, dueDate, notes, issuedAt } = req.body;
+  const { proformaId, clientId, status, totalAmount, subtotalAmount, taxRate, taxAmount, currency, dueDate, notes, issuedAt } = req.body;
+  // Cohérence TVA (audit P0.1) : si une TVA est fournie, HT + TVA = TTC (±1 FCFA).
+  if (taxAmount != null && Number(taxAmount) > 0) {
+    const ht = Number(subtotalAmount ?? Number(totalAmount) - Number(taxAmount));
+    if (Math.abs(ht + Number(taxAmount) - Number(totalAmount)) > 1) {
+      return res.status(400).json({ error: "Montants incohérents : HT + TVA doit égaler le TTC" });
+    }
+  }
   const refNum = `INV-${Date.now().toString(36).toUpperCase()}`;
   const finalStatus = status || "pending";
   const issued = issuedAt || new Date().toISOString().slice(0, 10);
@@ -227,6 +234,9 @@ router.post("/invoices", requirePermission("commercial.manage"), async (req, res
     organizationId: req.authUser!.organizationId,
     referenceNumber: refNum, proformaId, clientId,
     status: finalStatus, totalAmount: totalAmount?.toString(),
+    subtotalAmount: subtotalAmount != null ? String(subtotalAmount) : undefined,
+    taxRate: taxRate != null ? String(taxRate) : undefined,
+    taxAmount: taxAmount != null ? String(taxAmount) : undefined,
     currency, dueDate, notes, issuedAt: issued,
   }).returning();
 
@@ -253,9 +263,21 @@ router.get("/invoices/:id", async (req, res) => {
 });
 
 router.put("/invoices/:id", requirePermission("commercial.manage"), async (req, res) => {
-  const { proformaId, clientId, status, totalAmount, currency, dueDate, notes } = req.body;
+  const { proformaId, clientId, status, totalAmount, subtotalAmount, taxRate, taxAmount, currency, dueDate, notes } = req.body;
+  if (taxAmount != null && Number(taxAmount) > 0 && totalAmount != null) {
+    const ht = Number(subtotalAmount ?? Number(totalAmount) - Number(taxAmount));
+    if (Math.abs(ht + Number(taxAmount) - Number(totalAmount)) > 1) {
+      return res.status(400).json({ error: "Montants incohérents : HT + TVA doit égaler le TTC" });
+    }
+  }
   const before = (await db.select().from(invoicesTable).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, (req.params.id as string)))).limit(1))[0];
-  const [inv] = await db.update(invoicesTable).set({ proformaId, clientId, status, totalAmount: totalAmount?.toString(), currency, dueDate, notes }).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, (req.params.id as string)))).returning();
+  const [inv] = await db.update(invoicesTable).set({
+    proformaId, clientId, status, totalAmount: totalAmount?.toString(),
+    ...(subtotalAmount !== undefined && { subtotalAmount: subtotalAmount != null ? String(subtotalAmount) : null }),
+    ...(taxRate !== undefined && { taxRate: taxRate != null ? String(taxRate) : null }),
+    ...(taxAmount !== undefined && { taxAmount: taxAmount != null ? String(taxAmount) : null }),
+    currency, dueDate, notes,
+  }).where(and(eq(invoicesTable.organizationId, req.authUser!.organizationId), eq(invoicesTable.id, (req.params.id as string)))).returning();
   if (!inv) return res.status(404).json({ error: "Not found" });
 
   // Si la facture sort du statut "draft", on génère l'écriture comptable.
@@ -480,10 +502,14 @@ router.post("/proformas/:id/generate-invoice", requirePermission("commercial.man
       issuedAt: new Date().toISOString().slice(0, 10),
     }).returning();
 
+    // Comptabilisation OBLIGATOIRE (audit P0.1) : une facture émise sans
+    // écriture créerait une divergence silencieuse opérationnel/comptabilité.
     try {
       await postCustomerInvoice(orgId, inv.id, req.authUser?.id);
     } catch (e: any) {
-      logger.error({ err: e, invoiceId: inv.id }, "Comptabilisation facture depuis proforma — non bloquant");
+      logger.error({ err: e, invoiceId: inv.id }, "Échec comptabilisation facture depuis proforma");
+      await db.delete(invoicesTable).where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, inv.id)));
+      return res.status(500).json({ error: "Comptabilisation impossible — facture annulée", detail: e.message });
     }
 
     res.status(201).json({ ...inv, totalAmount: toNum(inv.totalAmount), paidAmount: toNum(inv.paidAmount) });
@@ -527,7 +553,11 @@ router.post("/orders/:id/generate-invoice", requirePermission("commercial.manage
     try {
       await postCustomerInvoice(orgId, inv.id, req.authUser?.id);
     } catch (e: any) {
-      logger.error({ err: e, invoiceId: inv.id }, "Comptabilisation facture depuis commande — non bloquant");
+      // Comptabilisation OBLIGATOIRE (audit P0.1) — la facture est annulée
+      // pour éviter toute divergence entre l'opérationnel et la comptabilité.
+      logger.error({ err: e, invoiceId: inv.id }, "Échec comptabilisation facture depuis commande");
+      await db.delete(invoicesTable).where(and(eq(invoicesTable.organizationId, orgId), eq(invoicesTable.id, inv.id)));
+      return res.status(500).json({ error: "Comptabilisation impossible — facture annulée", detail: e.message });
     }
 
     // Piste d'audit
