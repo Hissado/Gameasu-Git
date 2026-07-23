@@ -591,6 +591,16 @@ export default function AdminRolesPage() {
               onDelete={() => setConfirmDel(selectedRole)}
               onDeleted={() => setSelectedRoleId(roles.find(r => r.id !== selectedRole.id)?.id ?? null)}
             />
+          ) : selectedRole ? (
+            // Rôle sélectionné mais catalogue indisponible : ne jamais échouer
+            // en silence (audit §D) — expliquer la cause probable.
+            <div className="flex flex-col items-center justify-center h-full text-sm gap-2 px-6 text-center">
+              <span className="font-medium text-destructive">Le catalogue de permissions est indisponible.</span>
+              <span className="text-muted-foreground">
+                Le référentiel des droits n'a pas pu être chargé (droits insuffisants ou seed RBAC non exécuté).
+                La matrice ne peut pas être affichée sans lui.
+              </span>
+            </div>
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
               Sélectionnez un rôle pour configurer ses permissions

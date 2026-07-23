@@ -78,6 +78,7 @@ const ACCOUNTS: Acc[] = [
   { code: "624",    label: "Entretien, réparations et maintenance",        classNum: 6, type: "expense",     normalBalance: "debit" },
   { code: "625",    label: "Primes d'assurance",                           classNum: 6, type: "expense",     normalBalance: "debit" },
   { code: "627",    label: "Publicité, publications, relations publiques", classNum: 6, type: "expense",     normalBalance: "debit" },
+  { code: "618",    label: "Divers frais (voyages et déplacements)",       classNum: 6, type: "expense",     normalBalance: "debit" },
   { code: "628",    label: "Frais de télécommunications",                  classNum: 6, type: "expense",     normalBalance: "debit" },
   { code: "631",    label: "Frais bancaires",                              classNum: 6, type: "expense",     normalBalance: "debit" },
   { code: "641",    label: "Impôts et taxes directs",                      classNum: 6, type: "expense",     normalBalance: "debit" },

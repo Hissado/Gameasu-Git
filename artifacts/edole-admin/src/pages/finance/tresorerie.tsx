@@ -70,12 +70,21 @@ export default function TresoreriePage() {
     queryKey: ["treso-overview"],
     queryFn: () => apiFetch("/api/finance/intelligence/overview"),
   });
+  // Source UNIQUE de la trésorerie disponible (audit phase 3) : solde
+  // comptable de la classe 5 — la même valeur que le bilan, par construction.
+  const treasury = useQuery<{ total: number; unlinked: number; byAccount: Array<{ code: string; label: string; balance: number; bankAccountName: string | null }> }>({
+    queryKey: ["treso-position"],
+    queryFn: () => apiFetch("/api/finance/treasury-position"),
+  });
 
   const banksList = banks.data?.data ?? [];
+  // Position = source comptable ; repli sur la somme des comptes bancaires
+  // uniquement tant que l'endpoint n'a pas répondu.
   const currentBalance = useMemo(
-    () => banksList.reduce((s, b) => s + toNum(b.balance), 0),
-    [banksList]
+    () => treasury.data ? treasury.data.total : banksList.reduce((s, b) => s + toNum(b.balance), 0),
+    [treasury.data, banksList]
   );
+  const unlinkedBalance = treasury.data?.unlinked ?? 0;
 
   const fc = forecast.data;
   const ov = overview.data;
@@ -123,14 +132,19 @@ export default function TresoreriePage() {
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold flex items-center gap-1">
               <Banknote className="w-3.5 h-3.5" /> Position actuelle
             </p>
-            {banks.isLoading ? (
+            {banks.isLoading && treasury.isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin mt-2" />
             ) : (
               <>
                 <p className={`text-lg sm:text-2xl font-bold mt-1 leading-tight break-words ${isAboveThreshold ? "" : "text-red-600"}`}>
                   {formatFCFACompact(currentBalance)}
                 </p>
-                <p className="text-[10px] text-muted-foreground mt-1">{banksList.length} compte(s)</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Solde comptable (classe 5) · {banksList.length} compte(s)
+                  {unlinkedBalance !== 0 && (
+                    <> · dont {formatFCFACompact(unlinkedBalance)} non rattaché à un compte bancaire</>
+                  )}
+                </p>
               </>
             )}
           </CardContent>

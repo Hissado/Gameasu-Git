@@ -37,15 +37,24 @@ async function loadEntry(userId: string): Promise<CacheEntry> {
   ).orderBy(rolesTable.isSystem).limit(1); // isSystem=false (custom) sort avant isSystem=true
   let perms = new Set<string>();
   if (role) {
-    // DB réelle : role_permissions(role_id, permission_id UUID → permissions.id)
-    // Le schema Drizzle est désaligné (permissionCode text n'existe pas en DB) ;
-    // on utilise du SQL brut pour coller à la structure réelle.
-    const rows = await db.execute(sql`
-      SELECT p.code FROM role_permissions rp
-      JOIN permissions p ON rp.permission_id = p.id
-      WHERE rp.role_id = ${role.id}
-    `);
-    perms = new Set((rows.rows as Array<{ code: string }>).map((r) => r.code));
+    // Modèle canonique : role_permissions.permission_code (aligné par la
+    // migration migrate-rbac-align). Repli transitoire sur l'ancien modèle
+    // (permission_id UUID → permissions.id) tant que la migration n'est pas
+    // appliquée, pour ne jamais couper la résolution des droits en production.
+    try {
+      const rows = await db
+        .select({ code: rolePermissionsTable.permissionCode })
+        .from(rolePermissionsTable)
+        .where(eq(rolePermissionsTable.roleId, role.id));
+      perms = new Set(rows.map((r) => r.code));
+    } catch {
+      const rows = await db.execute(sql`
+        SELECT p.code FROM role_permissions rp
+        JOIN permissions p ON rp.permission_id = p.id
+        WHERE rp.role_id = ${role.id}
+      `);
+      perms = new Set((rows.rows as Array<{ code: string }>).map((r) => r.code));
+    }
   }
 
   // Surcharges individuelles : grant (ajoute) et deny (retire), expirées ignorées.

@@ -12,6 +12,7 @@ import { Router, type IRouter } from "express";
 import { db, invoicesTable, paymentsTable, clientsTable, clientEmailLogsTable } from "@workspace/db";
 import { and, eq, ne, desc } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions";
+import { getTreasuryPosition } from "../services/kpis";
 
 const router: IRouter = Router();
 
@@ -164,6 +165,17 @@ async function loadPaymentHistory(orgId: string): Promise<{
   byClient.forEach((arr, k) => delayByClient.set(k, { meanDays: mean(arr), samples: arr.length }));
   return { delayByClient, lastPaymentByInvoice };
 }
+
+// ─── Position de trésorerie (source unique — audit phase 3) ────────────
+// LA définition de « Trésorerie disponible » : solde comptable de la
+// classe 5 (grand livre), identique au poste Trésorerie du bilan.
+router.get("/finance/treasury-position", requirePermission("accounting.read"), async (req, res, next) => {
+  try {
+    const asOf = typeof req.query["asOf"] === "string" ? (req.query["asOf"] as string) : undefined;
+    const position = await getTreasuryPosition(req.authUser!.organizationId, asOf);
+    return res.json(position);
+  } catch (e) { return next(e); }
+});
 
 // ─── Overview ──────────────────────────────────────────────────────────
 router.get("/finance/intelligence/overview", requirePermission("accounting.read"), async (req, res, next) => {

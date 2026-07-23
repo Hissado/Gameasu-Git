@@ -2,6 +2,17 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Fiabilisation P1 : RBAC, KPI trésorerie, rattrapage comptable — juillet 2026
+
+Corrections des chantiers **P1** du rapport d'audit consolidé (voir [`docs/RAPPORT_CORRECTIONS_P1.md`](docs/RAPPORT_CORRECTIONS_P1.md)).
+
+- **RBAC réparé (cause racine de l'audit §D)** : le seed échouait silencieusement à cause d'une dérive schéma/code (`label/category` + `permission_id` vs `name/module` + `permission_code`) → catalogue des 133 droits vide et matrice de rôles figée. Seed, résolution des droits (avec repli transitoire), routes admin et schéma des surcharges alignés sur le modèle canonique ; migration de réconciliation `migrate-rbac-align.ts` ; états d'erreur explicites côté UI (plus d'échec silencieux). 24 erreurs de typecheck pré-existantes résolues (65 → 41).
+- **Super Admin ≠ Administrateur** : l'Administrateur perd `roles.manage` (garde la lecture) — recommandation de l'audit appliquée.
+- **Trésorerie — source unique (91,8 M vs 0)** : nouveau dictionnaire central des KPI (`services/kpis.ts`) — « Trésorerie disponible » = solde grand livre classe 5, identique au bilan par construction ; endpoint `GET /finance/treasury-position` ; page Trésorerie branchée dessus (part non rattachée à un compte bancaire affichée, jamais masquée).
+- **Notes de frais → comptabilité** : approbation (D 618 / C 421) et remboursement (D 421 / C 5xx) comptabilisés atomiquement ; compte 618 ajouté au plan.
+- **Rattrapage historique** : script idempotent `backfill:postings` (simulation par défaut, `--apply` pour écrire) re-postant factures, encaissements, factures fournisseurs, paiements et paies validés sans écriture.
+- **Liens inertes** : les 5 cibles de l'audit ont toutes route + page réelles ; garde statique `check-routes` vert (483 fichiers, 199 routes). Cause résiduelle (permissions jamais semées) traitée par la réparation RBAC.
+
 ## Fiabilisation comptable P0 (audit consolidé) — juillet 2026
 
 Corrections des chantiers **P0** du rapport d'audit consolidé du 22 juillet 2026 (voir [`docs/RAPPORT_CORRECTIONS_P0.md`](docs/RAPPORT_CORRECTIONS_P0.md)).

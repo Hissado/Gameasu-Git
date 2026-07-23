@@ -9,7 +9,7 @@ import { Search } from "lucide-react";
 type Perm = { id: string; code: string; label: string; category: string; description?: string };
 
 export default function PermissionsCatalog() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin/permissions"],
     queryFn: () => apiFetch<{ data: Perm[] }>("/api/admin/permissions"),
   });
@@ -36,6 +36,20 @@ export default function PermissionsCatalog() {
       </div>
 
       {isLoading && <div className="text-muted-foreground">Chargement…</div>}
+
+      {isError && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <p className="font-medium text-destructive">Le catalogue de permissions n'a pas pu être chargé.</p>
+          <p className="text-muted-foreground mt-1">Vérifiez vos droits d'accès ou réessayez.</p>
+          <button onClick={() => refetch()} className="mt-2 text-primary underline underline-offset-2">Réessayer</button>
+        </div>
+      )}
+
+      {!isLoading && !isError && filtered.length === 0 && (
+        <div className="text-muted-foreground text-sm">
+          {q ? <>Aucune permission ne correspond à « {q} ».</> : <>Le catalogue est vide — le seed RBAC n'a pas encore été exécuté sur cet environnement.</>}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {Object.entries(grouped).map(([cat, perms]) => (

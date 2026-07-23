@@ -546,6 +546,70 @@ export async function postPayrollRun(
   return tx ? doPost(tx) : db.transaction(doPost);
 }
 
+/**
+ * Comptabilise une note de frais APPROUVÉE (audit P1) :
+ *   Débit  618 Divers frais (voyages et déplacements) = montant
+ *   Crédit 421 Personnel - rémunérations dues         = montant
+ * La dette envers le collaborateur est soldée par postExpensePayment.
+ */
+export async function postExpenseReport(
+  organizationId: string,
+  expense: { id: string; title: string; totalAmount: number; approvedAt?: Date | null },
+  userId?: string,
+  tx?: any,
+) {
+  const amount = Number(expense.totalAmount ?? 0);
+  if (amount <= 0) return null;
+  const doPost = async (t: any) => {
+    await ensureAccount(t, organizationId, { code: "618", label: "Divers frais (voyages et déplacements)", classNum: 6, type: "expense", normalBalance: "debit" });
+    return postEntryTx(t, {
+      organizationId,
+      journalCode: "OD",
+      entryDate: (expense.approvedAt ?? new Date()).toISOString().slice(0, 10),
+      reference: expense.title,
+      description: `Note de frais approuvée : ${expense.title}`,
+      sourceType: "expense_report",
+      sourceId: expense.id,
+      createdById: userId,
+      lines: [
+        { accountCode: "618", debit: amount, description: "Frais professionnels" },
+        { accountCode: "421", credit: amount, description: "Dette envers le collaborateur" },
+      ],
+    });
+  };
+  return tx ? doPost(tx) : db.transaction(doPost);
+}
+
+/**
+ * Comptabilise le REMBOURSEMENT d'une note de frais :
+ *   Débit  421 Personnel        / Crédit 521 Banque (ou 571 Caisse)
+ */
+export async function postExpensePayment(
+  organizationId: string,
+  expense: { id: string; title: string; totalAmount: number },
+  opts: { method?: "bank" | "cash"; userId?: string; tx?: any } = {},
+) {
+  const amount = Number(expense.totalAmount ?? 0);
+  if (amount <= 0) return null;
+  const treasuryCode = opts.method === "cash" ? "571" : "521";
+  const journalCode = opts.method === "cash" ? "CAI" : "BNQ";
+  const entryOpts: PostEntryOpts = {
+    organizationId,
+    journalCode,
+    entryDate: new Date().toISOString().slice(0, 10),
+    reference: expense.title,
+    description: `Remboursement note de frais : ${expense.title}`,
+    sourceType: "expense_report_payment",
+    sourceId: expense.id,
+    createdById: opts.userId,
+    lines: [
+      { accountCode: "421", debit: amount, description: "Solde de la dette collaborateur" },
+      { accountCode: treasuryCode, credit: amount, description: "Décaissement" },
+    ],
+  };
+  return opts.tx ? postEntryTx(opts.tx, entryOpts) : postEntry(entryOpts);
+}
+
 export async function postAmortization(opts: {
   organizationId: string;
   fiscalPeriodId: string;
