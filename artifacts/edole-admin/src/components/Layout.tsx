@@ -301,21 +301,18 @@ const NAV_GROUPS: NavGroup[] = [
         items: [],
       },
       {
+        // Anti-duplication (audit §J) : le module Comptabilité possède sa propre
+        // navigation détaillée (panneau blanc, AccountingShell). La barre latérale
+        // globale ne montre donc qu'un lanceur vers le module ; le détail (grand
+        // livre, journaux, états financiers, clôture…) vit dans le panneau.
         id: "fin-comptabilite",
         name: "Comptabilité",
         icon: Calculator,
+        directPath: "/comptabilite",
+        description: "Grand livre, journaux, tiers, états financiers et clôture — détail dans le module.",
         moduleKey: "accounting",
         permissionKey: "accounting.read",
-        items: [
-          { name: "Grand livre",          path: "/comptabilite",                 moduleKey: "accounting", permissionKey: "accounting.read",   description: "Gérez vos écritures, journaux, comptes et contrôles comptables." },
-          // États financiers rattachés à la Comptabilité qui les produit
-          // (audit phase 11) ; également accessibles en lecture depuis Rapports.
-          { name: "Bilan",                path: "/comptabilite/bilan",              moduleKey: "accounting", permissionKey: "accounting.read",   description: "Consultez votre bilan SYSCOHADA : actif, passif et équilibre à une date donnée." },
-          { name: "Compte de résultat",   path: "/comptabilite/compte-de-resultat", moduleKey: "accounting", permissionKey: "accounting.read",   description: "Analysez vos produits, charges et résultat sur une période." },
-          { name: "Balance générale",     path: "/comptabilite/balance",            moduleKey: "accounting", permissionKey: "accounting.read",   description: "Vérifiez les soldes de tous les comptes : mouvements débiteurs, créditeurs et contrôle d'équilibre." },
-          { name: "Immobilisations",      path: "/comptabilite/immobilisations", moduleKey: "accounting", permissionKey: "accounting.read",   description: "Gérez vos actifs immobilisés : acquisitions, calcul des amortissements et enregistrement des cessions." },
-          { name: "Clôture des périodes", path: "/comptabilite/cloture",         moduleKey: "accounting", permissionKey: "accounting.manage", description: "Clôturez vos périodes comptables, verrouillez les écritures et générez les états de synthèse." },
-        ],
+        items: [],
       },
       {
         id: "fin-tresorerie",
