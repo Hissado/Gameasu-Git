@@ -117,12 +117,61 @@ que le statut : aucune charge, aucune dette, aucun décaissement comptabilisés.
 
 ---
 
+## P1.g — Cycle d'achat amont : rapprochement 3 pièces (audit phase 5)
+
+**Constat de code.** Le squelette du cycle achat existe déjà et est plus complet
+que ne le laissait voir l'audit : **bons de commande** (`purchase_orders` +
+lignes, statuts draft→sent→partial→received), **réception** partielle/totale
+(`POST /inventory/purchase-orders/:id/receive` → `stock_movements`,
+`quantity_received` par ligne), **seuil d'approbation** paramétrable, **TVA**
+sur les factures fournisseurs (`tax_amount`, éclatée au 4452 depuis le lot P0).
+Ce qui manquait : le **rapprochement 3 pièces** (contrôle de conformité BC ↔
+réception ↔ facture) et la **comptabilisation à l'approbation** dans le module
+Achats (seul le module Comptabilité postait les factures fournisseurs).
+
+**Corrections.**
+
+| Correction | Fichiers |
+| --- | --- |
+| Service `threeWayMatch` : détecte facture sans BC, facture sans réception, réception partielle, écart de prix (HT facturé vs BC, tolérance 1 % / 1 000 FCFA), doublon probable (même référence, ou même montant ±1 FCFA à < 30 j chez le même fournisseur), dépassement du seuil d'approbation. Chaque anomalie porte une sévérité `error` (bloquante) ou `warning`. | `api-server/src/services/three-way-match.ts` |
+| `GET /purchases/invoices/:id/three-way-match` (rapport pour une facture) et `GET /purchases/three-way-match/exceptions` (factures ouvertes à anomalies) | `api-server/src/routes/purchases.ts` |
+| **Contrôle bloquant à l'approbation** : passer une facture fournisseur en statut approuvé lance le rapprochement ; toute anomalie bloquante renvoie **422** avec le détail, sauf approbation en force explicitement motivée (`forceApproval` + `approvalComment`, tracée dans l'historique de statut) | `purchases.ts` (`PATCH /purchases/invoices/:id`) |
+| **Comptabilisation à l'approbation** dans le module Achats (l'absence était une source de factures approuvées sans écriture) : `postSupplierInvoice` idempotent, statut rétabli si l'écriture échoue | `purchases.ts` |
+
+**Restant (chantier fonctionnel à part).** La demande d'achat formelle
+(workflow d'approbation en amont du BC) et l'appariement **ligne à ligne**
+(vs agrégat) restent à construire ; le rapprochement actuel opère sur les
+totaux et les quantités agrégées, ce qui couvre les cas de l'audit.
+
+---
+
+## P1.h — Dictionnaire KPI au tableau de bord comptable (audit §13.4)
+
+**Problème.** Sur le tableau de bord Comptabilité, le bloc « Activité du mois »
+et le graphique « Produits vs Charges » pouvaient afficher des valeurs
+contradictoires ; la trésorerie du tableau de bord ne coïncidait pas avec le
+bilan.
+
+**Correction.** Le tableau de bord (`GET /accounting/dashboard`) lit désormais
+la trésorerie, les créances et les dettes via le **dictionnaire central**
+(`services/kpis.ts` — `getTreasuryPosition`, `getReceivablesBalance`,
+`getPayablesBalance`), exactement comme le bilan et la page Trésorerie : **une
+seule définition, une seule valeur partout**. Les produits/charges du mois et
+le graphique 6 mois proviennent tous deux de la même requête grand livre
+(classes 6/7 postées) — plus deux valeurs contradictoires sur un même écran.
+Point de vigilance : la trésorerie affichée est le solde grand livre (classe 5)
+et non plus le champ `openingBalance` des comptes bancaires ; les à-nouveaux
+non journalisés doivent être repris par une écriture d'ouverture (cf. P0.b).
+
+---
+
 ## Tests et vérifications
 
 - **Typecheck backend : 65 → 41 erreurs** — les 24 erreurs résolues sont
   exactement la dérive RBAC (admin.ts, rbac/seed.ts, delete-organization.ts) ;
-  zéro nouvelle erreur. Frontend : 24 = base inchangée.
-- **`check-routes`** : 483 fichiers scannés, 199 routes, aucun lien cassé.
+  zéro nouvelle erreur introduite par les lots P1.a→P1.h. Frontend : 24 = base
+  inchangée.
+- **`check-routes`** : 484 fichiers scannés, 199 routes, aucun lien cassé.
 - **`test:payroll`** : 28/28 après les modifications du lot.
 
 ## Migrations à appliquer (préproduction puis production)
@@ -146,8 +195,9 @@ si l'ordre n'est pas respecté).
 
 | Prio | Sujet |
 | --- | --- |
-| P1 | Valider en préproduction : catalogue des 133 droits visible, matrice consultable pour les 10 rôles, les 5 liens de l'audit cliquables, trésorerie = bilan. |
-| P1 | Étendre le dictionnaire KPI aux autres indicateurs et y brancher le tableau de bord (« Charges = 0 » vs graphique — audit §13.4). |
-| P1 | Amont du cycle d'achat (demande → BC → réception → rapprochement 3 pièces) : non traité — chantier fonctionnel majeur à part entière. |
+| P1 | Valider en préproduction : catalogue des 133 droits visible, matrice consultable pour les 10 rôles, les 5 liens de l'audit cliquables, trésorerie = bilan = tableau de bord. |
+| P1 | Rapprochement 3 pièces **ligne à ligne** + workflow de demande d'achat formelle en amont du BC (le rapprochement actuel opère sur les totaux/quantités agrégés). |
+| P1 | UI de contrôle 3 pièces : exposer `three-way-match/exceptions` dans le module Achats (le backend est prêt, l'écran reste à câbler). |
 | P2 | Surcharges de permissions : la table réconciliée doit être revalidée (grant/deny/expiration) en préproduction. |
 | P2 | L'Administrateur perd `roles.manage` : communiquer ce changement aux organisations (comportement voulu par l'audit). |
+| P2 | Reprise des à-nouveaux bancaires : le tableau de bord et la trésorerie affichent le solde grand livre ; poster les à-nouveaux non journalisés (écriture d'ouverture). |

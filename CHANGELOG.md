@@ -11,7 +11,9 @@ Corrections des chantiers **P1** du rapport d'audit consolidé (voir [`docs/RAPP
 - **Trésorerie — source unique (91,8 M vs 0)** : nouveau dictionnaire central des KPI (`services/kpis.ts`) — « Trésorerie disponible » = solde grand livre classe 5, identique au bilan par construction ; endpoint `GET /finance/treasury-position` ; page Trésorerie branchée dessus (part non rattachée à un compte bancaire affichée, jamais masquée).
 - **Notes de frais → comptabilité** : approbation (D 618 / C 421) et remboursement (D 421 / C 5xx) comptabilisés atomiquement ; compte 618 ajouté au plan.
 - **Rattrapage historique** : script idempotent `backfill:postings` (simulation par défaut, `--apply` pour écrire) re-postant factures, encaissements, factures fournisseurs, paiements et paies validés sans écriture.
-- **Liens inertes** : les 5 cibles de l'audit ont toutes route + page réelles ; garde statique `check-routes` vert (483 fichiers, 199 routes). Cause résiduelle (permissions jamais semées) traitée par la réparation RBAC.
+- **Liens inertes** : les 5 cibles de l'audit ont toutes route + page réelles ; garde statique `check-routes` vert (484 fichiers, 199 routes). Cause résiduelle (permissions jamais semées) traitée par la réparation RBAC.
+- **Cycle d'achat — rapprochement 3 pièces** : service `threeWayMatch` (facture sans BC/réception, réception partielle, écart de prix, doublon, dépassement de seuil) ; contrôle **bloquant à l'approbation** (422 sauf force motivée) ; **comptabilisation à l'approbation** dans le module Achats (facture approuvée = écriture garantie) ; endpoints `/purchases/invoices/:id/three-way-match` et `/purchases/three-way-match/exceptions`.
+- **Tableau de bord comptable — source unique** : trésorerie/créances/dettes lues via le dictionnaire KPI (identiques au bilan et à la page Trésorerie) ; produits/charges du mois et graphique 6 mois issus du même grand livre — fin des valeurs contradictoires sur un même écran (audit §13.4).
 
 ## Fiabilisation comptable P0 (audit consolidé) — juillet 2026
 

@@ -18,6 +18,8 @@ import { ExcelReportBuilder } from "../lib/excel-engine";
 import { and, asc, desc, eq, gte, ilike, isNull, lte, or, sql, inArray, ne } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions";
 import { z } from "zod/v4";
+import { threeWayMatch } from "../services/three-way-match";
+import { postSupplierInvoice } from "../services/postings";
 
 const router = Router();
 
@@ -561,6 +563,10 @@ router.get("/purchases/invoices/:id", requirePermission("purchases.read"), async
   }
 });
 
+// Statuts considérés comme « approuvés » : la facture engage l'organisation
+// et DOIT être comptabilisée (audit P0.3) après contrôle de conformité (5.3).
+const APPROVED_INVOICE_STATUSES = new Set(["approved", "pending", "partially_paid", "paid", "overdue"]);
+
 router.patch("/purchases/invoices/:id", requirePermission("purchases.write"), async (req, res) => {
   try {
     const orgId = req.authUser!.organizationId;
@@ -571,18 +577,51 @@ router.patch("/purchases/invoices/:id", requirePermission("purchases.write"), as
 
     // If status is changing, fetch current status to record history
     let statusHistoryAppend: Array<{ from: string; to: string; at: string; userId: string; comment?: string }> = [];
+    let previousStatus: string | null = null;
+    let becomesApproved = false;
     if (data.status !== undefined) {
       const [current] = await db.select({ status: supplierInvoicesTable.status, statusHistory: supplierInvoicesTable.statusHistory })
         .from(supplierInvoicesTable)
         .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)))
         .limit(1);
       if (current && current.status !== data.status) {
+        previousStatus = current.status;
+        becomesApproved = APPROVED_INVOICE_STATUSES.has(data.status) && !APPROVED_INVOICE_STATUSES.has(current.status);
         const existing = (current.statusHistory as Array<{ from: string; to: string; at: string; userId: string; comment?: string }>) ?? [];
         const entry: { from: string; to: string; at: string; userId: string; comment?: string } = {
           from: current.status, to: data.status, at: new Date().toISOString(), userId: req.authUser!.id,
         };
         if (data.status === "rejected" && data.rejectionReason) entry.comment = data.rejectionReason;
         statusHistoryAppend = [...existing, entry];
+      }
+    }
+
+    // ── Contrôle de conformité 3 pièces AVANT approbation (audit phase 5.3) ──
+    // Les anomalies bloquantes (réception absente, doublon de référence,
+    // facture au-dessus du BC) empêchent l'approbation, sauf passage en force
+    // explicitement motivé (forceApproval + approvalComment), tracé dans
+    // l'historique de statut.
+    if (becomesApproved) {
+      const report = await threeWayMatch(orgId, id);
+      const force = req.body?.forceApproval === true;
+      if (!report.passes && !force) {
+        return res.status(422).json({
+          error: "Contrôle 3 pièces en échec — approbation refusée",
+          detail: "Corrigez les anomalies ou approuvez en force avec un motif (forceApproval + approvalComment).",
+          flags: report.flags,
+        });
+      }
+      if (!report.passes && force) {
+        const comment = typeof req.body?.approvalComment === "string" && req.body.approvalComment.trim()
+          ? req.body.approvalComment.trim()
+          : null;
+        if (!comment) {
+          return res.status(422).json({ error: "Un motif (approvalComment) est requis pour approuver malgré les anomalies." });
+        }
+        statusHistoryAppend[statusHistoryAppend.length - 1] = {
+          ...statusHistoryAppend[statusHistoryAppend.length - 1],
+          comment: `Approbation en force malgré contrôle 3 pièces : ${comment}`,
+        };
       }
     }
 
@@ -604,10 +643,65 @@ router.patch("/purchases/invoices/:id", requirePermission("purchases.write"), as
       .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)))
       .returning();
     if (!updated) return res.status(404).json({ error: "Facture introuvable" });
+
+    // ── Comptabilisation à l'approbation (audit P0.3) ────────────────────────
+    // Une facture approuvée DOIT exister au grand livre (charge HT + TVA 4452
+    // + dette 401). Idempotent : si l'écriture existe déjà, aucun doublon.
+    // En cas d'échec, le statut est rétabli — pas de divergence silencieuse.
+    if (becomesApproved) {
+      try {
+        await postSupplierInvoice(orgId, updated.id, req.authUser?.id);
+      } catch (e: any) {
+        req.log.error({ err: e, invoiceId: updated.id }, "Échec comptabilisation facture fournisseur");
+        if (previousStatus) {
+          await db.update(supplierInvoicesTable)
+            .set({ status: previousStatus, statusHistory: (statusHistoryAppend.slice(0, -1)) })
+            .where(and(eq(supplierInvoicesTable.id, id), eq(supplierInvoicesTable.organizationId, orgId)));
+        }
+        return res.status(500).json({ error: "Comptabilisation impossible — approbation annulée", detail: e.message });
+      }
+    }
     return res.json(updated);
   } catch (e: any) {
     req.log.error(e, "purchases/invoices/:id PATCH");
     return res.status(500).json({ error: "Erreur lors de la mise à jour" });
+  }
+});
+
+// ── Rapprochement 3 pièces (audit phase 5.3) ─────────────────────────────────
+router.get("/purchases/invoices/:id/three-way-match", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const report = await threeWayMatch(req.authUser!.organizationId, req.params.id as string);
+    return res.json(report);
+  } catch (e: any) {
+    if (e.message?.includes("introuvable")) return res.status(404).json({ error: e.message });
+    req.log.error(e, "purchases/invoices/:id/three-way-match");
+    return res.status(500).json({ error: "Erreur lors du rapprochement" });
+  }
+});
+
+// Liste des factures ouvertes présentant des anomalies de rapprochement —
+// alimente un écran de contrôle. Limité aux 100 factures les plus récentes.
+router.get("/purchases/three-way-match/exceptions", requirePermission("purchases.read"), async (req, res) => {
+  try {
+    const orgId = req.authUser!.organizationId;
+    const open = await db.select({ id: supplierInvoicesTable.id })
+      .from(supplierInvoicesTable)
+      .where(and(
+        eq(supplierInvoicesTable.organizationId, orgId),
+        inArray(supplierInvoicesTable.status, ["review", "awaiting_approval", "approved", "pending"]),
+      ))
+      .orderBy(desc(supplierInvoicesTable.createdAt))
+      .limit(100);
+    const reports = [];
+    for (const inv of open) {
+      const r = await threeWayMatch(orgId, inv.id);
+      if (r.flags.length > 0) reports.push(r);
+    }
+    return res.json({ data: reports, scanned: open.length });
+  } catch (e: any) {
+    req.log.error(e, "purchases/three-way-match/exceptions");
+    return res.status(500).json({ error: "Erreur lors du contrôle" });
   }
 });
 

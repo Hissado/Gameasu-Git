@@ -33,6 +33,7 @@ import {
   postAmortization,
 } from "../services/postings";
 import { getCurrentFiscalPeriod } from "../services/syscohada-seed";
+import { getTreasuryPosition, getReceivablesBalance, getPayablesBalance } from "../services/kpis";
 
 const router = Router();
 
@@ -974,41 +975,16 @@ router.get("/accounting/dashboard", async (req, res) => {
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
 
-  // Trésorerie totale (une seule requête agrégée par accountId, au lieu d'un query par banque)
-  const banks = await db.select().from(bankAccountsTable).where(and(eq(bankAccountsTable.organizationId, orgId), eq(bankAccountsTable.isActive, true)));
-  const bankAccountIds = banks.map((b) => b.accountId).filter(Boolean);
-  let cashTotal = banks.reduce((s, b) => s + toNum(b.openingBalance), 0);
-  if (bankAccountIds.length > 0) {
-    const bankSums = await db.select({
-      accountId: journalEntryLinesTable.accountId,
-      d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
-      c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
-    }).from(journalEntryLinesTable)
-      .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-      .where(and(eq(journalEntriesTable.organizationId, orgId), inArray(journalEntryLinesTable.accountId, bankAccountIds), eq(journalEntriesTable.status, "posted")))
-      .groupBy(journalEntryLinesTable.accountId);
-    for (const s of bankSums) cashTotal += toNum(s.d) - toNum(s.c);
-  }
-
-  // Créances clients (soldes débiteurs 411)
-  const ar = await db.select({
-    d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
-    c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
-  }).from(journalEntryLinesTable)
-    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(eq(journalEntriesTable.organizationId, orgId), eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, "411"), eq(journalEntriesTable.status, "posted")));
-  const creances = toNum(ar[0]?.d) - toNum(ar[0]?.c);
-
-  // Dettes fournisseurs (soldes créditeurs 401)
-  const ap = await db.select({
-    d: sql<string>`COALESCE(SUM(${journalEntryLinesTable.debit}), 0)`,
-    c: sql<string>`COALESCE(SUM(${journalEntryLinesTable.credit}), 0)`,
-  }).from(journalEntryLinesTable)
-    .innerJoin(journalEntriesTable, eq(journalEntryLinesTable.entryId, journalEntriesTable.id))
-    .innerJoin(chartOfAccountsTable, eq(journalEntryLinesTable.accountId, chartOfAccountsTable.id))
-    .where(and(eq(journalEntriesTable.organizationId, orgId), eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, "401"), eq(journalEntriesTable.status, "posted")));
-  const dettes = toNum(ap[0]?.c) - toNum(ap[0]?.d);
+  // Trésorerie / créances / dettes : DICTIONNAIRE CENTRAL DES KPI
+  // (services/kpis.ts — audit phase 3). Mêmes définitions que le bilan et la
+  // page Trésorerie : solde grand livre classe 5 (y compris comptes non
+  // rattachés à une banque déclarée), 411x et 401x avec leurs subdivisions.
+  const [treasuryPosition, creances, dettes] = await Promise.all([
+    getTreasuryPosition(orgId),
+    getReceivablesBalance(orgId),
+    getPayablesBalance(orgId),
+  ]);
+  const cashTotal = treasuryPosition.total;
 
   // P&L mois courant
   const pl = await db
