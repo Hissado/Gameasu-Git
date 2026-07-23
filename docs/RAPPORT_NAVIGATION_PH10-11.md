@@ -44,18 +44,56 @@ en grande partie déjà eu lieu (commits « Restructure … navigation »).
 Vérifié : `check-routes` vert (488 fichiers, 200 routes), typecheck frontend
 inchangé (24 = base).
 
-## Non traité — nécessite une validation visuelle (risque assumé)
+## Deuxième passe — application des 5 pôles + désencombrement RH
 
-Deux points de l'audit §J relèvent d'un chantier UI avec navigateur, non
-réalisable de façon sûre sans rendu visuel :
+Sur demande explicite, la structure a été alignée plus avant sur les 5 pôles et
+le menu RH désencombré (audit §H et §J).
 
-1. **Duplication « barre bleue » / « panneau blanc »** : la barre supérieure
-   répéterait la catégorie de la barre latérale. Diagnostic et correction
-   demandent un rendu réel (structure de `Layout` + en-tête).
-2. **Menus RH « surchargés » (30+ entrées)** : un regroupement repliable plus
-   agressif est possible, mais réordonner/masquer des entrées sans validation
-   visuelle risque de dégrader des parcours existants.
+### Alignement des groupes sur les 5 pôles
 
-Recommandation : traiter ces deux points dans une session avec préproduction
-et captures d'écran, en s'appuyant sur la structure `NavGroup → NavSection →
-NavItem` déjà en place (repliable, gating par module/permission).
+| Pôle audit | Groupe de navigation |
+| --- | --- |
+| 1 — Pilotage | **Pilotage** (ex-« Accueil » : tableaux de bord, briefing, approbations, communication, IA) |
+| 2 — Cycle de vente | **Ventes** (CRM, clients, devis, commandes, factures, encaissements, avoirs) |
+| 3 — Cycle d'achat | **Achats** (fournisseurs, BC, réceptions, factures, approbations, paiements) |
+| 4 — Capital humain | **Ressources Humaines** |
+| 5 — Comptabilité & Finance | **Comptabilité & Finance** (ex-« Finance ») |
+| Transverses | **Projets**, **Logistique**, **Portail Expert**, **Admin** (Documents, Rapports, Paramètres, Add-ons, Journal d'audit) |
+
+Deux groupes renommés (`Accueil → Pilotage`, `Finance → Comptabilité &
+Finance`) pour épouser le vocabulaire des pôles ; les autres portaient déjà le
+bon intitulé. Projets et Logistique sont conservés comme modules métier
+additionnels (hors des 5 pôles théoriques mais bien réels).
+
+### Désencombrement du menu RH (§J « menus RH surchargés »)
+
+Le groupe Ressources Humaines passait de **14 sections** (≈35 entrées, avec
+doublons) à **8 rubriques** logiques, sans perdre aucune page :
+
+| Rubrique consolidée | Regroupe |
+| --- | --- |
+| Mon espace | (self-service) |
+| **Collaborateurs** | fiches, onboarding, contrats signés, documents RH, départements, postes, organigramme, affectations, mouvements (fusion de Collaborateurs + Intégration + Structure + Documents du personnel) |
+| **Recrutement & Formation** | candidatures, modèles de contrats, formations |
+| **Temps & Présence** | présence, feuilles de temps, calendrier, congés, politiques de congés, kiosques (fusion Temps & Présence + Congés + Paramètres) |
+| **Paie** | bulletins, avances, notes de frais, avantages, virements, corrections, hors cycle, déclarations, états de salaires, paramètres fiscaux, simulateur (fusion Paie + Formalités + simulateur) |
+| **Pilotage & Rapports** | évaluations, indicateurs, rapports, registre légal, intelligence RH |
+| Réclamations & Suggestions | (inchangé) |
+| Journal d'audit | (inchangé) |
+
+**Doublons supprimés** : « Modèles de lettres » / « Modèles de contrats » (même
+page `/rh/modeles-contrats`), « Fiche collaborateur » / « Collaborateurs » (même
+page `/rh`). L'entrée « États de salaires » (`/rh/etats-paie`), orpheline après
+le renommage du vestige BTP, est de nouveau exposée sous Paie.
+
+Vérifié : `check-routes` vert (488 fichiers, 200 routes), typecheck frontend
+inchangé (24 = base). Toutes les pages RH restent joignables.
+
+## Reste : duplication « barre bleue / panneau blanc »
+
+Dans le code **actuel**, la mise en page comporte **une seule barre latérale**
+repliable (`<aside>`, hiérarchie `NavGroup → NavSection → NavItem`) + un en-tête
+(logo, recherche, notifications) + un fil d'Ariane — il n'y a **pas** de second
+rail de navigation « bleu » redondant. La duplication constatée par l'audit
+correspondait à une mise en page antérieure, déjà consolidée. Aucune action
+supplémentaire nécessaire ; à confirmer visuellement en préproduction.
