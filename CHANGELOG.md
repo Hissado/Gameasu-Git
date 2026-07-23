@@ -1,6 +1,16 @@
-# Changelog Nexora
+# Changelog Gaméasù
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
+
+## Audit & nettoyage de la base de code — juillet 2026
+
+Audit complet du monorepo en vue d'une reprise par un développeur externe (voir [`docs/CODEBASE_AUDIT.md`](docs/CODEBASE_AUDIT.md)).
+
+- **Documentation** : `README.md` réécrit (reprise professionnelle) ; dossier `docs/` créé (`ARCHITECTURE`, `DEPLOYMENT`, `CONTRIBUTING`, `SECURITY`, `CODEBASE_AUDIT`).
+- **`.env.example`** réaligné sur la marque Gaméasù et complété avec l'intégralité des variables réellement utilisées (Stripe, CinetPay, Google, emails, `VITE_*`), sans valeur secrète.
+- **Nettoyage** : suppression de `attached_assets/` (619 fichiers, 133 Mo, inutilisés) et de l'alias Vite `@assets` ; retrait des uploads runtime versionnés (`api-server/uploads/*.webm`) + ajout au `.gitignore` ; déplacement des documents internes vers `docs/archive/` ; lockfile nettoyé (importer fantôme `edole-deck`). Contenu versionné réduit de ~150 à ~21 Mo (hors `.git`).
+- **Typage** : correction sûre du type `req.id` (`ReqId`) dans `audit()` — erreurs de typecheck `api-server` ramenées de 122 à 65, sans impact runtime.
+- **Sécurité** : documentation de la clé `CLOUD_STORAGE_ENCRYPTION_KEY` exposée dans `.replit` (rotation requise, voir `docs/SECURITY.md`). Aucun secret en dur détecté dans le code applicatif.
 
 ## Réinitialisation usine & base propre pour la production — juin 2026
 

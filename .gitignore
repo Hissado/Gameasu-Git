@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Runtime user uploads (created by the API server at startup, must not be versioned)
+artifacts/api-server/uploads/

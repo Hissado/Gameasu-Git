@@ -101,7 +101,7 @@ function parseUserAgent(ua: string | undefined): { browser?: string; os?: string
 export async function audit(
   req: Pick<Request, "ip" | "headers"> & {
     authUser?: { id: string; email: string; organizationId?: string; role?: string; sessionId?: string };
-    id?: string; // request id (pino)
+    id?: string | number | object; // request id (pino — type ReqId)
   },
   action: AuditAction,
   opts: {
