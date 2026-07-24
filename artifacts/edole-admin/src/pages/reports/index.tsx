@@ -3308,7 +3308,7 @@ function ManagementSubTab({ periodQuery }: { periodQuery: string }) {
                   <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
                 </button>
                 <button
-                  onClick={() => window.open(`/reports/management/pdf?${periodQuery}`, "_blank")}
+                  onClick={() => window.open(`/rapports/gestion/pdf?${periodQuery}`, "_blank")}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0F1A3A] text-white hover:bg-[#1a2d5a] transition-colors"
                   title="Ouvrir le rapport PDF professionnel dans un nouvel onglet"
                 >
