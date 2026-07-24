@@ -22,7 +22,20 @@ function getContextToken(): string | null {
 }
 
 // `body` élargi pour accepter des objets JSON (sérialisés automatiquement).
-type ApiFetchOptions = Omit<RequestInit, "body"> & { body?: RequestInit["body"] | Record<string, any> | any[] };
+type ApiFetchOptions = Omit<RequestInit, "body"> & { body?: any; timeoutMs?: number };
+
+type InFlightEntry = { promise: Promise<unknown>; controller: AbortController };
+const inFlightGets = new Map<string, InFlightEntry>();
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+function isReadOnlyRequest(method?: string) {
+  return !method || method.toUpperCase() === "GET";
+}
+
+export function cancelApiRequests(reason = "Navigation ou changement d’organisation") {
+  for (const entry of inFlightGets.values()) entry.controller.abort(reason);
+  inFlightGets.clear();
+}
 
 export async function apiFetch<T = unknown>(
   url: string,
@@ -54,7 +67,26 @@ export async function apiFetch<T = unknown>(
     body = JSON.stringify(body);
   }
   const fullUrl = url.startsWith("/") ? url : `/api/${url}`;
-  const res = await fetch(fullUrl, { ...options, headers, body });
+  const method = (options.method ?? "GET").toUpperCase();
+  const canDedupe = isReadOnlyRequest(method) && !options.signal;
+  const cacheKey = canDedupe ? `${method}:${fullUrl}:${JSON.stringify(headers)}` : "";
+  const existing = cacheKey ? inFlightGets.get(cacheKey) : undefined;
+  if (existing) return existing.promise as Promise<T>;
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(
+    () => controller.abort(`Timeout API après ${options.timeoutMs ?? DEFAULT_TIMEOUT_MS} ms`),
+    options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+  );
+  const { timeoutMs: _timeoutMs, signal: _signal, ...fetchOptions } = options;
+  const request = fetch(fullUrl, { ...fetchOptions, method, headers, body, signal: controller.signal })
+    .finally(() => {
+      window.clearTimeout(timeout);
+      if (cacheKey) inFlightGets.delete(cacheKey);
+    });
+  if (cacheKey) inFlightGets.set(cacheKey, { promise: request, controller });
+
+  const res = await request;
   if (!res.ok) {
     let errBody: any = null;
     try { errBody = await res.json(); } catch {}
