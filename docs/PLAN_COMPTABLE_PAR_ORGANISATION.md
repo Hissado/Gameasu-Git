@@ -49,7 +49,7 @@ protection, permissions, UI, Cockpit/Expert, tests).
 | 14 | Portail Expert : configurer le plan d'un client attribué | **Partiel** — accès expert existant ; écran de config COA à construire |
 | 15 | Permissions granulaires COA | **Partiel** — nouvelle permission `accounting.manage_chart` (créer/modifier/désactiver/supprimer un compte), câblée sur les routes + rôles (comptable, financier, admin) + grille UI ; les permissions version/référentiel/migration/mapping viendront avec leurs routes |
 | 16 | Journal d'audit COA (créé/modifié/désactivé/mapping/import/version/migration) | **Partiel** — audit général présent ; événements COA dédiés à ajouter |
-| 17 | UI (hiérarchie + tableau, filtres, badges, nb écritures, bannière référentiel/version) | **Partiel** — page `chart-of-accounts.tsx` existe ; enrichissements à faire |
+| 17 | UI (hiérarchie + tableau, filtres, badges, nb écritures, bannière référentiel/version) | **Partiel** — badges d'origine (Système/Modèle/Personnalisé/Importé), libellé personnalisé, comptes désactivés (bascule + style), bannière référentiel : faits ; reste vue hiérarchique dépliable, nb d'écritures par compte, création/édition inline, écran de mappage |
 | 18 | Tests obligatoires (création, perso, import, protection, mapping, écritures, multi-tenant…) | **À construire** |
 
 ## Feuille de route proposée (par phases sûres et vérifiables)

@@ -15,7 +15,20 @@ type Acc = {
   id: string; code: string; label: string; classNum: number;
   type: string; normalBalance: string; isPostable: boolean;
   applicableFrameworks?: string[] | null;
+  origin?: string | null; isSystem?: boolean; isActive?: boolean;
+  customLabel?: string | null;
 };
+
+// Badge d'origine du compte (§6) : Système / Modèle / Personnalisé / Importé.
+function OriginBadge({ acc }: { acc: Acc }) {
+  if (acc.isSystem) return <Badge className="text-xs bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-100">Système</Badge>;
+  switch (acc.origin) {
+    case "template":  return <Badge className="text-xs bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100">Modèle</Badge>;
+    case "imported":  return <Badge className="text-xs bg-violet-100 text-violet-700 border border-violet-200 hover:bg-violet-100">Importé</Badge>;
+    case "custom":    return <Badge className="text-xs bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">Personnalisé</Badge>;
+    default:          return null;
+  }
+}
 
 const TYPE_LABELS: Record<string, string> = {
   asset:     "Actif",
@@ -49,13 +62,15 @@ const COA_TOUR = [
 export default function ChartOfAccounts() {
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState<string>("");
+  const [showInactive, setShowInactive] = useState(false);
 
   const { data, isLoading } = useQuery<{ data: Acc[] }>({
-    queryKey: ["chart-of-accounts", search, classFilter],
+    queryKey: ["chart-of-accounts", search, classFilter, showInactive],
     queryFn: () => {
       const qs = new URLSearchParams();
       if (search) qs.set("search", search);
       if (classFilter) qs.set("classNum", classFilter);
+      if (showInactive) qs.set("includeInactive", "true");
       return apiFetch(`/api/accounting/chart-of-accounts?${qs}`);
     },
   });
@@ -118,6 +133,10 @@ export default function ChartOfAccounts() {
           <option value="">Toutes les classes</option>
           {Object.entries(CLASS_LABELS).map(([n, l]) => <option key={n} value={n}>Classe {n} — {l}</option>)}
         </select>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground h-10 px-1 cursor-pointer select-none">
+          <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} className="accent-amber-600" />
+          Afficher les comptes désactivés
+        </label>
       </div>
 
       {isLoading ? (
@@ -140,6 +159,7 @@ export default function ChartOfAccounts() {
                     <tr>
                       <th className="text-left px-5 py-2 w-32">Code</th>
                       <th className="text-left px-5 py-2">Libellé</th>
+                      <th className="text-left px-5 py-2 w-32">Nature</th>
                       <th className="text-left px-5 py-2 w-32">Type</th>
                       <th className="text-left px-5 py-2 w-32">Sens normal</th>
                       <th className="text-left px-5 py-2 w-36">Référentiel</th>
@@ -147,12 +167,15 @@ export default function ChartOfAccounts() {
                   </thead>
                   <tbody>
                     {accs.map((a) => (
-                      <tr key={a.id} className="border-t hover:bg-muted/50">
+                      <tr key={a.id} className={`border-t hover:bg-muted/50 ${a.isActive === false ? "opacity-50" : ""}`}>
                         <td className="px-5 py-2 font-mono font-semibold">{a.code}</td>
                         <td className="px-5 py-2">
-                          {a.label}
+                          {a.customLabel || a.label}
+                          {a.customLabel && <span className="ml-2 text-xs text-muted-foreground">({a.label})</span>}
                           {!a.isPostable && <Badge variant="outline" className="ml-2 text-xs">Regroupement</Badge>}
+                          {a.isActive === false && <Badge variant="outline" className="ml-2 text-xs text-muted-foreground">Désactivé</Badge>}
                         </td>
+                        <td className="px-5 py-2"><OriginBadge acc={a} /></td>
                         <td className="px-5 py-2 text-xs">{TYPE_LABELS[a.type] ?? a.type}</td>
                         <td className="px-5 py-2 text-xs">{BALANCE_LABELS[a.normalBalance] ?? a.normalBalance}</td>
                         <td className="px-5 py-2 flex flex-wrap gap-1">
