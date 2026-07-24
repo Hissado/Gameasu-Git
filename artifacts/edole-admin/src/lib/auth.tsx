@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { cancelApiRequests } from "@/lib/api";
 
 const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;  // 30 minutes
 const INACTIVITY_WARNING_MS =  2 * 60 * 1000;  // avertissement 2 min avant expiration
@@ -115,6 +116,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const switchOrg = useCallback(async (orgId: string) => {
     const t = localStorage.getItem("auth_token");
     if (!t) throw new Error("Non authentifié");
+    cancelApiRequests("Changement d’organisation");
+    await queryClient.cancelQueries();
+    queryClient.clear();
     const res = await fetch("/api/auth/switch-org", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
@@ -124,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const j = await res.json().catch(() => ({})) as any;
       throw new Error(j.error ?? "Erreur lors du changement d'organisation");
     }
-    await queryClient.invalidateQueries();
+    await queryClient.invalidateQueries({ queryKey: ["auth-me"] });
   }, [queryClient]);
 
   // Déconnexion automatique si l'API renvoie 401
