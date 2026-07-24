@@ -6,6 +6,8 @@ import { randomUUID } from "node:crypto";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { eq, and, isNull } from "drizzle-orm";
 import bcryptjs from "bcryptjs";
+import { isSystemAccountCode } from "../services/accounting-framework.js";
+import { MAPPING_ROLES } from "../services/account-mapping.js";
 import {
   clientsTable, clientContactsTable,
   collaboratorsTable,
@@ -212,6 +214,7 @@ export const MODULES: ModuleDef[] = [
       { key: "classNum",      label: "Classe",       required: true,  type: "number", examples: "4", aliases: ["classe", "class", "classe_compte"] },
       { key: "type",          label: "Type",         required: true,  type: "enum",   examples: "asset", acceptedValues: ["asset", "liability", "equity", "revenue", "expense"], aliases: ["type", "nature", "categorie"] },
       { key: "normalBalance", label: "Sens normal",  required: true,  type: "enum",   examples: "debit", acceptedValues: ["debit", "credit"], aliases: ["sens", "normal_balance", "solde_normal"] },
+      { key: "description",   label: "Note d'utilisation", required: false, type: "string", examples: "Comptes clients ordinaires", aliases: ["description", "note", "commentaire", "usage"] },
       { key: "openingDebit",  label: "Solde débiteur (FCFA)", required: false, type: "number", examples: "2500000", aliases: ["debit_ouverture", "opening_debit", "solde_debit", "debit"] },
       { key: "openingCredit", label: "Solde créditeur (FCFA)", required: false, type: "number", examples: "0", aliases: ["credit_ouverture", "opening_credit", "solde_credit", "credit"] },
     ],
@@ -810,31 +813,99 @@ async function importPayments(f: ParsedFile, mapping: Record<string, string>, or
 // ── Chart of Accounts ─────────────────────────────────────────────────────────
 
 async function importChartOfAccounts(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  // Import d'un plan comptable existant (§8). Deux passes :
+  //  1) validation + collecte (codes valides, doublons intra-fichier) ;
+  //  2) résolution de la hiérarchie (compte parent = plus long préfixe présent),
+  //     classification (origin='imported', isSystem, level, isPostable=feuille),
+  //     puis insertion idempotente (onConflictDoNothing sur le code).
+
+  // Comptes déjà présents dans l'organisation (pour dédoublonnage + parents).
+  const existing = await db.select({ code: chartOfAccountsTable.code })
+    .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
+  const existingCodes = new Set(existing.map((e) => e.code.trim()));
+
+  type Parsed = { rowIdx: number; code: string; label: string; classNum: number; type: string; normalBalance: string; description: string | null };
+  const parsed: Parsed[] = [];
+  const seenInFile = new Set<string>();
+
+  // ── Passe 1 : validation & collecte ──
   for (let i = 0; i < f.rows.length; i++) {
     const row = f.rows[i];
     if (row.every(c => !c.trim())) continue;
     const o = applyMapping(row, f.headers, mapping);
-    if (!o.code || !o.label) { r.errors.push({ row: i + 2, message: "Code ou libellé manquant" }); r.skipped++; continue; }
+    const code = (o.code ?? "").trim();
+    if (!code || !o.label) { r.errors.push({ row: i + 2, message: "Code ou libellé manquant" }); r.skipped++; continue; }
+    // Numéro de compte : chiffres uniquement (référentiels OHADA), 2 à 8 positions.
+    if (!/^\d{2,8}$/.test(code)) { r.errors.push({ row: i + 2, message: `Numéro de compte invalide : "${code}" (2 à 8 chiffres attendus)` }); r.skipped++; continue; }
+    if (seenInFile.has(code)) { r.errors.push({ row: i + 2, message: `Code en doublon dans le fichier : "${code}"` }); r.skipped++; continue; }
+    seenInFile.add(code);
+    if (existingCodes.has(code)) { r.errors.push({ row: i + 2, message: `Compte déjà existant : "${code}" (ignoré)` }); r.skipped++; continue; }
 
-    const classNum = o.classNum ? parseInt(o.classNum) : parseInt(o.code.charAt(0));
+    const classNum = o.classNum ? parseInt(o.classNum) : parseInt(code.charAt(0));
     const type = o.type || (classNum <= 5 ? (classNum <= 3 ? "asset" : classNum === 4 ? "asset" : "liability") : classNum === 6 ? "expense" : "revenue");
-    const normalBalance = o.normalBalance || (["asset","expense"].includes(type) ? "debit" : "credit");
+    const normalBalance = o.normalBalance || (["asset", "expense"].includes(type) ? "debit" : "credit");
+    parsed.push({ rowIdx: i + 2, code, label: o.label, classNum, type, normalBalance, description: o.description || null });
+  }
 
+  // Ensemble complet des codes (existants + à importer) pour la hiérarchie.
+  const allCodes = new Set<string>([...existingCodes, ...parsed.map((p) => p.code)]);
+  const parentCodeOf = (code: string): string | null => {
+    for (let len = code.length - 1; len >= 2; len--) {
+      const prefix = code.slice(0, len);
+      if (allCodes.has(prefix)) return prefix;
+    }
+    return null;
+  };
+  // Un code est « feuille » (imputable) si aucun autre code ne le prend pour préfixe strict.
+  const isLeaf = (code: string): boolean => ![...allCodes].some((c) => c !== code && c.startsWith(code));
+
+  // ── Passe 2 : insertion avec hiérarchie & classification ──
+  // Map code → id (existants) pour rattacher parentId au fil de l'insertion.
+  const idByCode = new Map<string, string>();
+  const existingRows = await db.select({ id: chartOfAccountsTable.id, code: chartOfAccountsTable.code })
+    .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
+  for (const er of existingRows) idByCode.set(er.code.trim(), er.id);
+
+  // Insertion des parents avant les enfants (tri par longueur de code croissante).
+  parsed.sort((a, b) => a.code.length - b.code.length || a.code.localeCompare(b.code));
+
+  for (const p of parsed) {
+    const parentCode = parentCodeOf(p.code);
+    const parentId = parentCode ? (idByCode.get(parentCode) ?? null) : null;
+    const id = randomUUID();
     try {
-      await db.insert(chartOfAccountsTable).values({
-        id: randomUUID(), organizationId: orgId,
-        code: o.code,
-        label: o.label,
-        classNum,
-        type,
-        normalBalance,
-      }).onConflictDoNothing();
+      const inserted = await db.insert(chartOfAccountsTable).values({
+        id, organizationId: orgId,
+        code: p.code,
+        label: p.label,
+        classNum: p.classNum,
+        type: p.type,
+        normalBalance: p.normalBalance,
+        parentId,
+        isPostable: isLeaf(p.code),
+        origin: "imported",
+        isSystem: isSystemAccountCode(p.code),
+        level: Math.max(1, p.code.length - 1),
+        description: p.description,
+      }).onConflictDoNothing().returning({ id: chartOfAccountsTable.id });
+      idByCode.set(p.code, inserted[0]?.id ?? id);
       r.imported++;
-      r.ids.push(o.code);
+      r.ids.push(p.code);
     } catch (e) {
-      r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
+      r.errors.push({ row: p.rowIdx, message: `Erreur : ${(e as Error).message}` });
       r.skipped++;
     }
+  }
+
+  // Couverture des comptes système requis par les automatisations (§8) :
+  // signale (non bloquant) les comptes par défaut du mappage absents du plan résultant.
+  const missingSystem = [...new Set(MAPPING_ROLES.map((m) => m.defaultCode))]
+    .filter((code) => !allCodes.has(code));
+  if (missingSystem.length > 0) {
+    r.errors.push({
+      row: 0,
+      message: `Comptes système recommandés absents du plan importé : ${missingSystem.join(", ")}. Créez-les ou ajustez le mappage comptable (Comptabilité → Paramètres → Mappage) pour que les écritures automatiques fonctionnent.`,
+    });
   }
   return r;
 }

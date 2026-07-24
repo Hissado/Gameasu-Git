@@ -130,7 +130,7 @@ const SYSTEM_ACCOUNT_PREFIXES = [
   "60", "70", "66", "421", "422", "431", "447",
 ];
 
-function isSystemAccountCode(code: string): boolean {
+export function isSystemAccountCode(code: string): boolean {
   const c = code.trim();
   return SYSTEM_ACCOUNT_PREFIXES.some((p) => c.startsWith(p));
 }

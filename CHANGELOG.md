@@ -13,7 +13,8 @@ Revue de la logique du plan comptable au regard du cahier des charges en 18 poin
 - **Protection système (§6)** : un compte système ne peut être ni supprimé ni désactivé sans compte de substitution.
 - **Permission granulaire (§15)** : `accounting.manage_chart` (créer/modifier/désactiver/supprimer un compte) câblée sur `POST`/`PUT`/`DELETE /accounting/chart-of-accounts`, accordée à comptable/financier/admin et exposée dans la grille des rôles.
 - **Mappage comptable des modules (§7/§12)** : table `account_mappings` (rôle → compte, par organisation) + service `getAccountCodeMap` + routes `GET`/`PUT /accounting/account-mappings` + permission `accounting.manage_mapping`. `postings.ts` (ventes, achats, paie, trésorerie, notes de frais) résout désormais les comptes via le mappage propre à l'organisation, avec repli sur les codes par défaut du référentiel — **comportement inchangé tant qu'aucun mappage n'est personnalisé** (migration `lib/db/src/migrate-account-mappings.ts`).
-- Feuille de route P0→P3 documentée (import du plan, versions, changement de référentiel, Cockpit/Portail Expert, UI, tests).
+- **Import du plan comptable (§8)** : l'exécuteur d'import `chart_of_accounts` valide le format des numéros (2–8 chiffres), rejette les doublons intra-fichier et les comptes déjà existants, **résout la hiérarchie** (compte parent = plus long préfixe présent), marque les feuilles imputables (`isPostable`), tague les comptes `origin='imported'` + `isSystem` + `level`, et produit un **rapport de couverture** signalant les comptes système recommandés absents du plan importé. Nouvelle colonne « Note d'utilisation ».
+- Feuille de route P0→P3 documentée (versions, changement de référentiel, Cockpit/Portail Expert, UI, tests).
 
 ## Refonte de la navigation (arborescence cible) — juillet 2026
 
