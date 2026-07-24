@@ -109,7 +109,7 @@ router.get("/hr/claims/stats", requirePermission("hr.manage"), async (req, res, 
       ));
 
     // Délai moyen de traitement (soumise → résolue), en jours
-    const [avgDelayRow] = await db.execute(sql`
+    const avgDelayResult = await db.execute(sql`
       SELECT
         ROUND(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 86400))::int AS avg_days
       FROM hr_claims
@@ -119,7 +119,7 @@ router.get("/hr/claims/stats", requirePermission("hr.manage"), async (req, res, 
     `);
 
     // Volume par département
-    const byDept = await db.execute(sql`
+    const byDeptResult = await db.execute(sql`
       SELECT
         d.id AS dept_id,
         d.name AS dept_name,
@@ -135,11 +135,11 @@ router.get("/hr/claims/stats", requirePermission("hr.manage"), async (req, res, 
     res.json({
       total: Number(totRow?.total ?? 0),
       resolvedThisMonth: Number(resolvedThisMonthRow?.cnt ?? 0),
-      avgProcessingDays: (avgDelayRow as any)?.avg_days ?? null,
+      avgProcessingDays: ((avgDelayResult as any).rows?.[0] as any)?.avg_days ?? null,
       byStatus: byStatus.map(r => ({ status: r.status, count: Number(r.cnt) })),
       byCategory: byCategory.map(r => ({ category: r.category, count: Number(r.cnt) })),
       byPriority: byPriority.map(r => ({ priority: r.priority, count: Number(r.cnt) })),
-      byDepartment: (byDept as any[]).map(r => ({
+      byDepartment: ((byDeptResult as any).rows ?? []).map((r: any) => ({
         deptId: r.dept_id,
         deptName: r.dept_name ?? "Non rattaché",
         count: Number(r.cnt),

@@ -1,8 +1,8 @@
 import path from "path";
 import fs from "fs";
 import { createRequire } from "module";
-import type ArchiverType from "archiver";
-type ArchiverFactory = (format: "zip" | "tar", opts?: object) => ReturnType<typeof ArchiverType>;
+import type { Archiver } from "archiver";
+type ArchiverFactory = (format: "zip" | "tar", opts?: object) => Archiver;
 const _req = createRequire(import.meta.url);
 const archiverCreate = _req("archiver") as ArchiverFactory;
 import { db, pool } from "@workspace/db";

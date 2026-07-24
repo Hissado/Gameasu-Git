@@ -57,7 +57,7 @@ router.post("/api/compliance/invoices/:id/fiscal-stamp", async (req: AuthRequest
     let clientTaxId = "";
     let clientName = "";
     if (invoice.clientId) {
-      const [client] = await db.select({ taxId: clientsTable.taxId, name: clientsTable.name })
+      const [client] = await db.select({ taxId: clientsTable.ifu, name: clientsTable.name })
         .from(clientsTable).where(eq(clientsTable.id, invoice.clientId));
       clientTaxId = client?.taxId ?? "";
       clientName = client?.name ?? "";

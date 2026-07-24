@@ -23,6 +23,7 @@ interface AuthUser {
   id?: string;
   firstName?: string;
   lastName?: string;
+  name?: string;
   email?: string;
   role?: string;
   avatarUrl?: string;

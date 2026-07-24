@@ -319,7 +319,7 @@ accessRequestCockpitRouter.patch("/cockpit/access-requests/:id", requireSuperAdm
   }
 
   const [row] = await db.update(accessRequestsTable)
-    .set(updates as Parameters<typeof db.update>[1])
+    .set(updates as Partial<typeof accessRequestsTable.$inferInsert>)
     .where(eq(accessRequestsTable.id, req.params.id as string))
     .returning();
   if (!row) return res.status(404).json({ error: "Demande introuvable" });

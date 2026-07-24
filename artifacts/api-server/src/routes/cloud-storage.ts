@@ -35,7 +35,7 @@ router.get("/cloud-storage/providers", requireAuth, async (req, res) => {
 router.get("/cloud-storage/connections", requireAuth, async (req, res) => {
   if (!isAdmin(req)) { res.status(403).json({ error: "Accès administrateur requis" }); return; }
   try {
-    const orgId = await getCurrentOrganizationId(req.authUser?.id);
+    const orgId = req.authUser?.organizationId ?? await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
 
     const connections = await db
@@ -70,7 +70,7 @@ router.get("/cloud-storage/connections", requireAuth, async (req, res) => {
 router.get("/cloud-storage/connections/:id", requireAuth, async (req, res) => {
   if (!isAdmin(req)) { res.status(403).json({ error: "Accès administrateur requis" }); return; }
   try {
-    const orgId = await getCurrentOrganizationId(req.authUser?.id);
+    const orgId = req.authUser?.organizationId ?? await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
     const [conn] = await db
       .select()
@@ -92,7 +92,7 @@ router.get("/cloud-storage/connections/:id", requireAuth, async (req, res) => {
 router.put("/cloud-storage/connections/:id", requireAuth, async (req, res) => {
   if (!isAdmin(req)) { res.status(403).json({ error: "Accès administrateur requis" }); return; }
   try {
-    const orgId = await getCurrentOrganizationId(req.authUser?.id);
+    const orgId = req.authUser?.organizationId ?? await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
     const [conn] = await db
       .select({ id: cloudStorageConnectionsTable.id })
@@ -122,7 +122,7 @@ router.put("/cloud-storage/connections/:id", requireAuth, async (req, res) => {
 router.post("/cloud-storage/connections/:id/test", requireAuth, async (req, res) => {
   if (!isAdmin(req)) { res.status(403).json({ error: "Accès administrateur requis" }); return; }
   try {
-    const orgId = await getCurrentOrganizationId(req.authUser?.id);
+    const orgId = req.authUser?.organizationId ?? await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
     const [conn] = await db
       .select()
@@ -154,7 +154,7 @@ router.post("/cloud-storage/connections/:id/test", requireAuth, async (req, res)
 router.delete("/cloud-storage/connections/:id", requireAuth, async (req, res) => {
   if (!isAdmin(req)) { res.status(403).json({ error: "Accès administrateur requis" }); return; }
   try {
-    const orgId = await getCurrentOrganizationId(req.authUser?.id);
+    const orgId = req.authUser?.organizationId ?? await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
     const [conn] = await db
       .select()
@@ -190,7 +190,7 @@ router.delete("/cloud-storage/connections/:id", requireAuth, async (req, res) =>
 router.get("/cloud-storage/files", requireAuth, async (req, res) => {
   if (!isAdmin(req)) { res.status(403).json({ error: "Accès administrateur requis" }); return; }
   try {
-    const orgId = await getCurrentOrganizationId(req.authUser?.id);
+    const orgId = req.authUser?.organizationId ?? await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
 
     const files = await db
@@ -211,7 +211,7 @@ router.get("/cloud-storage/files", requireAuth, async (req, res) => {
 router.get("/cloud-storage/queue", requireAuth, async (req, res) => {
   if (!isAdmin(req)) { res.status(403).json({ error: "Accès administrateur requis" }); return; }
   try {
-    const orgId = await getCurrentOrganizationId(req.authUser?.id);
+    const orgId = req.authUser?.organizationId ?? await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
 
     const stats = await db
@@ -238,7 +238,7 @@ router.get("/cloud-storage/queue", requireAuth, async (req, res) => {
 router.post("/cloud-storage/sync", requireAuth, async (req, res) => {
   if (!isAdmin(req)) { res.status(403).json({ error: "Accès administrateur requis" }); return; }
   try {
-    const orgId = await getCurrentOrganizationId(req.authUser?.id);
+    const orgId = req.authUser?.organizationId ?? await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
 
     const { connectionId, fileName, contentBase64, mimeType, gamesuRef, gamesuModule, parentFolderId } = req.body ?? {};
@@ -289,7 +289,7 @@ router.post("/cloud-storage/sync", requireAuth, async (req, res) => {
 router.get("/cloud-storage/oauth/google/start", requireAuth, async (req, res) => {
   if (!isAdmin(req)) { res.status(403).json({ error: "Accès administrateur requis" }); return; }
   try {
-    const orgId = await getCurrentOrganizationId(req.authUser?.id);
+    const orgId = req.authUser?.organizationId ?? await getCurrentOrganizationId(req.authUser!.id);
     if (!orgId) { res.status(403).json({ error: "Organisation introuvable" }); return; }
 
     const provider = getGoogleDriveProvider();

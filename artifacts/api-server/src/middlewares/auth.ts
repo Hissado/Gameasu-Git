@@ -6,6 +6,8 @@ import {
 } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
 
+export type AuthRequest = Request & { authUser: AuthUser };
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -27,6 +29,7 @@ declare global {
   namespace Express {
     interface Request {
       authUser?: AuthUser;
+      user?: AuthUser;
     }
   }
 }
@@ -107,6 +110,7 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
     return;
   }
   req.authUser = authUser;
+  req.user = authUser;
 
   // Expert context switching: if the request carries a valid context token,
   // scope the request to the target client org instead of the expert's own org.
@@ -129,6 +133,7 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
     // Only apply if the session belongs to the authenticated user (security)
     if (session && session.expertUserId === authUser.id) {
       req.authUser = { ...authUser, organizationId: session.targetOrgId };
+      req.user = req.authUser;
     }
   }
 

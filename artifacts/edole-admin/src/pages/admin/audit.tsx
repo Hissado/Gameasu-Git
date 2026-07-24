@@ -420,14 +420,14 @@ function DetailPanel({ log, onClose }: { log: AuditLog; onClose: () => void }) {
                 <dt className="text-muted-foreground">Action</dt>
                 <dd className="font-medium">{ACTION_LABELS[log.action] ?? log.action}</dd>
                 <dt className="text-muted-foreground">Catégorie</dt>
-                <dd>{log.category === "audit" ? "Audit" : "Navigation"}</dd>
+                <dd>{String(log.category === "audit" ? "Audit" : "Navigation")}</dd>
                 <dt className="text-muted-foreground">Module</dt>
-                <dd>{log.module ? (MODULE_LABELS[log.module] ?? log.module) : "—"}</dd>
-                {log.subModule && <><dt className="text-muted-foreground">Sous-module</dt><dd>{log.subModule}</dd></>}
-                {log.page && <><dt className="text-muted-foreground">Page</dt><dd className="font-mono text-xs">{log.page}</dd></>}
+                <dd>{String(log.module ? (MODULE_LABELS[log.module] ?? log.module) : "—")}</dd>
+                {log.subModule && <><dt className="text-muted-foreground">Sous-module</dt><dd>{String(log.subModule)}</dd></>}
+                {log.page && <><dt className="text-muted-foreground">Page</dt><dd className="font-mono text-xs">{String(log.page)}</dd></>}
                 <dt className="text-muted-foreground">Type entité</dt>
-                <dd>{log.entityType ?? "—"}</dd>
-                {log.entityName && <><dt className="text-muted-foreground">Nom entité</dt><dd className="font-medium">{log.entityName}</dd></>}
+                <dd>{String(log.entityType ?? "—")}</dd>
+                {log.entityName && <><dt className="text-muted-foreground">Nom entité</dt><dd className="font-medium">{String(log.entityName)}</dd></>}
                 {log.entityId && <><dt className="text-muted-foreground">ID entité</dt><dd className="font-mono text-xs">{log.entityId.slice(0, 16)}…</dd></>}
               </dl>
             </section>
@@ -464,7 +464,7 @@ function DetailPanel({ log, onClose }: { log: AuditLog; onClose: () => void }) {
             )}
 
             {/* Résultat & erreur */}
-            {(log.errorMessage || log.payload) && (
+            {(Boolean(log.errorMessage) || log.payload != null) && (
               <>
                 <Separator />
                 <section>
@@ -474,7 +474,7 @@ function DetailPanel({ log, onClose }: { log: AuditLog; onClose: () => void }) {
                       {log.errorMessage}
                     </div>
                   )}
-                  {log.payload && (
+                  {log.payload != null && (
                     <details>
                       <summary className="text-xs text-muted-foreground cursor-pointer">Données additionnelles</summary>
                       <pre className="mt-2 bg-muted/40 rounded p-2 text-xs overflow-x-auto max-h-48">

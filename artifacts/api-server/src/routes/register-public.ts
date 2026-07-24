@@ -237,7 +237,7 @@ router.post("/public/register", async (req, res, next) => {
 
     // 8. Email de bienvenue (non-bloquant)
     try {
-      const baseUrl = getPublicBaseUrl(req);
+      const baseUrl = getPublicBaseUrl();
       const email = buildRegistrationEmail({
         firstName: data.firstName,
         orgName: data.orgName,

@@ -225,6 +225,7 @@ router.post("/subscriptions/change-plan", requireAdmin, async (req, res) => {
       await sendEmail({
         to:      user.email,
         subject: `${actionWord} de votre abonnement Gameasu — Formule ${plan.name}`,
+        text: `Votre abonnement Gameasu a été modifié avec succès.`,
         html: `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;padding:32px;border:1px solid #e5e7eb;border-radius:12px">
   <div style="text-align:center;margin-bottom:24px">
