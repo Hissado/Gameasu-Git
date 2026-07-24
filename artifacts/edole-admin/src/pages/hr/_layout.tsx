@@ -7,6 +7,10 @@ import {
   FileBarChart2, FileSpreadsheet, ClipboardCheck, SlidersHorizontal, ShieldCheck, Calculator, MessageSquareWarning,
 } from "lucide-react";
 
+// Re-catégorisation en 3 blocs opérationnels visibles (audit navigation :
+// « RH à re-catégoriser en 3 blocs max ») — Effectif / Temps & Paie / Talent —
+// encadrés d'une « Vue générale » (pilotage) et d'un « Dossier & Administratif »
+// compacts. Aucune page RH retirée (cross-check anti-orphelin).
 const NAV_GROUPS = [
   {
     label: "Vue générale",
@@ -20,16 +24,16 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Employés",
+    label: "Effectif",
     items: [
       { name: "Collaborateurs",   path: "/collaborateurs",  icon: UsersRound, description: "Fiches individuelles : informations personnelles, contrat, rémunération et historique." },
       { name: "Organigramme",     path: "/rh/organigramme",    icon: Share2, description: "Visualisez la hiérarchie et les liens managériaux de votre organisation." },
-      { name: "Départements",     path: "/rh/departements", icon: Network, description: "Gérez les départements et centres de coût de votre organisation." },
       { name: "Postes",           path: "/rh/postes",   icon: GraduationCap, description: "Référentiel des postes : intitulés, grilles salariales associées et compétences requises." },
+      { name: "Départements",     path: "/rh/departements", icon: Network, description: "Gérez les départements et centres de coût de votre organisation." },
     ],
   },
   {
-    label: "Temps & Présence",
+    label: "Temps & Paie",
     items: [
       { name: "Présence & absence", path: "/presences",           icon: ClipboardCheck, description: "Suivi quotidien des présences et absences des collaborateurs, avec validation." },
       { name: "Calendrier",        path: "/rh/calendrier-equipe",  icon: CalendarRange, description: "Planning d'équipe : visualisez les présences, absences et congés de vos collaborateurs sur le mois." },
@@ -38,11 +42,6 @@ const NAV_GROUPS = [
       { name: "Absences & Congés", path: "/rh/conges",         icon: CalendarOff, description: "Demandes de congés : soumission, validation, soldes restants et historique des absences." },
       { name: "Politiques congés", path: "/rh/politiques-conges", icon: Settings2, description: "Configurez les règles d'acquisition, de report et de plafonnement des congés par type." },
       { name: "Kiosques de pointage", path: "/kiosques",          icon: ClipboardCheck, description: "Configurez les bornes de pointage : QR, photo, géolocalisation et rattachement aux sites." },
-    ],
-  },
-  {
-    label: "Paie",
-    items: [
       { name: "Fiches de paie",   path: "/rh/paie",               icon: Banknote, exact: true, description: "Préparez et validez les bulletins de paie du mois : éléments variables, retenues et net à payer." },
       { name: "Avances sur salaire", path: "/rh/avances-salaire", icon: Banknote, description: "Demandes et suivi des avances sur salaire : validation, échéancier et retenues sur paie." },
       { name: "États de salaires",path: "/rh/etats-paie",            icon: FileSpreadsheet, description: "Tableau récapitulatif des salaires : base, primes, déductions et totaux." },
@@ -64,13 +63,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Réclamations",
-    items: [
-      { name: "Réclamations RH",    path: "/rh/reclamations",       icon: MessageSquareWarning, description: "Recevez et traitez les réclamations soumises par les collaborateurs : analyse et suivi du traitement." },
-    ],
-  },
-  {
-    label: "Administratif",
+    label: "Dossier & Administratif",
     items: [
       { name: "Contrats",           path: "/rh/contrats",           icon: FileSignature, description: "Contrats de travail : CDD, CDI, suivi des échéances et renouvellements à venir." },
       { name: "Templates contrats", path: "/rh/modeles-contrats",  icon: FileText, description: "Modèles de contrats réutilisables : créez vos trames et générez les documents en un clic." },
@@ -80,11 +73,7 @@ const NAV_GROUPS = [
       { name: "Registre légal",     path: "/rh/registre-legal",      icon: BookOpen, description: "Registre du personnel obligatoire : entrées, sorties et informations légales par salarié." },
       { name: "Avantages",          path: "/rh/avantages",            icon: Shield, description: "Avantages en nature et compléments de rémunération : mutuelle, véhicule, logement, etc." },
       { name: "Documents",          path: "/rh/documents",           icon: FolderArchive, description: "Coffre-fort documentaire RH : pièces d'identité, diplômes et documents administratifs." },
-    ],
-  },
-  {
-    label: "Paramètres RH",
-    items: [
+      { name: "Réclamations RH",    path: "/rh/reclamations",       icon: MessageSquareWarning, description: "Recevez et traitez les réclamations soumises par les collaborateurs : analyse et suivi du traitement." },
       { name: "Paramètres sectoriels", path: "/rh/btp-parametres", icon: SlidersHorizontal, description: "Configuration spécifique au secteur BTP : catégories professionnelles, conventions et coefficients." },
       { name: "Journal d'audit",       path: "/rh/journal-audit",    icon: ShieldCheck, description: "Traçabilité des actions RH : qui a modifié quoi et quand dans le module ressources humaines." },
     ],
