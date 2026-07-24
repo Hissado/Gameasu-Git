@@ -77,9 +77,9 @@ type NavGroup = {
 const NAV_GROUPS: NavGroup[] = [
   // ── ACCUEIL ─────────────────────────────────────────────────────────────────
   {
-    title: "Pilotage",
-    icon: Gauge,
-    description: "Retrouvez une vue d'ensemble de votre activité, vos indicateurs clés et les actions prioritaires.",
+    title: "Accueil",
+    icon: LayoutDashboard,
+    description: "Votre point de départ : tableau de bord, briefing du jour, messagerie et approbations en attente.",
     items: [],
     sections: [
       {
@@ -103,23 +103,34 @@ const NAV_GROUPS: NavGroup[] = [
         ],
       },
       {
-        id: "accueil-ia",
-        name: "Intelligence & IA",
-        icon: Brain,
-        moduleKey: "ai_assistant",
-        permissionKey: "ai.view_insights",
-        items: [
-          { name: "Assistant IA",    path: "/assistant-ia", moduleKey: "ai_assistant", permissionKey: "ai.view_insights", description: "Posez vos questions métier à votre assistant IA : rédigez, analysez et obtenez des réponses en français." },
-          { name: "Intelligence IA", path: "/intelligence", moduleKey: "dashboard",    permissionKey: "ai.view_insights", description: "Exploitez vos données métier grâce à l'analyse prédictive et aux recommandations intelligentes automatiques." },
-        ],
-      },
-      {
         id: "accueil-workflow",
         name: "Flux de travail",
         icon: CheckSquare,
         items: [
           { name: "Approbations",      path: "/approbations",     moduleKey: "dashboard", description: "Traitez les demandes en attente de votre approbation ou signature en un seul espace." },
           { name: "Documents cabinet", path: "/documents-cabinet",                        description: "Déposez vos fichiers directement depuis l'ERP pour répondre aux demandes de votre cabinet comptable." },
+        ],
+      },
+    ],
+  },
+
+  // ── ASSISTANT & INTELLIGENCE (porte IA unique) ───────────────────────────────
+  {
+    title: "Assistant & Intelligence",
+    icon: Brain,
+    description: "Votre assistant IA Koffi et l'intelligence métier : insights, recommandations et alertes de risque.",
+    moduleKey: "ai_assistant",
+    items: [],
+    sections: [
+      {
+        id: "ia-porte",
+        name: "Assistant & Intelligence",
+        icon: Sparkles,
+        moduleKey: "ai_assistant",
+        permissionKey: "ai.view_insights",
+        items: [
+          { name: "Assistant IA (Koffi)",      path: "/assistant-ia", moduleKey: "ai_assistant", permissionKey: "ai.view_insights", description: "Posez vos questions métier à votre assistant IA : rédigez, analysez et obtenez des réponses en français." },
+          { name: "Insights & recommandations", path: "/intelligence", moduleKey: "dashboard",    permissionKey: "ai.view_insights", description: "Exploitez vos données métier grâce à l'analyse prédictive, aux recommandations et aux alertes de risque automatiques." },
         ],
       },
     ],
@@ -133,30 +144,30 @@ const NAV_GROUPS: NavGroup[] = [
     items: [],
     sections: [
       {
-        id: "ventes-acquisition",
-        name: "Acquisition clients",
+        id: "ventes-relation",
+        name: "Relation client",
         icon: Target,
         items: [
-          { name: "Marketing",    path: "/marketing", moduleKey: "marketing", permissionKey: "marketing.read",  description: "Gérez vos campagnes, audiences, prospects et performances marketing depuis un seul espace." },
           { name: "Pipeline CRM", path: "/crm",       moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Suivez vos prospects, opportunités commerciales, relances et relations clients." },
           { name: "Clients",      path: "/clients",   moduleKey: "clients",   permissionKey: "clients.read",    description: "Gérez les informations, contacts, documents et historiques de vos clients." },
+          { name: "Marketing",    path: "/marketing", moduleKey: "marketing", permissionKey: "marketing.read",  description: "Gérez vos campagnes, audiences, prospects et performances marketing depuis un seul espace." },
         ],
       },
       {
-        id: "ventes-transactions",
-        name: "Transactions commerciales",
+        id: "ventes-cycle",
+        name: "Cycle de vente",
         icon: ShoppingCart,
         moduleKey: "sales_crm",
         permissionKey: "commercial.read",
         items: [
-          { name: "Tarification", path: "/tarification", moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Définissez vos grilles de prix, remises par segment client et conditions commerciales." },
           { name: "Devis",        path: "/devis",         moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Créez, envoyez et suivez vos propositions commerciales." },
           { name: "Commandes",    path: "/commandes",     moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Créez et suivez vos bons de commande clients : statut, livraisons, facturation et historique complet." },
+          { name: "Tarification", path: "/tarification",  moduleKey: "sales_crm", permissionKey: "commercial.read", description: "Définissez vos grilles de prix, remises par segment client et conditions commerciales." },
         ],
       },
       {
         id: "ventes-facturation",
-        name: "Facturation & Encaissements",
+        name: "Facturation",
         icon: CreditCard,
         moduleKey: "sales_crm",
         permissionKey: "commercial.read",
@@ -181,17 +192,8 @@ const NAV_GROUPS: NavGroup[] = [
         name: "Projets & Tâches",
         icon: FolderKanban,
         items: [
-          { name: "Projets", path: "/projets", moduleKey: "projects", permissionKey: "projects.read", description: "Créez et pilotez les objectifs, budgets, responsables et échéances de vos projets." },
-          { name: "Tâches",  path: "/tasks",   moduleKey: "tasks",    permissionKey: "tasks.read",    description: "Créez, assignez et suivez les actions nécessaires à la réalisation des projets." },
-        ],
-      },
-      {
-        id: "projets-analyse",
-        name: "Analyse & Ressources",
-        icon: LayoutGrid,
-        moduleKey: "projects",
-        permissionKey: "projects.read",
-        items: [
+          { name: "Projets",       path: "/projets",      moduleKey: "projects",  permissionKey: "projects.read",  description: "Créez et pilotez les objectifs, budgets, responsables et échéances de vos projets." },
+          { name: "Tâches",        path: "/tasks",        moduleKey: "tasks",     permissionKey: "tasks.read",     description: "Créez, assignez et suivez les actions nécessaires à la réalisation des projets." },
           { name: "Portefeuille",  path: "/portefeuille", moduleKey: "projects",  permissionKey: "projects.read",  description: "Analysez l'avancement, les coûts, les délais et la performance de tous vos projets." },
           { name: "Charge équipe", path: "/charge",       moduleKey: "projects",  permissionKey: "projects.read",  description: "Visualisez et équilibrez la charge de travail par collaborateur et par projet : surcharges et disponibilités." },
           { name: "Documents",     path: "/documents",    moduleKey: "documents", permissionKey: "documents.read", description: "Centralisez, classez et partagez les documents liés à votre organisation." },
@@ -208,22 +210,15 @@ const NAV_GROUPS: NavGroup[] = [
     items: [],
     sections: [
       {
-        id: "logi-inventaire",
-        name: "Inventaire & Actifs",
+        id: "logi-tout",
+        name: "Logistique & Opérations",
         icon: Package,
         items: [
-          { name: "Services",    path: "/services",    moduleKey: "services",           permissionKey: "services.read",  description: "Gérez votre catalogue de prestations et services : description, tarification et disponibilité par période." },
-          { name: "Stock",       path: "/stock",       moduleKey: "inventory_products", permissionKey: "inventory.read", description: "Suivez les produits, quantités disponibles, entrées, sorties et alertes de stock." },
-          { name: "Équipements", path: "/equipements", moduleKey: "inventory_assets",   permissionKey: "equipment.read", description: "Gérez votre inventaire d'actifs et équipements : état, maintenance planifiée et disponibilité calendaire." },
-        ],
-      },
-      {
-        id: "logi-operations",
-        name: "Opérations terrain",
-        icon: Truck,
-        items: [
-          { name: "Opérations", path: "/operations", moduleKey: "operations", permissionKey: "operations.view", description: "Planifiez et suivez vos opérations terrain : livraisons, collectes et affectation des équipes logistiques." },
-          { name: "Locations",  path: "/locations",  moduleKey: "rentals",    permissionKey: "equipment.read",  description: "Créez et suivez vos contrats de location d'équipements : planning, états des lieux et facturation." },
+          { name: "Services",    path: "/services",    moduleKey: "services",           permissionKey: "services.read",   description: "Gérez votre catalogue de prestations et services : description, tarification et disponibilité par période." },
+          { name: "Stock",       path: "/stock",       moduleKey: "inventory_products", permissionKey: "inventory.read",  description: "Suivez les produits, quantités disponibles, entrées, sorties et alertes de stock." },
+          { name: "Équipements", path: "/equipements", moduleKey: "inventory_assets",   permissionKey: "equipment.read",  description: "Gérez votre inventaire d'actifs et équipements : état, maintenance planifiée et disponibilité calendaire." },
+          { name: "Opérations",  path: "/operations",  moduleKey: "operations",         permissionKey: "operations.view", description: "Planifiez et suivez vos opérations terrain : livraisons, collectes et affectation des équipes logistiques." },
+          { name: "Locations",   path: "/locations",   moduleKey: "rentals",            permissionKey: "equipment.read",  description: "Créez et suivez vos contrats de location d'équipements : planning, états des lieux et facturation." },
         ],
       },
     ],
@@ -284,9 +279,9 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 
-  // ── FINANCE ─────────────────────────────────────────────────────────────────
+  // ── FINANCE & COMPTABILITÉ ───────────────────────────────────────────────────
   {
-    title: "Comptabilité & Finance",
+    title: "Finance & Comptabilité",
     icon: Landmark,
     description: "Suivez votre trésorerie, vos budgets, votre comptabilité, vos prévisions et vos obligations fiscales.",
     items: [],
@@ -336,16 +331,17 @@ const NAV_GROUPS: NavGroup[] = [
         ],
       },
       {
+        // Hub fiscal unique (audit navigation) : moteur, obligations et contrôle
+        // réunis en une seule rubrique.
         id: "fin-fiscalite",
-        name: "Fiscalité & Conformité",
+        name: "Fiscalité",
         icon: ShieldCheck,
         moduleKey: "accounting",
         permissionKey: "accounting.read",
         items: [
-          { name: "Moteur fiscal",       path: "/fiscal/moteur",                moduleKey: "accounting", permissionKey: "accounting.read",   description: "Calculez TVA, IS, IMF, Patente et IRPP (barème OHADA/Togo), simulez votre charge fiscale et gérez vos obligations déclaratives." },
-          { name: "Contrôle fiscal",     path: "/comptabilite/controle-fiscal", moduleKey: "accounting", permissionKey: "accounting.read",   description: "Vérifiez la conformité fiscale de vos écritures avant soumission : détection d'anomalies et rapport de contrôle." },
-          { name: "Conformité docs",     path: "/conformite",                   moduleKey: "accounting", permissionKey: "accounting.read",   description: "Tableau de bord conformité : cachets OTR sur factures, scellés SHA-256 et suivi des workflows de signature." },
-          { name: "Rapports financiers", path: "/rapports",                     moduleKey: "reports",    permissionKey: "accounting.read",   description: "Générez les états financiers correspondant au référentiel comptable actif." },
+          { name: "Moteur fiscal",   path: "/fiscal/moteur",                moduleKey: "accounting", permissionKey: "accounting.read", description: "Calculez TVA, IS, IMF, Patente et IRPP (barème OHADA/Togo), simulez votre charge fiscale et gérez vos obligations déclaratives." },
+          { name: "Contrôle fiscal", path: "/comptabilite/controle-fiscal", moduleKey: "accounting", permissionKey: "accounting.read", description: "Vérifiez la conformité fiscale de vos écritures avant soumission : détection d'anomalies et rapport de contrôle." },
+          { name: "Conformité docs", path: "/conformite",                   moduleKey: "accounting", permissionKey: "accounting.read", description: "Tableau de bord conformité : cachets OTR sur factures, scellés SHA-256 et suivi des workflows de signature." },
         ],
       },
     ],
@@ -365,20 +361,11 @@ const NAV_GROUPS: NavGroup[] = [
     // vit dans le panneau du module. Le gating par rôle est préservé.
     sections: [
       {
-        id: "rh-mon-espace",
-        name: "Mon espace",
-        icon: UserCircle,
-        directPath: "/rh/mon-espace",
-        description: "Votre espace RH personnel : bulletins de paie, soldes de congés, avances et documents.",
-        moduleKey: "team_hr",
-        items: [],
-      },
-      {
         id: "rh-module",
         name: "Ressources Humaines",
         icon: UsersRound,
         directPath: "/rh",
-        description: "Collaborateurs, temps & présence, paie, recrutement — navigation détaillée dans le module.",
+        description: "Effectif, temps & paie, talent — navigation détaillée en 3 blocs dans le module.",
         moduleKey: "team_hr",
         permissionKey: "hr.read",
         excludeRoles: ["collaborator"],
@@ -386,6 +373,47 @@ const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
+
+  // ── MON ESPACE (layout employé réduit, séparé du module RH) ───────────────────
+  {
+    title: "Mon espace",
+    icon: UserCircle,
+    description: "Votre espace personnel : bulletins de paie, soldes de congés, avances et documents.",
+    moduleKey: "team_hr",
+    items: [],
+    sections: [
+      {
+        id: "mon-espace",
+        name: "Mon espace",
+        icon: UserCircle,
+        directPath: "/rh/mon-espace",
+        description: "Votre espace RH personnel : bulletins de paie, soldes de congés, avances et documents.",
+        moduleKey: "team_hr",
+        items: [],
+      },
+    ],
+  },
+
+  // ── RAPPORTS (centre transversal) ─────────────────────────────────────────────
+  {
+    title: "Rapports",
+    icon: BarChart3,
+    description: "Centre de reporting transversal : états financiers, tableaux de bord et exports PDF/Excel.",
+    moduleKey: "reports",
+    items: [],
+    sections: [
+      {
+        id: "rapports-centre",
+        name: "Rapports",
+        icon: BarChart3,
+        directPath: "/rapports",
+        moduleKey: "reports",
+        permissionKey: "reports.view",
+        items: [],
+      },
+    ],
+  },
+
   // ── PORTAIL EXPERT ──────────────────────────────────────────────────────────
   {
     title: "Portail Expert",
@@ -424,11 +452,33 @@ const NAV_GROUPS: NavGroup[] = [
 
   // ── ADMINISTRATION ───────────────────────────────────────────────────────────
   {
-    title: "Admin",
+    title: "Administration",
     icon: Shield,
-    description: "Configurez votre organisation, vos utilisateurs, permissions, abonnements, modules et paramètres.",
+    description: "Gérez vos utilisateurs, rôles & permissions, départements, journal d'audit et paramètres.",
     items: [],
     sections: [
+      {
+        id: "admin-acces",
+        name: "Utilisateurs & accès",
+        icon: UsersRound,
+        permissionKey: "admin.access",
+        items: [
+          { name: "Utilisateurs",        path: "/admin/users",       moduleKey: "administration", permissionKey: "users.read",       description: "Créez, modifiez et désactivez les comptes utilisateurs de votre organisation." },
+          { name: "Rôles & permissions", path: "/admin/roles",       moduleKey: "administration", permissionKey: "roles.read",       description: "Définissez précisément ce que chaque rôle peut voir, faire et exporter." },
+          { name: "Départements",        path: "/admin/departments", moduleKey: "administration", permissionKey: "departments.read", description: "Structurez votre organisation en départements et rattachez-y vos collaborateurs." },
+          { name: "Invitations",         path: "/admin/invitations", moduleKey: "administration", permissionKey: "users.invite",     description: "Invitez de nouveaux utilisateurs et suivez le statut des invitations envoyées." },
+          { name: "Journal d'audit",     path: "/admin/audit",       moduleKey: "administration", permissionKey: "audit.read",       description: "Consultez la trace horodatée des actions sensibles réalisées dans l'organisation." },
+        ],
+      },
+      {
+        id: "admin-config",
+        name: "Configuration",
+        icon: Settings,
+        items: [
+          { name: "Paramètres",      path: "/workspace-settings", moduleKey: "workspace_settings", permissionKey: "settings.read",   description: "Configurez votre espace de travail : organisation, modules actifs, rôles et autorisations." },
+          { name: "Automatisations", path: "/automations",        moduleKey: "administration",     permissionKey: "automation.read", description: "Créez des workflows automatiques : définissez les déclencheurs, actions et règles métier sans code." },
+        ],
+      },
       {
         id: "admin-donnees",
         name: "Données & Stockage",
@@ -442,24 +492,6 @@ const NAV_GROUPS: NavGroup[] = [
         ],
       },
       {
-        id: "admin-config",
-        name: "Configuration",
-        icon: Settings,
-        items: [
-          { name: "Paramètres",      path: "/workspace-settings", moduleKey: "workspace_settings", permissionKey: "settings.read",   description: "Configurez votre espace de travail : organisation, modules actifs, rôles et autorisations." },
-          { name: "Automatisations", path: "/automations",        moduleKey: "administration",     permissionKey: "automation.read", description: "Créez des workflows automatiques : définissez les déclencheurs, actions et règles métier sans code." },
-        ],
-      },
-      {
-        id: "admin-abo",
-        name: "Abonnement & Modules",
-        icon: CreditCard,
-        directPath: "/abonnement",
-        moduleKey: "billing_subscription",
-        permissionKey: "admin.access",
-        items: [],
-      },
-      {
         id: "admin-support",
         name: "Assistance",
         icon: LifeBuoy,
@@ -468,6 +500,26 @@ const NAV_GROUPS: NavGroup[] = [
           { name: "Support",       path: "/tickets",                                                              description: "Soumettez une demande d'assistance et suivez son traitement par l'équipe concernée." },
           { name: "Centre d'aide", path: "/aide",                                                                 description: "Parcourez tous les guides interactifs et visites guidées de Gameasu." },
         ],
+      },
+    ],
+  },
+
+  // ── ABONNEMENT & MODULES ─────────────────────────────────────────────────────
+  {
+    title: "Abonnement & modules",
+    icon: CreditCard,
+    description: "Gérez votre abonnement, vos modules actifs et votre facturation Gameasu.",
+    moduleKey: "billing_subscription",
+    items: [],
+    sections: [
+      {
+        id: "abo-centre",
+        name: "Abonnement & modules",
+        icon: CreditCard,
+        directPath: "/abonnement",
+        moduleKey: "billing_subscription",
+        permissionKey: "admin.access",
+        items: [],
       },
     ],
   },

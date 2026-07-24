@@ -2,6 +2,17 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Refonte de la navigation (arborescence cible) — juillet 2026
+
+Réorganisation de la barre latérale globale et du panneau RH vers l'arborescence cible simplifiée (voir [`docs/RAPPORT_NAVIGATION_REFONTE.md`](docs/RAPPORT_NAVIGATION_REFONTE.md)). Aucune page perdue (cross-check anti-orphelin), aucun changement d'accès (moduleKey/permissionKey préservés).
+
+- **Accueil** sorti de « Pilotage » (tableau de bord + briefing) ; **Assistant & Intelligence** promu en porte IA unique de premier niveau.
+- **Projets** et **Logistique** aplatis ; **Fiscalité** devient un hub unique (Moteur, Contrôle, Conformité).
+- **Rapports**, **Mon espace** et **Abonnement & modules** promus au premier niveau ; groupe renommé **Finance & Comptabilité**.
+- **Admin → Administration** avec entrées explicites : Utilisateurs, Rôles & permissions, Départements, Invitations, Journal d'audit (pages console jusque-là non exposées dans la barre).
+- **Panneau RH** re-catégorisé en 3 blocs opérationnels (Effectif / Temps & Paie / Talent) encadrés de « Vue générale » et « Dossier & Administratif » : 8 groupes → 5, 41 pages conservées.
+- Vérifs : check-routes 489/201, typecheck frontend 0, check-permissions 0 bloquant. Rendu visuel à valider en préproduction.
+
 ## Audit migration / rôles / permissions — juillet 2026
 
 Revue des modèles d'import, du catalogue des permissions et des rôles (voir [`docs/RAPPORT_AUDIT_MIGRATION_ROLES_PERMISSIONS.md`](docs/RAPPORT_AUDIT_MIGRATION_ROLES_PERMISSIONS.md)).
