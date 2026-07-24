@@ -35,10 +35,10 @@ protection, permissions, UI, Cockpit/Expert, tests).
 |---|-------|------|
 | 1 | Choix du mode de config à la création (recommandé / personnaliser / importer / from scratch) | **Partiel** — « recommandé » OK ; les 3 autres modes à exposer |
 | 2 | Modèle ≠ structure partagée (copie par tenant, réf. au modèle source) | **OK** (copie/isolation) ; **manque** la référence au modèle source (`sourceFramework`/`sourceModelRef`) |
-| 3 | Structure riche d'un compte (18 attributs) | **Partiel** — ~9/18 présents ; manque libellé perso, niveau, collectif/auxiliaire, devise, isSystem/origine, dates de désactivation, créateur/modificateur, centre analytique défaut, règles fiscales, note |
+| 3 | Structure riche d'un compte (18 attributs) | **Fait (socle)** — ajout `customLabel`, `description`, `origin`, `isSystem`, `isCollective`, `level`, `currency`, `defaultTaxCode`, `defaultCostCenterId`, `sourceFramework`, `deactivatedAt`, `createdById`/`updatedById`, `updatedAt` (migration `migrate-coa-enrich.ts`) |
 | 4 | Personnalisation (ajout, sous-compte, libellé, déplacement, activer/désactiver, fusion, comptes par défaut, mapping module, import/export, historique) | **Partiel** — CRUD basique (POST/PUT) ; manque fusion, déplacement contrôlé, historique, import/export dédiés |
 | 5 | Protection des comptes utilisés (pas de suppression si écritures, code non modifiable, désactivation OK, journalisation) | **Fait (socle)** — `DELETE` refuse un compte mouvementé (message normalisé) ou avec sous-comptes ; désactivation via `PUT` autorisée ; `code` non modifiable ; endpoint `/usage` (nb écritures) ; **reste** garde compte système + journalisation dédiée |
-| 6 | Comptes système vs personnalisés + badges (Système / Modèle / Personnalisé / Importé) | **À construire** — pas de flag `isSystem`/`origin` ni badges |
+| 6 | Comptes système vs personnalisés + badges (Système / Modèle / Personnalisé / Importé) | **Fait (backend)** — `isSystem` + `origin` (`system`/`template`/`custom`/`imported`) exposés par l'API ; comptes semés taggés `template` et les codes critiques marqués `isSystem` ; badges UI à afficher |
 | 7 | Mapping comptable des modules (Ventes/Achats/Paie/Trésorerie → comptes) | **À construire** — comptes aujourd'hui résolus par **code en dur** (411, 401, 521, 571, 4431, 4452…) dans `postings.ts` |
 | 8 | Import du plan (Excel/CSV) avec validation, hiérarchie, doublons, mapping système | **À construire** — module `chart_of_accounts` **absent** du moteur d'import (`migration-engine.ts`) |
 | 9 | Versions du plan (brouillon / validation / actif / remplacé / archivé) + date d'effet | **À construire** — pas de table de versions |
@@ -47,7 +47,7 @@ protection, permissions, UI, Cockpit/Expert, tests).
 | 12 | Synchronisation tous modules sur le plan du tenant | **Partiel** — filtrage tenant OK, mais **codes en dur** dans les automatisations (à remplacer par le mapping §7) |
 | 13 | Cockpit : gérer modèles, référentiels, versions, comptes système obligatoires, règles | **À construire** (côté Cockpit) |
 | 14 | Portail Expert : configurer le plan d'un client attribué | **Partiel** — accès expert existant ; écran de config COA à construire |
-| 15 | Permissions granulaires COA | **À construire** — aujourd'hui `accounting.manage`/`.import`/`.export` seulement |
+| 15 | Permissions granulaires COA | **Partiel** — nouvelle permission `accounting.manage_chart` (créer/modifier/désactiver/supprimer un compte), câblée sur les routes + rôles (comptable, financier, admin) + grille UI ; les permissions version/référentiel/migration/mapping viendront avec leurs routes |
 | 16 | Journal d'audit COA (créé/modifié/désactivé/mapping/import/version/migration) | **Partiel** — audit général présent ; événements COA dédiés à ajouter |
 | 17 | UI (hiérarchie + tableau, filtres, badges, nb écritures, bannière référentiel/version) | **Partiel** — page `chart-of-accounts.tsx` existe ; enrichissements à faire |
 | 18 | Tests obligatoires (création, perso, import, protection, mapping, écritures, multi-tenant…) | **À construire** |

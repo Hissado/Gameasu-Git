@@ -73,46 +73,87 @@ async function accountUsageCount(orgId: string, accountId: string): Promise<numb
   return row?.n ?? 0;
 }
 
-router.post("/accounting/chart-of-accounts", requireAdmin, async (req, res) => {
-  const { code, label, classNum, type, normalBalance, parentId, isPostable } = req.body;
+router.post("/accounting/chart-of-accounts", requirePermission("accounting.manage_chart"), async (req, res) => {
+  const { code, label, classNum, type, normalBalance, parentId, isPostable,
+          customLabel, description, currency, defaultTaxCode, defaultCostCenterId, isCollective } = req.body;
   const orgId = req.authUser!.organizationId;
   if (!code || !label) return res.status(400).json({ error: "Code et libellé obligatoires" });
+  const trimmedCode = String(code).trim();
   // Unicité du code par organisation (message clair avant la contrainte DB).
   const existing = await db.select({ id: chartOfAccountsTable.id }).from(chartOfAccountsTable)
-    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, String(code).trim()))).limit(1);
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, trimmedCode))).limit(1);
   if (existing.length > 0) return res.status(409).json({ error: `Un compte porte déjà le code « ${code} » dans cette organisation.` });
   const [acc] = await db.insert(chartOfAccountsTable).values({
     organizationId: orgId,
-    code: String(code).trim(), label, classNum, type, normalBalance, parentId, isPostable: isPostable ?? true,
+    code: trimmedCode, label, classNum, type, normalBalance, parentId, isPostable: isPostable ?? true,
+    // Compte créé manuellement par l'organisation → origin = custom (§6).
+    origin: "custom",
+    isSystem: false,
+    isCollective: isCollective ?? false,
+    level: Math.max(1, trimmedCode.length - 1),
+    customLabel: customLabel ?? null,
+    description: description ?? null,
+    currency: currency ?? null,
+    defaultTaxCode: defaultTaxCode ?? null,
+    defaultCostCenterId: defaultCostCenterId ?? null,
+    createdById: req.authUser!.id,
   }).returning();
   return res.status(201).json(acc);
 });
 
-router.put("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) => {
+router.put("/accounting/chart-of-accounts/:id", requirePermission("accounting.manage_chart"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const id = req.params.id as string;
   // Le numéro de compte (`code`) n'est volontairement PAS modifiable ici :
   // renuméroter arbitrairement un compte déjà imputé casse la traçabilité
   // comptable (§5). Une renumérotation passe par une procédure dédiée.
-  const { label, isActive, isPostable, normalBalance, type } = req.body;
+  const { label, isActive, isPostable, normalBalance, type,
+          customLabel, description, currency, defaultTaxCode, defaultCostCenterId, isCollective } = req.body;
   const [existing] = await db.select().from(chartOfAccountsTable)
     .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).limit(1);
   if (!existing) return res.status(404).json({ error: "Compte introuvable" });
+
+  // Protection des comptes système (§6) : ils ne peuvent pas être désactivés
+  // sans compte de substitution (workflow prévu en phase ultérieure).
+  if (existing.isSystem && isActive === false) {
+    return res.status(409).json({
+      error: "Ce compte est un compte système requis par les automatisations. Il ne peut pas être désactivé sans définir un compte de substitution.",
+      code: "SYSTEM_ACCOUNT_PROTECTED",
+    });
+  }
+
+  // Trace de la désactivation (§5) : horodatage lors du passage actif → inactif.
+  const deactivating = existing.isActive && isActive === false;
+  const reactivating = !existing.isActive && isActive === true;
+
   const [acc] = await db.update(chartOfAccountsTable)
-    .set({ label, isActive, isPostable, normalBalance, type })
+    .set({
+      label, isActive, isPostable, normalBalance, type,
+      customLabel, description, currency, defaultTaxCode, defaultCostCenterId, isCollective,
+      updatedById: req.authUser!.id,
+      ...(deactivating ? { deactivatedAt: new Date() } : {}),
+      ...(reactivating ? { deactivatedAt: null } : {}),
+    })
     .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).returning();
   return res.json(acc);
 });
 
-// Suppression protégée (§5) : un compte déjà mouvementé ne peut pas être
-// supprimé (intégrité comptable) — il peut être désactivé via PUT. Un compte
-// non mouvementé est réellement supprimé.
-router.delete("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) => {
+// Suppression protégée (§5) : un compte déjà mouvementé, système, ou porteur de
+// sous-comptes ne peut pas être supprimé (intégrité comptable) — il peut être
+// désactivé via PUT. Un compte non mouvementé est réellement supprimé.
+router.delete("/accounting/chart-of-accounts/:id", requirePermission("accounting.manage_chart"), async (req, res) => {
   const orgId = req.authUser!.organizationId;
   const id = req.params.id as string;
   const [acc] = await db.select().from(chartOfAccountsTable)
     .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).limit(1);
   if (!acc) return res.status(404).json({ error: "Compte introuvable" });
+
+  if (acc.isSystem) {
+    return res.status(409).json({
+      error: "Ce compte système ne peut pas être supprimé. Vous pouvez le remplacer par un compte de substitution dans le mappage comptable.",
+      code: "SYSTEM_ACCOUNT_PROTECTED",
+    });
+  }
 
   const usage = await accountUsageCount(orgId, id);
   if (usage > 0) {

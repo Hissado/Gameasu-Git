@@ -28,10 +28,37 @@ export const chartOfAccountsTable = pgTable("chart_of_accounts", {
   // Référentiels comptables applicables à ce compte (["syscohada"] par défaut).
   // Utilisé pour le filtrage et le tagging futur des comptes par référentiel.
   applicableFrameworks: jsonb("applicable_frameworks").$type<string[]>().default(sql`'["syscohada"]'::jsonb`),
+  // ── Personnalisation & classification par organisation (plan comptable propre) ──
+  // Libellé interne propre à l'organisation (le `label` reste le libellé officiel).
+  customLabel: text("custom_label"),
+  description: text("description"),
+  // Provenance du compte : system (indispensable aux automatisations) |
+  // template (issu du modèle de référentiel) | custom (créé par l'organisation) |
+  // imported (importé depuis un fichier). Pilote le badge affiché dans l'UI (§6).
+  origin: text("origin").notNull().default("custom"),
+  // Compte système : requis par les automatisations Gameasu ; non supprimable et
+  // non désactivable sans compte de substitution (§5/§6).
+  isSystem: boolean("is_system").notNull().default(false),
+  // Compte collectif (tiers auxiliaires rattachés) vs compte de détail.
+  isCollective: boolean("is_collective").notNull().default(false),
+  // Niveau hiérarchique (1 = classe … dérivé de la longueur du code si absent).
+  level: integer("level"),
+  // Devise du compte si multi-devises (sinon devise de l'organisation).
+  currency: text("currency"),
+  // Règle fiscale par défaut associée (code de taxe) et centre analytique par défaut.
+  defaultTaxCode: text("default_tax_code"),
+  defaultCostCenterId: uuid("default_cost_center_id"),
+  // Référentiel/modèle source ayant produit ce compte (traçabilité §2).
+  sourceFramework: text("source_framework"),
+  deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
+  createdById: uuid("created_by_id").references(() => usersTable.id),
+  updatedById: uuid("updated_by_id").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (t) => ({
   codeIdx: uniqueIndex("chart_accounts_org_code_uidx").on(t.organizationId, t.code),
   classIdx: index("chart_accounts_class_idx").on(t.classNum),
+  originIdx: index("chart_accounts_origin_idx").on(t.origin),
 }));
 
 // ────────────────────────────────────────────────────────────────
