@@ -66,7 +66,7 @@ export function useCurrentOrganization() {
   return useQuery({
     queryKey: ["org", "current"],
     queryFn: () => api<Organization>("/organizations/current"),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -74,7 +74,7 @@ export function useCurrentSubscription() {
   return useQuery({
     queryKey: ["subscription", "current"],
     queryFn: () => api<{ subscription: Subscription; plan: SubscriptionPlan }>("/subscriptions/current"),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -90,7 +90,7 @@ export function useOrganizationModules() {
   return useQuery({
     queryKey: ["org-modules"],
     queryFn: () => api<OrganizationModule[]>("/organization-modules"),
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -102,7 +102,7 @@ export function useBillingSummary() {
       nextInvoiceAt?: string | null; seats: number; unitPrice: number;
       currency: string; paidYearToDate: number; recentEvents: BillingEvent[];
     }>("/billing/summary"),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -118,7 +118,7 @@ export function useBillingUsage() {
   return useQuery({
     queryKey: ["billing", "usage"],
     queryFn: () => api<{ seatsUsed: number; seatsTotal: number; ratio: number; plan: SubscriptionPlan }>("/billing/usage"),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 }
 

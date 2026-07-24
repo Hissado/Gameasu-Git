@@ -625,7 +625,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     );
   };
 
-  const initials = ((user?.firstName?.[0] || "") + (user?.lastName?.[0] || "")).toUpperCase() || "NX";
+  const initials = user ? (((user.firstName?.[0] || "") + (user.lastName?.[0] || "")).toUpperCase() || "?") : "";
   const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Utilisateur";
   const roleLabel = user?.role ? (ROLE_LABEL[user.role] || user.role) : "Connecté";
 
@@ -1420,7 +1420,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   </div>
                   <Avatar className="w-8 h-8 ring-2 ring-border group-hover:ring-primary/30 transition-all">
                     {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
-                    <AvatarFallback className="bg-[#0F1A3A] text-[#2563EB] font-semibold text-sm">{initials}</AvatarFallback>
+                    <AvatarFallback className={user ? "bg-[#0F1A3A] text-[#2563EB] font-semibold text-sm" : "bg-muted text-transparent"}>{initials}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
@@ -1431,7 +1431,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   <div className="flex items-center gap-3">
                     <Avatar className="w-14 h-14 ring-2 ring-[#2563EB]/40 shrink-0">
                       {user?.avatarUrl && <AvatarImage src={user.avatarUrl} />}
-                      <AvatarFallback className="bg-[#2563EB]/15 text-[#2563EB] font-bold text-lg">{initials}</AvatarFallback>
+                      <AvatarFallback className={user ? "bg-[#2563EB]/15 text-[#2563EB] font-bold text-lg" : "bg-white/10 text-transparent"}>{initials}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-white leading-tight truncate">{fullName}</p>

@@ -215,8 +215,8 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      staleTime: 2 * 60 * 1000,    // 2min : données considérées fraîches
-      gcTime: 10 * 60 * 1000,      // 10min : conservation cache mémoire
+      staleTime: 5 * 60 * 1000,    // 5 min : limite les rechargements de contexte à chaque navigation
+      gcTime: 30 * 60 * 1000,      // 30 min : conservation cache mémoire
     },
     mutations: {
       retry: 0,

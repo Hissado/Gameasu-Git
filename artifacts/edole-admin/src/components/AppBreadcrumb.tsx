@@ -63,6 +63,12 @@ const TOP_LEVEL: Record<string, string> = {
  * Ordered most-specific first.
  */
 const ROUTES: Array<{ pattern: RegExp; crumbs: Crumb[] }> = [
+
+  // ── Achats / Fiscalité / espace employé ───────────────────────
+  { pattern: /^\/achats$/,             crumbs: [{ label: "Accueil", href: "/" }, { label: "Achats" }] },
+  { pattern: /^\/rh\/mon-espace/,      crumbs: [{ label: "Accueil", href: "/" }, { label: "Mon espace" }] },
+  { pattern: /^\/fiscal\/moteur/,      crumbs: [{ label: "Accueil", href: "/" }, { label: "Fiscalité", href: "/comptabilite" }, { label: "Moteur fiscal" }] },
+
   // ── Projects ───────────────────────────────────────────────────
   { pattern: /^\/projets\/[^/?]+/, crumbs: [{ label: "Accueil", href: "/" }, { label: "Projets", href: "/projets" }, { label: "Fiche projet" }] },
   { pattern: /^\/portefeuille/,    crumbs: [{ label: "Accueil", href: "/" }, { label: "Projets", href: "/projets" }, { label: "Portefeuille" }] },

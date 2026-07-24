@@ -205,19 +205,32 @@ router.get("/invoices/suggest-match", async (req, res, next) => {
 });
 
 // INVOICES
-router.get("/invoices", async (req, res) => {
-  const { status, clientId, page = "1", limit = "20" } = req.query as Record<string, string>;
-  const pageNum = parseInt(page);
-  const limitNum = parseInt(limit);
-  const offset = (pageNum - 1) * limitNum;
+router.get("/invoices", async (req, res, next) => {
+  try {
+    const { status, clientId, page = "1", limit = "20" } = req.query as Record<string, string>;
+    const pageNum = Math.max(1, Number.parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, Number.parseInt(limit, 10) || 20));
+    const offset = (pageNum - 1) * limitNum;
 
-  const orgFilter = eq(invoicesTable.organizationId, req.authUser!.organizationId);
-  const rows = await db.select({ inv: invoicesTable, clientName: clientsTable.name })
-    .from(invoicesTable).leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
-    .where(orgFilter).limit(limitNum).offset(offset);
-  const data = rows.map(r => ({ ...r.inv, clientName: r.clientName, totalAmount: toNum(r.inv.totalAmount), paidAmount: toNum(r.inv.paidAmount) }));
-  const count = await db.select({ count: sql<number>`count(*)` }).from(invoicesTable).where(orgFilter);
-  return res.json({ data, total: Number(count[0].count), page: pageNum, limit: limitNum });
+    const conditions = [eq(invoicesTable.organizationId, req.authUser!.organizationId)];
+    if (status && status !== "all") conditions.push(eq(invoicesTable.status, status));
+    if (clientId) conditions.push(eq(invoicesTable.clientId, clientId));
+    const orgFilter = and(...conditions);
+
+    const rows = await db.select({ inv: invoicesTable, clientName: clientsTable.name })
+      .from(invoicesTable)
+      .leftJoin(clientsTable, eq(invoicesTable.clientId, clientsTable.id))
+      .where(orgFilter)
+      .orderBy(desc(invoicesTable.createdAt))
+      .limit(limitNum)
+      .offset(offset);
+    const data = rows.map(r => ({ ...r.inv, clientName: r.clientName, totalAmount: toNum(r.inv.totalAmount), paidAmount: toNum(r.inv.paidAmount) }));
+    const count = await db.select({ count: sql<number>`count(*)` }).from(invoicesTable).where(orgFilter);
+    return res.json({ data, total: Number(count[0]?.count ?? 0), page: pageNum, limit: limitNum });
+  } catch (e) {
+    req.log.error(e, "invoices GET");
+    next(e);
+  }
 });
 
 router.post("/invoices", requirePermission("commercial.manage"), async (req, res) => {
