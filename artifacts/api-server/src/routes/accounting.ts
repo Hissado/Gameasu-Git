@@ -44,8 +44,12 @@ const toNum = (v: string | number | null | undefined): number => (v == null ? 0 
 // PLAN COMPTABLE
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/chart-of-accounts", async (req, res) => {
-  const { search, classNum } = req.query as Record<string, string>;
-  const conds = [eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId), eq(chartOfAccountsTable.isActive, true)];
+  const { search, classNum, includeInactive } = req.query as Record<string, string>;
+  // Vue de gestion : includeInactive=true expose aussi les comptes désactivés
+  // (nécessaire pour l'écran plan comptable). Défaut = actifs seulement
+  // (compat. avec les consommateurs internes : imputation, listes de saisie).
+  const conds = [eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId)];
+  if (includeInactive !== "true") conds.push(eq(chartOfAccountsTable.isActive, true));
   if (classNum) conds.push(eq(chartOfAccountsTable.classNum, parseInt(classNum)));
   if (search) {
     conds.push(or(
@@ -57,22 +61,91 @@ router.get("/accounting/chart-of-accounts", async (req, res) => {
   return res.json({ data: rows });
 });
 
+/** Nombre de lignes d'écriture imputées sur un compte (dans l'organisation). */
+async function accountUsageCount(orgId: string, accountId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(journalEntryLinesTable)
+    .where(and(
+      eq(journalEntryLinesTable.organizationId, orgId),
+      eq(journalEntryLinesTable.accountId, accountId),
+    ));
+  return row?.n ?? 0;
+}
+
 router.post("/accounting/chart-of-accounts", requireAdmin, async (req, res) => {
   const { code, label, classNum, type, normalBalance, parentId, isPostable } = req.body;
+  const orgId = req.authUser!.organizationId;
+  if (!code || !label) return res.status(400).json({ error: "Code et libellé obligatoires" });
+  // Unicité du code par organisation (message clair avant la contrainte DB).
+  const existing = await db.select({ id: chartOfAccountsTable.id }).from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, String(code).trim()))).limit(1);
+  if (existing.length > 0) return res.status(409).json({ error: `Un compte porte déjà le code « ${code} » dans cette organisation.` });
   const [acc] = await db.insert(chartOfAccountsTable).values({
-      organizationId: req.authUser!.organizationId,
-    code, label, classNum, type, normalBalance, parentId, isPostable: isPostable ?? true,
+    organizationId: orgId,
+    code: String(code).trim(), label, classNum, type, normalBalance, parentId, isPostable: isPostable ?? true,
   }).returning();
   return res.status(201).json(acc);
 });
 
 router.put("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const id = req.params.id as string;
+  // Le numéro de compte (`code`) n'est volontairement PAS modifiable ici :
+  // renuméroter arbitrairement un compte déjà imputé casse la traçabilité
+  // comptable (§5). Une renumérotation passe par une procédure dédiée.
   const { label, isActive, isPostable, normalBalance, type } = req.body;
+  const [existing] = await db.select().from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).limit(1);
+  if (!existing) return res.status(404).json({ error: "Compte introuvable" });
   const [acc] = await db.update(chartOfAccountsTable)
     .set({ label, isActive, isPostable, normalBalance, type })
-    .where(and(eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId), eq(chartOfAccountsTable.id, req.params.id as string))).returning();
-  if (!acc) return res.status(404).json({ error: "Compte introuvable" });
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).returning();
   return res.json(acc);
+});
+
+// Suppression protégée (§5) : un compte déjà mouvementé ne peut pas être
+// supprimé (intégrité comptable) — il peut être désactivé via PUT. Un compte
+// non mouvementé est réellement supprimé.
+router.delete("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const id = req.params.id as string;
+  const [acc] = await db.select().from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).limit(1);
+  if (!acc) return res.status(404).json({ error: "Compte introuvable" });
+
+  const usage = await accountUsageCount(orgId, id);
+  if (usage > 0) {
+    return res.status(409).json({
+      error: "Ce compte contient déjà des écritures. Vous pouvez le désactiver, mais sa suppression n'est pas autorisée afin de préserver l'intégrité comptable.",
+      code: "ACCOUNT_IN_USE",
+      usage,
+    });
+  }
+  // Refus si des comptes enfants en dépendent (nœud de hiérarchie).
+  const [child] = await db.select({ id: chartOfAccountsTable.id }).from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.parentId, id))).limit(1);
+  if (child) {
+    return res.status(409).json({
+      error: "Ce compte possède des sous-comptes. Supprimez ou déplacez d'abord les sous-comptes.",
+      code: "ACCOUNT_HAS_CHILDREN",
+    });
+  }
+
+  await db.delete(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id)));
+  return res.json({ ok: true });
+});
+
+// Indicateur d'utilisation d'un compte (nb d'écritures) — pour l'UI (§17).
+router.get("/accounting/chart-of-accounts/:id/usage", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const id = req.params.id as string;
+  const [acc] = await db.select({ id: chartOfAccountsTable.id }).from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).limit(1);
+  if (!acc) return res.status(404).json({ error: "Compte introuvable" });
+  const usage = await accountUsageCount(orgId, id);
+  return res.json({ usage, deletable: usage === 0 });
 });
 
 // ════════════════════════════════════════════════════════════════

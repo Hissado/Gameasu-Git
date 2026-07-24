@@ -2,6 +2,15 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Plan comptable par organisation — revue & socle protection (§5) — juillet 2026
+
+Revue de la logique du plan comptable au regard du cahier des charges en 18 points (voir [`docs/PLAN_COMPTABLE_PAR_ORGANISATION.md`](docs/PLAN_COMPTABLE_PAR_ORGANISATION.md)).
+
+- **Constat** : l'isolation multi-tenant et le semis par référentiel existent déjà — chaque organisation a sa **propre copie** du plan (`chart_of_accounts` : `organization_id` + unique `(org, code)`), semée depuis un **modèle par référentiel** (9 référentiels : SYSCOHADA, SMT, SYCEBNL, PCB, SFD, CIMA, CIPRES, PCE, autre) via `seedAccountingFrameworkForOrg`. Une modification d'un tenant n'affecte jamais les autres.
+- **Protection des comptes utilisés (§5) — implémentée** : nouvelle route `DELETE /accounting/chart-of-accounts/:id` qui refuse la suppression d'un compte déjà mouvementé (message normalisé, code `ACCOUNT_IN_USE`) ou porteur de sous-comptes ; le numéro de compte reste non modifiable ; la désactivation reste possible ; endpoint `/usage` (nombre d'écritures) ; unicité du code contrôlée à la création.
+- **Vue de gestion** : `GET /accounting/chart-of-accounts?includeInactive=true` expose aussi les comptes désactivés (défaut inchangé = actifs seulement).
+- Feuille de route P0→P3 documentée (modèle de compte enrichi, comptes système/badges, mapping comptable des modules, import du plan, versions, changement de référentiel, Cockpit/Portail Expert, tests).
+
 ## Refonte de la navigation (arborescence cible) — juillet 2026
 
 Réorganisation de la barre latérale globale et du panneau RH vers l'arborescence cible simplifiée (voir [`docs/RAPPORT_NAVIGATION_REFONTE.md`](docs/RAPPORT_NAVIGATION_REFONTE.md)). Aucune page perdue (cross-check anti-orphelin), aucun changement d'accès (moduleKey/permissionKey préservés).
