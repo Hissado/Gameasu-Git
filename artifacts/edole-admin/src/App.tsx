@@ -265,6 +265,11 @@ function AppRouter() {
           <Suspense fallback={<PageFallback />}><ManagementPDFPage /></Suspense>
         </ProtectedRoute>
       </Route>
+      <Route path="/reports/management/pdf">
+        <ProtectedRoute>
+          <Suspense fallback={<PageFallback />}><ManagementPDFPage /></Suspense>
+        </ProtectedRoute>
+      </Route>
       <Route path="/billing/paiement-retour">
         <ProtectedRoute>
           <Suspense fallback={<PageFallback />}><BillingReturn /></Suspense>
