@@ -79,40 +79,40 @@ export async function apiFetch<T = unknown>(
     options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
   );
   const { timeoutMs: _timeoutMs, signal: _signal, ...fetchOptions } = options;
-  const request = fetch(fullUrl, { ...fetchOptions, method, headers, body, signal: controller.signal })
-    .finally(() => {
+  const request = (async () => {
+    const res = await fetch(fullUrl, { ...fetchOptions, method, headers, body, signal: controller.signal });
+    if (!res.ok) {
+      let errBody: any = null;
+      try { errBody = await res.json(); } catch {}
+      if (res.status === 401) {
+        // Notifie le AuthProvider qui se chargera de la redirection.
+        window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+      }
+      if (res.status === 423) {
+        // L'utilisateur doit changer son mot de passe avant toute autre action.
+        if (typeof window !== "undefined" && !window.location.pathname.endsWith("/changer-mdp")) {
+          window.dispatchEvent(new CustomEvent("auth:password-change-required"));
+        }
+      }
+      if (res.status === 403) {
+        window.dispatchEvent(new CustomEvent("auth:forbidden", { detail: errBody }));
+      }
+      throw new ApiError(
+        errBody?.error || errBody?.detail || `HTTP ${res.status}`,
+        res.status,
+        errBody,
+      );
+    }
+    if (res.status === 204) return null as T;
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) return res.json();
+    return res.text() as any;
+  })().finally(() => {
       window.clearTimeout(timeout);
       if (cacheKey) inFlightGets.delete(cacheKey);
     });
   if (cacheKey) inFlightGets.set(cacheKey, { promise: request, controller });
-
-  const res = await request;
-  if (!res.ok) {
-    let errBody: any = null;
-    try { errBody = await res.json(); } catch {}
-    if (res.status === 401) {
-      // Notifie le AuthProvider qui se chargera de la redirection.
-      window.dispatchEvent(new CustomEvent("auth:unauthorized"));
-    }
-    if (res.status === 423) {
-      // L'utilisateur doit changer son mot de passe avant toute autre action.
-      if (typeof window !== "undefined" && !window.location.pathname.endsWith("/changer-mdp")) {
-        window.dispatchEvent(new CustomEvent("auth:password-change-required"));
-      }
-    }
-    if (res.status === 403) {
-      window.dispatchEvent(new CustomEvent("auth:forbidden", { detail: errBody }));
-    }
-    throw new ApiError(
-      errBody?.error || errBody?.detail || `HTTP ${res.status}`,
-      res.status,
-      errBody,
-    );
-  }
-  if (res.status === 204) return null as T;
-  const ct = res.headers.get("content-type") || "";
-  if (ct.includes("application/json")) return res.json();
-  return res.text() as any;
+  return request;
 }
 
 export async function uploadFile(file: File): Promise<{ url: string; filename: string; mimeType: string; size: number }> {

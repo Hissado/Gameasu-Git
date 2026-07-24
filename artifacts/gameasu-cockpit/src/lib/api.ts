@@ -28,17 +28,17 @@ export async function apiFetch<T = unknown>(url: string, opts?: ApiFetchOptions)
     opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
   );
   const { timeoutMs: _timeoutMs, signal: _signal, ...fetchOpts } = opts ?? {};
-  const request = fetch(url, { ...fetchOpts, method, headers, signal: controller.signal })
-    .finally(() => {
+  const request = (async () => {
+    const r = await fetch(url, { ...fetchOpts, method, headers, signal: controller.signal });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: r.statusText }));
+      throw new Error((err as any).error ?? `HTTP ${r.status}`);
+    }
+    return r.json() as Promise<T>;
+  })().finally(() => {
       window.clearTimeout(timeout);
       if (cacheKey) inFlightGets.delete(cacheKey);
     });
   if (cacheKey) inFlightGets.set(cacheKey, { promise: request, controller });
-
-  const r = await request;
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({ error: r.statusText }));
-    throw new Error((err as any).error ?? `HTTP ${r.status}`);
-  }
-  return r.json() as Promise<T>;
+  return request;
 }
