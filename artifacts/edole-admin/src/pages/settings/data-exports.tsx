@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface DataExport {
+  downloadToken?: string;
   id: string;
   status: "pending" | "generating" | "ready" | "downloaded" | "expired" | "failed";
   requestedAt: string;
@@ -124,7 +125,7 @@ export default function DataExportsPage() {
     if (exp.status !== "ready") return;
     setDownloading(exp.id);
     try {
-      const detail = await apiFetch(`/api/data/exports/${exp.id}`);
+      const detail = await apiFetch<DataExport>(`/api/data/exports/${exp.id}`);
       const token = detail?.downloadToken ?? "";
       window.open(`/api/data/exports/${exp.id}/download?token=${token}`, "_blank");
       setTimeout(() => { qc.invalidateQueries({ queryKey: ["data-exports"] }); }, 2000);

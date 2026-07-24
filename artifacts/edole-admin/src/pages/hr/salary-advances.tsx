@@ -63,6 +63,7 @@ interface Policy {
   maxRepaymentMonths: number;
   minTenureMonths: number;
   approvalWorkflow: string;
+  notifyHr?: boolean;
 }
 
 interface Collaborator {
@@ -652,7 +653,7 @@ export default function SalaryAdvancesPage() {
             <div className="space-y-1 py-1">
               {[
                 { label: "Plafond (% du salaire)",   value: `${policy?.maxPercentOfSalary ?? 50}%` },
-                { label: "Plafond absolu",            value: policy?.maxAbsoluteAmount > 0 ? formatFCFA(policy.maxAbsoluteAmount) : "Aucun" },
+                { label: "Plafond absolu",            value: (policy?.maxAbsoluteAmount ?? 0) > 0 ? formatFCFA(policy?.maxAbsoluteAmount ?? 0) : "Aucun" },
                 { label: "Avances actives max",       value: String(policy?.maxActiveAdvances ?? 1) },
                 { label: "Mensualités max",            value: `${policy?.maxRepaymentMonths ?? 6} mois` },
                 { label: "Ancienneté minimale",        value: `${policy?.minTenureMonths ?? 3} mois` },

@@ -86,8 +86,7 @@ router.post("/data/exports", async (req, res) => {
       userAgent: req.headers["user-agent"] ?? null,
     }).returning();
 
-    audit(req, {
-      action: "export",
+    audit(req, "export", {
       category: "audit",
       severity: "high",
       entityType: "data_export",
@@ -174,8 +173,7 @@ router.get("/data/exports/:id/download", async (req, res) => {
       status: "downloaded",
     }).where(eq(dataExportsTable.id, exp.id));
 
-    audit(req, {
-      action: "download",
+    audit(req, "download", {
       category: "audit",
       severity: "high",
       entityType: "data_export",

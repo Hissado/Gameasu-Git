@@ -138,7 +138,7 @@ export default function CloudStoragePage() {
   const handleConnect = async (providerId: string) => {
     setConnecting(providerId);
     try {
-      const { url } = await apiFetch(`/api/cloud-storage/oauth/${providerId.replace("_drive", "").replace("google", "google")}/start`.replace("/oauth/google_drive/", "/oauth/google/"));
+      const { url } = await apiFetch<{ url: string }>(`/api/cloud-storage/oauth/${providerId.replace("_drive", "").replace("google", "google")}/start`.replace("/oauth/google_drive/", "/oauth/google/"));
       window.location.href = url;
     } catch (err: any) {
       toast({ title: "Connexion impossible", description: err?.message ?? "Vérifiez la configuration des secrets GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET.", variant: "destructive" });
@@ -149,7 +149,7 @@ export default function CloudStoragePage() {
   const handleGoogleConnect = async () => {
     setConnecting("google_drive");
     try {
-      const { url } = await apiFetch("/api/cloud-storage/oauth/google/start");
+      const { url } = await apiFetch<{ url: string }>("/api/cloud-storage/oauth/google/start");
       window.location.href = url;
     } catch (err: any) {
       toast({ title: "Connexion impossible", description: err?.message ?? "Vérifiez GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET.", variant: "destructive" });
@@ -160,7 +160,7 @@ export default function CloudStoragePage() {
   const handleTest = async (conn: Connection) => {
     setTesting(conn.id);
     try {
-      const result = await apiFetch(`/api/cloud-storage/connections/${conn.id}/test`, { method: "POST" });
+      const result = await apiFetch<{ ok: boolean; quota?: string; error?: string }>(`/api/cloud-storage/connections/${conn.id}/test`, { method: "POST" });
       qc.invalidateQueries({ queryKey: ["cloud-connections"] });
       if (result.ok) {
         toast({ title: "Connexion vérifiée", description: `Quota : ${result.quota ?? "N/A"}` });

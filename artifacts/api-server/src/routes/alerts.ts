@@ -56,7 +56,7 @@ export async function runAlertsScan(orgId: string) {
       });
       if (ok) created++;
     }
-  } catch (e) { logger.warn("[alerts] rentals scan failed", e); }
+  } catch (e) { logger.warn({ err: e }, "[alerts] rentals scan failed"); }
 
   // 2. Factures impayées dépassant l'échéance
   try {
@@ -78,7 +78,7 @@ export async function runAlertsScan(orgId: string) {
       });
       if (ok) created++;
     }
-  } catch (e) { logger.warn("[alerts] invoices scan failed", e); }
+  } catch (e) { logger.warn({ err: e }, "[alerts] invoices scan failed"); }
 
   // 3. Contrats expirant dans les 30 jours
   try {
@@ -100,7 +100,7 @@ export async function runAlertsScan(orgId: string) {
       });
       if (ok) created++;
     }
-  } catch (e) { logger.warn("[alerts] contracts scan failed", e); }
+  } catch (e) { logger.warn({ err: e }, "[alerts] contracts scan failed"); }
 
   // 4. Équipement en maintenance prolongée (statut = maintenance)
   try {
@@ -120,7 +120,7 @@ export async function runAlertsScan(orgId: string) {
       });
       if (ok) created++;
     }
-  } catch (e) { logger.warn("[alerts] equipment scan failed", e); }
+  } catch (e) { logger.warn({ err: e }, "[alerts] equipment scan failed"); }
 
   return { created };
 }
@@ -143,7 +143,7 @@ export async function runAlertsScanForAllOrganizations() {
       totalCreated += created;
       orgsScanned++;
     } catch (e) {
-      logger.warn(`[alerts] scan failed for org ${org.id}`, e);
+      logger.warn({ err: e }, `[alerts] scan failed for org ${org.id}`);
     }
   }
   return { totalCreated, orgsScanned };

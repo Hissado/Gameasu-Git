@@ -95,7 +95,7 @@ ${assistant.systemPromptExtra ? `\nInstructions supplémentaires :\n${assistant.
 
 // ── GET /api/assistant-ia/config ─────────────────────────────────────────────
 router.get("/api/assistant-ia/config", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   try {
     const assistant = await getOrCreateAssistant(orgId);
     res.json(assistant);
@@ -107,7 +107,7 @@ router.get("/api/assistant-ia/config", async (req, res) => {
 
 // ── PUT /api/assistant-ia/config ─────────────────────────────────────────────
 router.put("/api/assistant-ia/config", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   try {
     const assistant = await getOrCreateAssistant(orgId);
     const b = req.body as Record<string, unknown>;
@@ -147,7 +147,7 @@ router.put("/api/assistant-ia/config", async (req, res) => {
 
 // ── GET /api/assistant-ia/knowledge ──────────────────────────────────────────
 router.get("/api/assistant-ia/knowledge", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   try {
     const items = await db
       .select()
@@ -163,7 +163,7 @@ router.get("/api/assistant-ia/knowledge", async (req, res) => {
 
 // ── POST /api/assistant-ia/knowledge ─────────────────────────────────────────
 router.post("/api/assistant-ia/knowledge", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   const { title, content, type, category, tags, isActive, sortOrder } = req.body as Record<string, unknown>;
   if (!title || !content) return res.status(400).json({ error: "title et content requis" });
   try {
@@ -191,7 +191,7 @@ router.post("/api/assistant-ia/knowledge", async (req, res) => {
 
 // ── PUT /api/assistant-ia/knowledge/:id ──────────────────────────────────────
 router.put("/api/assistant-ia/knowledge/:id", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   const id = req.params["id"] as string;
   const b = req.body as Record<string, unknown>;
   const updates: Partial<typeof aiKnowledgeBaseTable.$inferInsert> & { updatedAt: Date } = {
@@ -220,7 +220,7 @@ router.put("/api/assistant-ia/knowledge/:id", async (req, res) => {
 
 // ── DELETE /api/assistant-ia/knowledge/:id ───────────────────────────────────
 router.delete("/api/assistant-ia/knowledge/:id", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   const id = req.params["id"] as string;
   try {
     await db
@@ -235,7 +235,7 @@ router.delete("/api/assistant-ia/knowledge/:id", async (req, res) => {
 
 // ── POST /api/assistant-ia/chat ──────────────────────────────────────────────
 router.post("/api/assistant-ia/chat", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   const { conversationId, message, clientName, channel = "chat" } = req.body as Record<string, unknown>;
   if (!message) return res.status(400).json({ error: "message requis" });
   try {
@@ -324,7 +324,7 @@ router.post("/api/assistant-ia/chat", async (req, res) => {
 
 // ── GET /api/assistant-ia/conversations ──────────────────────────────────────
 router.get("/api/assistant-ia/conversations", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   const limit = Math.min(Number(req.query["limit"] ?? 50), 100);
   const offset = Number(req.query["offset"] ?? 0);
   try {
@@ -344,7 +344,7 @@ router.get("/api/assistant-ia/conversations", async (req, res) => {
 
 // ── GET /api/assistant-ia/conversations/:id ───────────────────────────────────
 router.get("/api/assistant-ia/conversations/:id", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   const id = req.params["id"] as string;
   try {
     const [conv] = await db
@@ -366,7 +366,7 @@ router.get("/api/assistant-ia/conversations/:id", async (req, res) => {
 
 // ── DELETE /api/assistant-ia/conversations/:id ────────────────────────────────
 router.delete("/api/assistant-ia/conversations/:id", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   const id = req.params["id"] as string;
   try {
     await db
@@ -381,7 +381,7 @@ router.delete("/api/assistant-ia/conversations/:id", async (req, res) => {
 
 // ── GET /api/assistant-ia/stats ───────────────────────────────────────────────
 router.get("/api/assistant-ia/stats", async (req, res) => {
-  const orgId = req.user!.organizationId;
+  const orgId = req.authUser!.organizationId;
   try {
     const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 

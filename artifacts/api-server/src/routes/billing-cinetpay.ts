@@ -282,7 +282,7 @@ async function confirmAndActivate(opts: {
     if (wasNewAccount) {
       // Nouveau compte : envoyer l'email d'activation
       const planName = txPlanCode ? (txPlanCode.charAt(0) + txPlanCode.slice(1).toLowerCase()) : "Gameasu";
-      const baseUrl = getPublicBaseUrl({ headers: {} } as any);
+      const baseUrl = getPublicBaseUrl();
       const activationEmail = buildActivationEmail({
         firstName: adminFirstName ?? found.orgName,
         orgName: found.orgName,
@@ -476,7 +476,7 @@ router.post("/billing/cinetpay/initiate", requireAdmin, async (req, res, next) =
       channels: methodToChannels(method as CinetPayMethod),
       lang: "fr",
       customerEmail: req.authUser!.email,
-      customerName: req.authUser!.name ?? org?.name ?? undefined,
+      customerName: `${req.authUser!.firstName} ${req.authUser!.lastName}`.trim() || org?.name || undefined,
     });
 
     if (cinetpayResult.code !== "201" && cinetpayResult.code !== "200") {

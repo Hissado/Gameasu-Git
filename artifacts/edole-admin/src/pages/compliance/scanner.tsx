@@ -207,7 +207,7 @@ export default function InvoiceScannerPage() {
     if (!pendingFile) return;
     setUploading(true);
     try {
-      const { uploadURL, objectPath } = await apiFetch("/api/storage/uploads/request-url", {
+      const { uploadURL, objectPath } = await apiFetch<{ uploadURL: string; objectPath: string }>("/api/storage/uploads/request-url", {
         method: "POST",
         body: { name: pendingFile.name, size: pendingFile.size, contentType: pendingFile.type },
       });

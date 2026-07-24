@@ -132,7 +132,7 @@ export function calcPlanPricing(opts: {
   isEnterprise:    false;
 } | null {
   const plan = getPlan(opts.planCode);
-  if (!plan || plan.isEnterprise || plan.monthlyPriceTTC === 0) return null;
+  if (!plan || plan.isEnterprise || Number(plan.monthlyPriceTTC) === 0) return null;
 
   const pd = PERIODICITY_DISCOUNTS[opts.periodicity ?? "monthly"];
   const discountedTTCPerSeat = Math.round(plan.monthlyPriceTTC * (1 - pd.discount));

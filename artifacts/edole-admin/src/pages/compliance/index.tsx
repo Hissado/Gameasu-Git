@@ -105,7 +105,7 @@ function SealsTab() {
   const verifyMutation = useMutation({
     mutationFn: ({ id, content }: { id: string; content: string }) =>
       apiFetch(`/api/compliance/seals/${id}/verify`, { method: "POST", body: JSON.stringify({ contentToHash: content }) }),
-    onSuccess: (data) => setVerifyResult(data),
+    onSuccess: (data) => setVerifyResult(data as { isIntact: boolean; storedHash: string; currentHash: string }),
   });
 
   const DOC_TYPE_LABELS: Record<string, string> = {

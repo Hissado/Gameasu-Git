@@ -40,7 +40,7 @@ export type AuditAction =
   | "expert_firm_create" | "expert_firm_update"
   | "expert_member_invite" | "expert_member_remove"
   | "expert_client_link" | "expert_client_unlink"
-  | "expert_doc_request_create" | "expert_doc_request_update"
+  | "expert_doc_request_create" | "expert_doc_request_update" | "expert_doc_request_client_submit"
   | "expert_plan_change"
   | "security_alert" | "unauthorized_access" | "access_denied"
   | "audit_export" | "audit_view";
