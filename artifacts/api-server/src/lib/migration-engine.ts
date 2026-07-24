@@ -558,12 +558,21 @@ export async function executeImport(
 // ── Clients ────────────────────────────────────────────────────────────────
 
 async function importClients(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  // Idempotence : clé de rapprochement = nom normalisé (dans l'organisation).
+  // Un client déjà présent est sauté, pas dupliqué (ré-import sûr).
+  const existingNames = new Set<string>();
+  const existingClients = await db.select({ name: clientsTable.name }).from(clientsTable)
+    .where(and(eq(clientsTable.organizationId, orgId), isNull(clientsTable.deletedAt)));
+  for (const c of existingClients) existingNames.add(c.name.toLowerCase().trim());
+
   for (let i = 0; i < f.rows.length; i++) {
     const row = f.rows[i];
     if (row.every(c => !c.trim())) continue;
     const o = applyMapping(row, f.headers, mapping);
     const name = o.name?.trim();
     if (!name) { r.errors.push({ row: i + 2, message: "Nom manquant, ligne ignorée" }); r.skipped++; continue; }
+    const nameKey = name.toLowerCase();
+    if (existingNames.has(nameKey)) { r.errors.push({ row: i + 2, message: `Client déjà existant : "${name}"` }); r.skipped++; continue; }
     try {
       const [rec] = await db.insert(clientsTable).values({
         id: randomUUID(), organizationId: orgId,
@@ -577,6 +586,7 @@ async function importClients(f: ParsedFile, mapping: Record<string, string>, org
         paymentTermsDays: o.paymentTermsDays ? parseInt(o.paymentTermsDays) : null,
         creditLimit: num(o.creditLimit),
       }).returning({ id: clientsTable.id });
+      existingNames.add(nameKey);
       r.ids.push(rec.id);
       r.imported++;
     } catch (e) {
@@ -590,19 +600,19 @@ async function importClients(f: ParsedFile, mapping: Record<string, string>, org
 // ── Contacts ─────────────────────────────────────────────────────────────────
 
 async function importContacts(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
-  const clientCache = new Map<string, string>();
+  // Résolution du client par NOM (normalisé) — même stratégie que les factures
+  // et projets. Correctif : l'implémentation précédente ignorait le nom et
+  // rattachait tous les contacts au premier client de l'organisation.
+  const clientsByName = new Map<string, string>();
+  const allClients = await db.select({ id: clientsTable.id, name: clientsTable.name })
+    .from(clientsTable).where(and(eq(clientsTable.organizationId, orgId), isNull(clientsTable.deletedAt)));
+  for (const c of allClients) clientsByName.set(c.name.toLowerCase().trim(), c.id);
 
-  const getClientId = async (name: string): Promise<string | null> => {
-    const k = name.toLowerCase();
-    if (clientCache.has(k)) return clientCache.get(k)!;
-    const rows = await db.select({ id: clientsTable.id }).from(clientsTable)
-      .where(and(eq(clientsTable.organizationId, orgId), isNull(clientsTable.deletedAt)));
-    for (const row of rows) clientCache.set(row.id, row.id);
-    const match = await db.select({ id: clientsTable.id }).from(clientsTable)
-      .where(and(eq(clientsTable.organizationId, orgId), isNull(clientsTable.deletedAt))).limit(200);
-    const found = match.find((_m: { id: string }) => true); // simplified
-    return found?.id ?? null;
-  };
+  // Idempotence : clé = clientId + prénom + nom (normalisés).
+  const existingContacts = new Set<string>();
+  const allContacts = await db.select({ clientId: clientContactsTable.clientId, firstName: clientContactsTable.firstName, lastName: clientContactsTable.lastName })
+    .from(clientContactsTable).where(eq(clientContactsTable.organizationId, orgId));
+  for (const c of allContacts) existingContacts.add(`${c.clientId}|${(c.firstName ?? "").toLowerCase().trim()}|${(c.lastName ?? "").toLowerCase().trim()}`);
 
   for (let i = 0; i < f.rows.length; i++) {
     const row = f.rows[i];
@@ -610,8 +620,10 @@ async function importContacts(f: ParsedFile, mapping: Record<string, string>, or
     const o = applyMapping(row, f.headers, mapping);
     if (!o.firstName || !o.lastName) { r.errors.push({ row: i + 2, message: "Prénom/Nom manquant" }); r.skipped++; continue; }
     try {
-      const clientId = o.clientName ? await getClientId(o.clientName) : null;
-      if (!clientId) { r.errors.push({ row: i + 2, message: "Client introuvable" }); r.skipped++; continue; }
+      const clientId = o.clientName ? (clientsByName.get(o.clientName.toLowerCase().trim()) ?? null) : null;
+      if (!clientId) { r.errors.push({ row: i + 2, message: `Client introuvable : "${o.clientName ?? ""}"` }); r.skipped++; continue; }
+      const contactKey = `${clientId}|${o.firstName.toLowerCase().trim()}|${o.lastName.toLowerCase().trim()}`;
+      if (existingContacts.has(contactKey)) { r.errors.push({ row: i + 2, message: `Contact déjà existant : "${o.firstName} ${o.lastName}"` }); r.skipped++; continue; }
       const [rec] = await db.insert(clientContactsTable).values({
         id: randomUUID(), organizationId: orgId,
         clientId,
@@ -621,6 +633,7 @@ async function importContacts(f: ParsedFile, mapping: Record<string, string>, or
         phone: o.phone || null,
         role: o.role || null,
       }).returning({ id: clientContactsTable.id });
+      existingContacts.add(contactKey);
       r.ids.push(rec.id);
       r.imported++;
     } catch (e) {
@@ -672,11 +685,20 @@ async function importInvoices(f: ParsedFile, mapping: Record<string, string>, or
     .from(clientsTable).where(eq(clientsTable.organizationId, orgId));
   for (const c of allClients) clientsByName.set(c.name.toLowerCase().trim(), c.id);
 
+  // Idempotence : clé = n° de facture normalisé (dans l'organisation).
+  const existingRefs = new Set<string>();
+  const existingInv = await db.select({ ref: invoicesTable.referenceNumber })
+    .from(invoicesTable).where(eq(invoicesTable.organizationId, orgId));
+  for (const inv of existingInv) existingRefs.add(inv.ref.toLowerCase().trim());
+
   for (let i = 0; i < f.rows.length; i++) {
     const row = f.rows[i];
     if (row.every(c => !c.trim())) continue;
     const o = applyMapping(row, f.headers, mapping);
     if (!o.referenceNumber || !o.totalAmount) { r.errors.push({ row: i + 2, message: "N° facture ou montant manquant" }); r.skipped++; continue; }
+
+    const refKey = o.referenceNumber.toLowerCase().trim();
+    if (existingRefs.has(refKey)) { r.errors.push({ row: i + 2, message: `Facture déjà existante : "${o.referenceNumber}"` }); r.skipped++; continue; }
 
     const clientId = o.clientName ? (clientsByName.get(o.clientName.toLowerCase().trim()) ?? null) : null;
     try {
@@ -692,6 +714,7 @@ async function importInvoices(f: ParsedFile, mapping: Record<string, string>, or
         notes: o.notes || null,
         currency: "XOF",
       }).returning({ id: invoicesTable.id });
+      existingRefs.add(refKey);
       r.ids.push(rec.id);
       r.imported++;
     } catch (e) {
@@ -710,11 +733,21 @@ async function importPayments(f: ParsedFile, mapping: Record<string, string>, or
     .from(invoicesTable).where(eq(invoicesTable.organizationId, orgId));
   for (const inv of allInv) invoicesByRef.set(inv.ref.toLowerCase().trim(), inv.id);
 
+  // Idempotence : un encaissement peut légitimement se répéter (mêmes montant/date),
+  // on ne dédoublonne donc que sur la référence de paiement quand elle est fournie.
+  const existingPayRefs = new Set<string>();
+  const allPay = await db.select({ reference: paymentsTable.reference })
+    .from(paymentsTable).where(eq(paymentsTable.organizationId, orgId));
+  for (const p of allPay) if (p.reference) existingPayRefs.add(p.reference.toLowerCase().trim());
+
   for (let i = 0; i < f.rows.length; i++) {
     const row = f.rows[i];
     if (row.every(c => !c.trim())) continue;
     const o = applyMapping(row, f.headers, mapping);
     if (!o.amount) { r.errors.push({ row: i + 2, message: "Montant manquant" }); r.skipped++; continue; }
+
+    const payRefKey = o.reference?.trim() ? o.reference.toLowerCase().trim() : null;
+    if (payRefKey && existingPayRefs.has(payRefKey)) { r.errors.push({ row: i + 2, message: `Encaissement déjà existant (réf. "${o.reference}")` }); r.skipped++; continue; }
 
     const invoiceId = o.invoiceReference ? (invoicesByRef.get(o.invoiceReference.toLowerCase().trim()) ?? null) : null;
     if (!invoiceId) { r.errors.push({ row: i + 2, message: `Facture introuvable : "${o.invoiceReference ?? ""}"` }); r.skipped++; continue; }
@@ -731,6 +764,7 @@ async function importPayments(f: ParsedFile, mapping: Record<string, string>, or
         notes: o.notes || null,
         currency: "XOF",
       }).returning({ id: paymentsTable.id });
+      if (payRefKey) existingPayRefs.add(payRefKey);
       r.ids.push(rec.id);
       r.imported++;
     } catch (e) {
@@ -781,11 +815,19 @@ async function importProjects(f: ParsedFile, mapping: Record<string, string>, or
     .from(clientsTable).where(and(eq(clientsTable.organizationId, orgId), isNull(clientsTable.deletedAt)));
   for (const c of allClients) clientsByName.set(c.name.toLowerCase().trim(), c.id);
 
+  // Idempotence : clé = nom de projet normalisé (dans l'organisation).
+  const existingProjects = new Set<string>();
+  const allProjects = await db.select({ name: projectsTable.name })
+    .from(projectsTable).where(and(eq(projectsTable.organizationId, orgId), isNull(projectsTable.deletedAt)));
+  for (const p of allProjects) existingProjects.add(p.name.toLowerCase().trim());
+
   for (let i = 0; i < f.rows.length; i++) {
     const row = f.rows[i];
     if (row.every(c => !c.trim())) continue;
     const o = applyMapping(row, f.headers, mapping);
     if (!o.name) { r.errors.push({ row: i + 2, message: "Nom du projet manquant" }); r.skipped++; continue; }
+    const projectKey = o.name.toLowerCase().trim();
+    if (existingProjects.has(projectKey)) { r.errors.push({ row: i + 2, message: `Projet déjà existant : "${o.name}"` }); r.skipped++; continue; }
 
     const clientId = o.clientName ? (clientsByName.get(o.clientName.toLowerCase().trim()) ?? null) : null;
     try {
@@ -799,6 +841,7 @@ async function importProjects(f: ParsedFile, mapping: Record<string, string>, or
         endDate: parseDate(o.endDate ?? "") ?? null,
         description: o.description || null,
       }).returning({ id: projectsTable.id });
+      existingProjects.add(projectKey);
       r.ids.push(rec.id);
       r.imported++;
     } catch (e) {
@@ -932,11 +975,19 @@ async function importUsers(f: ParsedFile, mapping: Record<string, string>, orgId
 // ── Equipment ─────────────────────────────────────────────────────────────────
 
 async function importEquipment(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
+  // Idempotence : clé = code s'il est fourni, sinon nom (normalisés).
+  const existingEquip = new Set<string>();
+  const allEquip = await db.select({ code: equipmentTable.code, name: equipmentTable.name })
+    .from(equipmentTable).where(eq(equipmentTable.organizationId, orgId));
+  for (const e of allEquip) existingEquip.add((e.code?.trim() || e.name).toLowerCase().trim());
+
   for (let i = 0; i < f.rows.length; i++) {
     const row = f.rows[i];
     if (row.every(c => !c.trim())) continue;
     const o = applyMapping(row, f.headers, mapping);
     if (!o.name) { r.errors.push({ row: i + 2, message: "Nom de l'équipement manquant" }); r.skipped++; continue; }
+    const equipKey = (o.code?.trim() || o.name).toLowerCase().trim();
+    if (existingEquip.has(equipKey)) { r.errors.push({ row: i + 2, message: `Équipement déjà existant : "${o.code?.trim() || o.name}"` }); r.skipped++; continue; }
     try {
       const [rec] = await db.insert(equipmentTable).values({
         id: randomUUID(), organizationId: orgId,
@@ -947,6 +998,7 @@ async function importEquipment(f: ParsedFile, mapping: Record<string, string>, o
         dailyRate: num(o.dailyRate),
         location: o.location || null,
       }).returning({ id: equipmentTable.id });
+      existingEquip.add(equipKey);
       r.ids.push(rec.id);
       r.imported++;
     } catch (e) {
@@ -995,11 +1047,19 @@ async function importBankAccounts(f: ParsedFile, mapping: Record<string, string>
     .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
   const coaByCode = new Map<string, string>(coaRows.map(c => [c.code.trim(), c.id]));
 
+  // Idempotence : clé = nom du compte bancaire normalisé (dans l'organisation).
+  const existingBanks = new Set<string>();
+  const allBanks = await db.select({ name: bankAccountsTable.name })
+    .from(bankAccountsTable).where(eq(bankAccountsTable.organizationId, orgId));
+  for (const b of allBanks) existingBanks.add(b.name.toLowerCase().trim());
+
   for (let i = 0; i < f.rows.length; i++) {
     const row = f.rows[i];
     if (row.every(c => !c.trim())) continue;
     const o = applyMapping(row, f.headers, mapping);
     if (!o.name || !o.accountCode) { r.errors.push({ row: i + 2, message: "Nom et code compte (521/571) obligatoires" }); r.skipped++; continue; }
+    const bankKey = o.name.toLowerCase().trim();
+    if (existingBanks.has(bankKey)) { r.errors.push({ row: i + 2, message: `Compte bancaire déjà existant : "${o.name}"` }); r.skipped++; continue; }
 
     const accountId = coaByCode.get(o.accountCode.trim());
     if (!accountId) { r.errors.push({ row: i + 2, message: `Compte introuvable dans le plan comptable : "${o.accountCode}"` }); r.skipped++; continue; }
@@ -1018,6 +1078,7 @@ async function importBankAccounts(f: ParsedFile, mapping: Record<string, string>
         currency: "XOF",
         isActive: true,
       }).returning({ id: bankAccountsTable.id });
+      existingBanks.add(bankKey);
       r.ids.push(rec.id); r.imported++;
     } catch (e) {
       r.errors.push({ row: i + 2, message: `Erreur : ${(e as Error).message}` });
@@ -1045,6 +1106,20 @@ async function importOpeningBalance(f: ParsedFile, mapping: Record<string, strin
   const period = periods.find(p => p.status === "open") ?? periods.find(p => p.status === "closed") ?? periods[0];
   if (!period) {
     r.errors.push({ row: 0, message: "Aucune période fiscale trouvée. Créez d'abord une période fiscale dans la comptabilité." });
+    return r;
+  }
+
+  // Idempotence : refuser un second à-nouveau si la période porte déjà une
+  // écriture d'ouverture importée (évite les doublons d'à-nouveaux à la ré-exécution).
+  const existingOpening = await db.select({ id: journalEntriesTable.id })
+    .from(journalEntriesTable)
+    .where(and(
+      eq(journalEntriesTable.organizationId, orgId),
+      eq(journalEntriesTable.fiscalPeriodId, period.id),
+      eq(journalEntriesTable.sourceType, "opening"),
+    )).limit(1);
+  if (existingOpening.length > 0) {
+    r.errors.push({ row: 0, message: "Une balance d'ouverture existe déjà pour cette période fiscale. Import ignoré pour éviter un doublon d'à-nouveaux." });
     return r;
   }
 

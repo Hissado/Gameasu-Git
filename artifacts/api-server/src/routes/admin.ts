@@ -332,7 +332,7 @@ router.get("/admin/users/:id/permission-overrides", requirePermission("users.rea
   } catch (e) { return next(e); }
 });
 
-router.post("/admin/users/:id/permission-overrides", requirePermission("users.manage"), async (req, res, next) => {
+router.post("/admin/users/:id/permission-overrides", requirePermission("roles.manage"), async (req, res, next) => {
   try {
     if (!isUuid((req.params.id as string))) return res.status(400).json({ error: "id invalide" });
     const { permissionCode, type, reason, expiresAt } = req.body || {};
@@ -360,7 +360,7 @@ router.post("/admin/users/:id/permission-overrides", requirePermission("users.ma
   } catch (e) { return next(e); }
 });
 
-router.delete("/admin/users/:id/permission-overrides/:overrideId", requirePermission("users.manage"), async (req, res, next) => {
+router.delete("/admin/users/:id/permission-overrides/:overrideId", requirePermission("roles.manage"), async (req, res, next) => {
   try {
     if (!isUuid((req.params.id as string)) || !isUuid((req.params.overrideId as string))) return res.status(400).json({ error: "id invalide" });
     const [deleted] = await db

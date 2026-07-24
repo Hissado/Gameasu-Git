@@ -62,6 +62,7 @@ function extractLinkLiterals(filePath: string): { path: string; line: number; dy
     /\bnavigate\(\s*["'`](\/[^"'`$\s?]*)/g,
     /\bsetLocation\(\s*["'`](\/[^"'`$\s?]*)/g,
     /window\.location\.href\s*=\s*["'`](\/[^"'`$\s?]*)/g,
+    /window\.open\(\s*["'`](\/[^"'`$\s?]*)/g,
     /linkedPath:\s*["'`](\/[^"'`$\s?]*)/g,
   ];
   lines.forEach((line, idx) => {
@@ -82,14 +83,17 @@ function extractLinkLiterals(filePath: string): { path: string; line: number; dy
   return found;
 }
 
-/** True if `prefix` matches a registered route up to a dynamic (":param") segment. */
+/** True if `prefix` matches a registered route up to a dynamic (":param") segment.
+ *  A route `:param` segment is a wildcard that matches any literal segment, so a
+ *  concrete value in the link (e.g. `/documents/invoice/…`) matches a param route
+ *  (`/documents/:type/:id/print`). */
 function isDynamicPrefixMatch(prefix: string, routes: string[]): boolean {
   const litSegs = prefix.split("/").filter(Boolean);
   return routes.some(r => {
     const segs = r.split("/").filter(Boolean);
     if (segs.length <= litSegs.length) return false;
     for (let i = 0; i < litSegs.length; i++) {
-      if (segs[i] !== litSegs[i]) return false;
+      if (!segs[i]!.startsWith(":") && segs[i] !== litSegs[i]) return false;
     }
     return segs[litSegs.length]!.startsWith(":");
   });

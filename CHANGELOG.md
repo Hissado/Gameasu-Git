@@ -2,6 +2,16 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Audit migration / rôles / permissions — juillet 2026
+
+Revue des modèles d'import, du catalogue des permissions et des rôles (voir [`docs/RAPPORT_AUDIT_MIGRATION_ROLES_PERMISSIONS.md`](docs/RAPPORT_AUDIT_MIGRATION_ROLES_PERMISSIONS.md)).
+
+- **Contrôle automatique §13** (`scripts/src/check-permissions.ts`, `pnpm --filter @workspace/scripts run check-permissions`) : détecte permissions orphelines, routes protégées par un code inexistant, doublons, rôles à anciens codes, et dérive entre la grille UI (`admin/roles.tsx`) et le catalogue backend. Filet anti-régression permanent (exit 1 sur incohérence bloquante).
+- **P1 — Surcharges de permissions débloquées** : `POST`/`DELETE /admin/users/:id/permission-overrides` étaient gardés par `users.manage` (code inexistant) → 403 pour tous, super-admin compris. Aligné sur `roles.manage`.
+- **P1 — Import de contacts corrigé** : `getClientId` ignorait le nom et rattachait chaque contact au premier client de l'organisation ; résolution par nom normalisé désormais (comme factures/projets).
+- **P2 — Ré-imports idempotents** : `clients`, `contacts`, `invoices`, `payments`, `projects`, `equipment`, `bank_accounts` dédoublonnent désormais sur une clé de rapprochement naturelle (relancer un import ne duplique plus les lignes existantes ni celles répétées dans le fichier). Garde-fou anti-doublon sur la balance d'ouverture (refus d'un 2ᵉ à-nouveau sur une période déjà dotée).
+- Constats P2/P3 restants documentés (mode mise à jour/`batch-id`/réversibilité, ordre d'import advisory, grille UI dupliquée, 13 permissions orphelines) avec recommandations.
+
 ## Navigation — application des 5 pôles + désencombrement RH — juillet 2026
 
 Deuxième passe des phases 10-11 (voir [`docs/RAPPORT_NAVIGATION_PH10-11.md`](docs/RAPPORT_NAVIGATION_PH10-11.md)).
