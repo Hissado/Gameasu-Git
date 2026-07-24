@@ -387,9 +387,10 @@ export default function InvoicesList() {
   const [creditNoteTarget, setCreditNoteTarget] = useState<Invoice | null>(null);
   const [generatingLinkId, setGeneratingLinkId] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery<{ data: Invoice[] }>({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<{ data: Invoice[] }>({
     queryKey: ["invoices"],
     queryFn: () => apiFetch("/api/invoices?limit=50"),
+    retry: 1,
   });
 
   const allInvoices = data?.data ?? [];
@@ -419,7 +420,7 @@ export default function InvoicesList() {
     qc.invalidateQueries({ queryKey: ["payments"] });
   };
 
-  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("factures", !isLoading && allInvoices.length === 0);
+  const { showWelcome, tourActive, startTour, startTourWithPath, dismissWelcome, closeTour, selectedPathKey, handleTourStepChange, tourInitialStep, tourPathLabel } = useModuleTour("factures", !isLoading && !isError && allInvoices.length === 0);
   const activeSteps = TOUR_PATHS["factures"]?.find(p => p.key === selectedPathKey)?.steps ?? INVOICES_TOUR;
 
   return (
@@ -532,6 +533,22 @@ export default function InvoicesList() {
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full rounded-lg" />
               ))}
+            </div>
+          ) : isError ? (
+            <div className="p-6">
+              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-red-200 bg-red-50/70 px-6 py-10 text-center">
+                <AlertCircle className="h-10 w-10 text-red-600" />
+                <div>
+                  <p className="font-semibold text-red-800">Impossible de charger les factures</p>
+                  <p className="mt-1 text-sm text-red-700">
+                    Les données n'ont pas pu être confirmées. Aucun état vide n'est affiché afin d'éviter de masquer des factures existantes.
+                  </p>
+                  {error instanceof Error && <p className="mt-1 text-xs text-red-600">{error.message}</p>}
+                </div>
+                <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-100" onClick={() => refetch()} disabled={isFetching}>
+                  {isFetching ? "Nouvelle tentative…" : "Réessayer"}
+                </Button>
+              </div>
             </div>
           ) : (
             <Table data-tour="inv-table">
