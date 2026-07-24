@@ -130,6 +130,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "accounting.read", label: "Consulter la comptabilité" },
         { code: "accounting.manage", label: "Saisir des écritures" },
         { code: "accounting.manage_chart", label: "Gérer le plan comptable" },
+        { code: "accounting.manage_mapping", label: "Configurer le mappage comptable" },
         { code: "accounting.approve_entries", label: "Valider des écritures" },
         { code: "accounting.manage_banks", label: "Gérer les comptes bancaires" },
         { code: "accounting.view_sensitive", label: "Données financières sensibles" },

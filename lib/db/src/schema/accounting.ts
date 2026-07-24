@@ -62,6 +62,29 @@ export const chartOfAccountsTable = pgTable("chart_of_accounts", {
 }));
 
 // ────────────────────────────────────────────────────────────────
+// MAPPAGE COMPTABLE DES MODULES (§7)
+// Quel compte chaque opération automatique utilise, par organisation.
+// `role` = clé fonctionnelle (ex: "sales_client", "purchase_supplier"),
+// `accountCode` = code du plan comptable propre au tenant. Si aucune ligne
+// n'existe pour un rôle, le moteur retombe sur le code par défaut du référentiel
+// (comportement inchangé). Chaque écriture automatique utilise ainsi le plan
+// comptable propre à l'organisation active.
+// ────────────────────────────────────────────────────────────────
+export const accountMappingsTable = pgTable("account_mappings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  role: text("role").notNull(),                 // ex: "sales_client"
+  accountCode: text("account_code").notNull(),  // ex: "411"
+  updatedById: uuid("updated_by_id").references(() => usersTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  roleIdx: uniqueIndex("account_mappings_org_role_uidx").on(t.organizationId, t.role),
+}));
+
+export type AccountMapping = typeof accountMappingsTable.$inferSelect;
+
+// ────────────────────────────────────────────────────────────────
 // EXERCICES FISCAUX (périodes comptables)
 // ────────────────────────────────────────────────────────────────
 export const fiscalPeriodsTable = pgTable("fiscal_periods", {

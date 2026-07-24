@@ -12,7 +12,8 @@ Revue de la logique du plan comptable au regard du cahier des charges en 18 poin
 - **Modèle de compte enrichi (§3, §6) — Phase A-2** : `chart_of_accounts` gagne `customLabel`, `description`, `origin` (system/template/custom/imported), `isSystem`, `isCollective`, `level`, `currency`, `defaultTaxCode`, `defaultCostCenterId`, `sourceFramework`, `deactivatedAt`, `createdById`/`updatedById`, `updatedAt` (migration additive `lib/db/src/migrate-coa-enrich.ts`, à passer en préproduction). Le semis par référentiel tague désormais les comptes `origin='template'` + `sourceFramework`, et marque les codes critiques (401, 411, 52x, 57x, 44x, 60x, 70x, 66x, 42x, 43x, 447) comme comptes **système**.
 - **Protection système (§6)** : un compte système ne peut être ni supprimé ni désactivé sans compte de substitution.
 - **Permission granulaire (§15)** : `accounting.manage_chart` (créer/modifier/désactiver/supprimer un compte) câblée sur `POST`/`PUT`/`DELETE /accounting/chart-of-accounts`, accordée à comptable/financier/admin et exposée dans la grille des rôles.
-- Feuille de route P0→P3 documentée (mapping comptable des modules, import du plan, versions, changement de référentiel, Cockpit/Portail Expert, UI, tests).
+- **Mappage comptable des modules (§7/§12)** : table `account_mappings` (rôle → compte, par organisation) + service `getAccountCodeMap` + routes `GET`/`PUT /accounting/account-mappings` + permission `accounting.manage_mapping`. `postings.ts` (ventes, achats, paie, trésorerie, notes de frais) résout désormais les comptes via le mappage propre à l'organisation, avec repli sur les codes par défaut du référentiel — **comportement inchangé tant qu'aucun mappage n'est personnalisé** (migration `lib/db/src/migrate-account-mappings.ts`).
+- Feuille de route P0→P3 documentée (import du plan, versions, changement de référentiel, Cockpit/Portail Expert, UI, tests).
 
 ## Refonte de la navigation (arborescence cible) — juillet 2026
 

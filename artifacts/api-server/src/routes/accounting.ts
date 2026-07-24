@@ -21,7 +21,9 @@ import {
   taxesTable,
   updateTaxSchema,
   orgFiscalSettingsTable,
+  accountMappingsTable,
 } from "@workspace/db";
+import { MAPPING_ROLES, getAccountCodeMap } from "../services/account-mapping";
 import { and, asc, desc, eq, gte, lte, sql, isNull, like, or, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
 import { requirePermission } from "../middlewares/permissions";
@@ -187,6 +189,73 @@ router.get("/accounting/chart-of-accounts/:id/usage", async (req, res) => {
   if (!acc) return res.status(404).json({ error: "Compte introuvable" });
   const usage = await accountUsageCount(orgId, id);
   return res.json({ usage, deletable: usage === 0 });
+});
+
+// ════════════════════════════════════════════════════════════════
+// MAPPAGE COMPTABLE DES MODULES (§7)
+// ════════════════════════════════════════════════════════════════
+
+// Liste des rôles de mappage avec le compte actuellement utilisé par
+// l'organisation (personnalisé ou défaut du référentiel) et son existence.
+router.get("/accounting/account-mappings", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const codeMap = await getAccountCodeMap(orgId, db);
+  const overrides = await db.select({ role: accountMappingsTable.role, code: accountMappingsTable.accountCode })
+    .from(accountMappingsTable).where(eq(accountMappingsTable.organizationId, orgId));
+  const overrideRoles = new Set(overrides.map((o) => o.role));
+  // Comptes existants (actifs) pour signaler un mappage pointant vers un compte absent.
+  const accounts = await db.select({ code: chartOfAccountsTable.code, label: chartOfAccountsTable.label })
+    .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
+  const accByCode = new Map(accounts.map((a) => [a.code, a.label]));
+
+  const data = MAPPING_ROLES.map((r) => ({
+    role: r.role,
+    label: r.label,
+    module: r.module,
+    defaultCode: r.defaultCode,
+    code: codeMap[r.role],
+    isCustom: overrideRoles.has(r.role),
+    accountExists: accByCode.has(codeMap[r.role]!),
+    accountLabel: accByCode.get(codeMap[r.role]!) ?? null,
+  }));
+  return res.json({ data });
+});
+
+// Enregistre/écrase les mappages personnalisés. Body : { mappings: [{role, accountCode}] }.
+// Un accountCode vide/égal au défaut supprime la personnalisation (retour au défaut).
+router.put("/accounting/account-mappings", requirePermission("accounting.manage_mapping"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { mappings } = req.body as { mappings?: Array<{ role: string; accountCode: string }> };
+  if (!Array.isArray(mappings)) return res.status(400).json({ error: "mappings[] requis" });
+
+  const knownRoles = new Map(MAPPING_ROLES.map((r) => [r.role, r.defaultCode]));
+  const accounts = await db.select({ code: chartOfAccountsTable.code })
+    .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
+  const validCodes = new Set(accounts.map((a) => a.code));
+
+  const errors: string[] = [];
+  for (const m of mappings) {
+    const def = knownRoles.get(m.role);
+    if (def === undefined) { errors.push(`Rôle inconnu : ${m.role}`); continue; }
+    const code = (m.accountCode ?? "").trim();
+    // Vide ou = défaut → suppression de la personnalisation.
+    if (!code || code === def) {
+      await db.delete(accountMappingsTable).where(and(
+        eq(accountMappingsTable.organizationId, orgId),
+        eq(accountMappingsTable.role, m.role),
+      ));
+      continue;
+    }
+    if (!validCodes.has(code)) { errors.push(`Compte introuvable dans le plan : ${code} (rôle ${m.role})`); continue; }
+    await db.insert(accountMappingsTable)
+      .values({ organizationId: orgId, role: m.role, accountCode: code, updatedById: req.authUser!.id })
+      .onConflictDoUpdate({
+        target: [accountMappingsTable.organizationId, accountMappingsTable.role],
+        set: { accountCode: code, updatedById: req.authUser!.id, updatedAt: new Date() },
+      });
+  }
+  if (errors.length > 0) return res.status(400).json({ error: "Mappage partiellement invalide", details: errors });
+  return res.json({ ok: true });
 });
 
 // ════════════════════════════════════════════════════════════════
