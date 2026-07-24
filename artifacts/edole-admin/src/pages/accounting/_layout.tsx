@@ -42,11 +42,20 @@ const BASE_NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "États financiers",
+    items: [
+      { name: "Bilan", path: "/comptabilite/bilan", icon: Landmark, description: "Bilan SYSCOHADA : actif, passif et contrôle d'équilibre à une date donnée." },
+      { name: "Compte de résultat", path: "/comptabilite/compte-de-resultat", icon: BarChart2, description: "Produits, charges et résultat de la période." },
+      { name: "Balance générale", path: "/comptabilite/balance", icon: BookMarked, description: "Soldes de tous les comptes : mouvements débiteurs, créditeurs et contrôle d'équilibre." },
+    ],
+  },
+  {
     label: "Gestion",
     items: [
       { name: "Immobilisations", path: "/comptabilite/immobilisations", icon: HardDrive, description: "Gérez les actifs immobilisés : acquisitions, plans d'amortissement et cessions." },
       { name: "Analytique", path: "/comptabilite/analytique", icon: BarChart2, description: "Analyse des charges et produits par centre de coût, projet ou client pour mesurer la rentabilité." },
       { name: "Fiscal", path: "/comptabilite/taxes", icon: Percent, description: "Paramétrage des taxes, suivi de la TVA collectée et déductible, et déclarations fiscales périodiques." },
+      { name: "Clôture des périodes", path: "/comptabilite/cloture", icon: Calendar, description: "Clôturez vos périodes comptables, verrouillez les écritures et générez les états de synthèse." },
     ],
   },
 ];
