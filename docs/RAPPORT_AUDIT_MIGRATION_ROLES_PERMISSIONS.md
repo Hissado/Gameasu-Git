@@ -15,7 +15,7 @@
 |----------|:-----------:|:-------------------:|:-------------:|
 | **P0** — bloquant / corruption | 0 | — | — |
 | **P1** — grave (fonction cassée / intégrité) | 3 | **2** | 1 |
-| **P2** — important (fiabilité / gouvernance) | 5 | 1 (contrôle §13) | 4 |
+| **P2** — important (fiabilité / gouvernance) | 5 | 3 (contrôle §13 + idempotence import) | 2 |
 | **P3** — cosmétique / dette | 2 | — | 2 |
 
 Deux correctifs à fort impact ont été appliqués et vérifiés dans ce lot :
@@ -122,22 +122,30 @@ valider visuellement).
 Voir §3. `scripts/src/check-permissions.ts` +
 `pnpm --filter @workspace/scripts run check-permissions`.
 
-#### P2-2 — Ré-import non idempotent (pas de clé de rapprochement) — ⏳ À FAIRE
+#### P2-2 — Ré-import non idempotent (pas de clé de rapprochement) — ✅ CORRIGÉ (mode « ignorer »)
 `clients`, `contacts`, `invoices`, `payments`, `projects`, `equipment`,
-`bank_accounts` insèrent sans clé d'unicité → **re-lancer un import duplique
-toutes les lignes**. Le besoin métier §8 (détection de doublons / mode
-mise-à-jour avec clé de rapprochement réaliste : nom+email pour clients,
-n° de facture pour factures…) n'est pas couvert.
-**Recommandation** : ajouter une clé naturelle par module (upsert
-`onConflictDoUpdate`) et un choix « ignorer / mettre à jour » à l'exécution.
+`bank_accounts` inséraient sans clé d'unicité → **re-lancer un import dupliquait
+toutes les lignes**.
+**Correctif** : chaque exécuteur pré-charge les enregistrements existants (par
+`organizationId`) et **saute les doublons** via une clé de rapprochement
+naturelle, rendant le ré-import idempotent. La déduplication couvre aussi les
+doublons *au sein du même fichier*. Clés retenues :
+`clients` = nom ; `contacts` = client + prénom + nom ; `invoices` = n° facture ;
+`projects` = nom ; `equipment` = code (sinon nom) ; `bank_accounts` = nom ;
+`payments` = référence de paiement (uniquement si fournie — un encaissement
+peut légitimement se répéter). Les modules déjà protégés conservent leur
+`onConflictDoNothing`.
+**Reste (§8)** : le mode *mise à jour* (upsert écrasant) reste un chantier
+ultérieur — le comportement actuel est « créer les manquants, ignorer les
+existants ».
 
-#### P2-3 — Balance d'ouverture non idempotente + postée directement — ⏳ À FAIRE
-`importOpeningBalance` crée une écriture `sourceType:"opening"` **sans
-`sourceId`** et en statut `posted` d'emblée → un second import crée un
-deuxième à-nouveau en double, sans garde-fou. Absence de `batch-id` / de
-réversibilité (§9 : historique d'import + annulation avec sauvegarde).
-**Recommandation** : rattacher un `sourceId` unique par exercice + refuser un
-2ᵉ à-nouveau sur une période déjà dotée ; brouillon avant validation.
+#### P2-3 — Balance d'ouverture : garde-fou anti-doublon — ✅ CORRIGÉ (partiel)
+`importOpeningBalance` créait une écriture `sourceType:"opening"` sans garde →
+un second import créait un deuxième à-nouveau en double.
+**Correctif** : refus d'un second à-nouveau si la période fiscale porte déjà une
+écriture d'ouverture (`sourceType="opening"`) — import ignoré avec message clair.
+**Reste** : `sourceId` unique par exercice, statut brouillon avant validation, et
+réversibilité/`batch-id` (§9 : historique d'import + annulation avec sauvegarde).
 
 #### P2-4 — Ordre d'import advisory, non contrôlé + double source d'ordre — ⏳ À FAIRE
 L'ordre recommandé (§5/§6) existe *en documentation* dans le classeur, mais :
@@ -232,8 +240,9 @@ Nécessitent des décisions produit et/ou un environnement de préprod/DB :
 
 1. **P1-3** — Unifier la grille de droits UI sur le catalogue backend (retirer
    `MODULE_DEFS`/`ROLE_TEMPLATES` hardcodés) — validation visuelle requise.
-2. **P2-2/P2-3** — Clés de rapprochement + upsert + idempotence des à-nouveaux
-   (mode « ignorer/mettre à jour », `batch-id`, réversibilité §8/§9).
+2. **P2-2/P2-3 (reste)** — Mode *mise à jour* (upsert écrasant) + `batch-id` +
+   réversibilité (annulation d'un import avec sauvegarde) + `sourceId`/brouillon
+   pour les à-nouveaux (§8/§9).
 3. **P2-4** — `order`/`dependsOn` dans `ModuleDef` + pré-validation croisée +
    onglets ordonnés (§5/§6).
 4. **P2-5** — Générateur de dictionnaire de données central (§2).
@@ -249,8 +258,9 @@ Nécessitent des décisions produit et/ou un environnement de préprod/DB :
 | `check-permissions` (nouveau) | ✅ 0 bloquant (avant correctif : 1 `ENFORCE-UNKNOWN`) |
 | `check-routes` | ✅ 488 fichiers / 200 routes |
 | Typecheck `@workspace/scripts` | ✅ 0 erreur |
-| Typecheck `@workspace/api-server` | ✅ 41 (baseline inchangée) |
+| Typecheck `@workspace/api-server` | ✅ 41 (baseline inchangée, y c. idempotence import) |
 
 Fichiers modifiés : `scripts/src/check-permissions.ts` (nouveau),
 `scripts/package.json`, `artifacts/api-server/src/routes/admin.ts`,
-`artifacts/api-server/src/lib/migration-engine.ts`.
+`artifacts/api-server/src/lib/migration-engine.ts` (correctif contacts +
+idempotence des ré-imports).
