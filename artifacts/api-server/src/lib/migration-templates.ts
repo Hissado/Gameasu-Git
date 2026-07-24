@@ -4,7 +4,7 @@
  */
 import ExcelJS from "exceljs";
 import type { Response } from "express";
-import { MODULES, type ModuleDef } from "./migration-engine.js";
+import { orderedModules, type ModuleDef } from "./migration-engine.js";
 
 // ── Palette Gameasu — logo officiel ──────────────────────────────────────────
 // Bleu électrique #2563EB (HSL 221 83% 53%) · Marine profond #0E1A39 (HSL 224 60% 14%)
@@ -219,7 +219,7 @@ export async function generateTemplate(mod: ModuleDef, res: Response): Promise<v
 }
 
 export function getModuleTemplate(moduleId: string): ModuleDef | undefined {
-  return MODULES.find(m => m.id === moduleId);
+  return orderedModules().find(m => m.id === moduleId);
 }
 
 // ── Template complet d'intégration ────────────────────────────────────────────
@@ -270,26 +270,12 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
   });
   orderHeader.height = 22;
 
-  const ORDER = [
-    [1,  "Départements",        "departments",       "À importer en premier (référencé par collaborateurs)"],
-    [2,  "Utilisateurs",        "users",             "Mot de passe temporaire généré automatiquement"],
-    [3,  "Plan comptable",      "chart_of_accounts", "Comptes SYSCOHADA — base de tous les modules compta"],
-    [4,  "Centres analytiques", "cost_centers",      "Centres de coût / CAGE"],
-    [5,  "Banques & Caisses",   "bank_accounts",     "Compte 521/571 requis dans le plan comptable"],
-    [6,  "Balance d'ouverture", "opening_balance",   "Écritures AN — journal AN et période fiscale requis"],
-    [7,  "Clients",             "clients",           "Clients et prospects CRM"],
-    [8,  "Contacts clients",    "contacts",          "Importer après les clients"],
-    [9,  "Fournisseurs",        "suppliers",         "Sous-traitants, prestataires"],
-    [10, "Produits & Services", "services",          "Catalogue facturable"],
-    [11, "Stock initial",       "stock_initial",     "Entrée de stock initiale — produits requis"],
-    [12, "Factures clients",    "invoices",          "Soldes ouverts — importer après clients"],
-    [13, "Encaissements",       "payments",          "Importer après les factures"],
-    [14, "Collaborateurs",      "collaborators",     "RH — importer après départements"],
-    [15, "Soldes de congés",    "leave_balances",    "Importer après les collaborateurs"],
-    [16, "Projets",             "projects",          "Portefeuille chantiers"],
-    [17, "Équipements",         "equipment",         "Parc matériel"],
-    [18, "Budgets",             "budgets",           "Lignes budgétaires — période fiscale requise"],
-  ];
+  const ORDER = orderedModules().map((mod) => [
+    mod.order,
+    mod.label,
+    mod.id,
+    mod.dependsOn?.length ? `Importer après : ${mod.dependsOn.join(", ")}` : "Aucune dépendance",
+  ]);
 
   ORDER.forEach(([num, label, sheet, note], idx) => {
     const r = wg.getRow(6 + idx);
@@ -316,7 +302,7 @@ export async function generateCompleteTemplate(res: Response): Promise<void> {
   legRow.getCell(1).alignment = { wrapText: true, vertical: "middle" };
 
   // ── Onglet par module ────────────────────────────────────────────────────
-  for (const mod of MODULES) {
+  for (const mod of orderedModules()) {
     const ws = wb.addWorksheet(mod.label.slice(0, 31)); // Excel tab max 31 chars
     ws.properties.tabColor = { argb: mod.category === "RH" ? NAVY2 : mod.category === "Ventes" ? BLUE2 : mod.category === "Comptabilité" ? NAVY : mod.category === "Admin" ? NAVY2 : BLUE };
     ws.views = [{ state: "frozen", xSplit: 0, ySplit: 3 }];
