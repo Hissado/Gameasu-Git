@@ -14,7 +14,7 @@ import {
 } from "@workspace/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import {
-  MODULES,
+  orderedModules,
   getModule,
   parseCSV,
   suggestMapping,
@@ -26,6 +26,7 @@ import {
   deleteParsedFile,
 } from "../lib/migration-engine.js";
 import { generateTemplate, generateCompleteTemplate, generateErrorReport } from "../lib/migration-templates.js";
+import { buildDataDictionary } from "../lib/data-dictionary.js";
 
 const router = Router();
 
@@ -59,12 +60,21 @@ router.get("/migration/modules", requireAuth, async (req, res, next) => {
       if (!latestByModule.has(s.module)) latestByModule.set(s.module, s);
     }
 
-    const modules = MODULES.map(m => ({
-      ...m,
-      fields: m.fields.length,
-      requiredFields: m.fields.filter(f => f.required).length,
-      lastImport: latestByModule.get(m.id) ?? null,
-    }));
+    const modules = orderedModules().map(m => {
+      const dependencyStatus = (m.dependsOn ?? []).map((dep) => ({
+        module: dep,
+        satisfied: latestByModule.get(dep)?.status === "done",
+        lastImport: latestByModule.get(dep) ?? null,
+      }));
+      return {
+        ...m,
+        fields: m.fields.length,
+        requiredFields: m.fields.filter(f => f.required).length,
+        dependencyStatus,
+        dependenciesSatisfied: dependencyStatus.every((d) => d.satisfied),
+        lastImport: latestByModule.get(m.id) ?? null,
+      };
+    });
 
     const completed = modules.filter(m => m.lastImport?.status === "done").length;
     res.json({
@@ -72,6 +82,11 @@ router.get("/migration/modules", requireAuth, async (req, res, next) => {
       progress: { total: modules.length, completed, pct: Math.round((completed / modules.length) * 100) },
     });
   } catch (e) { next(e); }
+});
+
+router.get("/migration/data-dictionary", requireAuth, async (_req, res) => {
+  const fields = buildDataDictionary();
+  res.json({ fields, totalFields: fields.length });
 });
 
 // ── GET /migration/templates/:module ─────────────────────────────────────────
@@ -167,6 +182,23 @@ router.post("/migration/upload", requireAuth, requireManagerOrAbove, upload.sing
   }
 });
 
+async function moduleDependencyStatus(moduleId: string, orgId: string) {
+  const mod = getModule(moduleId);
+  const deps = mod?.dependsOn ?? [];
+  if (!deps.length) return [];
+  const sessions = await db.select({
+    module: importSessionsTable.module,
+    status: importSessionsTable.status,
+    importedRows: importSessionsTable.importedRows,
+    createdAt: importSessionsTable.createdAt,
+  }).from(importSessionsTable)
+    .where(eq(importSessionsTable.organizationId, orgId))
+    .orderBy(desc(importSessionsTable.createdAt));
+  const latestByModule = new Map<string, typeof sessions[0]>();
+  for (const s of sessions) if (!latestByModule.has(s.module)) latestByModule.set(s.module, s);
+  return deps.map((dep) => ({ module: dep, satisfied: latestByModule.get(dep)?.status === "done", lastImport: latestByModule.get(dep) ?? null }));
+}
+
 // ── POST /migration/validate ──────────────────────────────────────────────────
 
 router.post("/migration/validate", requireAuth, requireManagerOrAbove, async (req, res, next) => {
@@ -187,6 +219,9 @@ router.post("/migration/validate", requireAuth, requireManagerOrAbove, async (re
       .filter(f => f.required && !Object.values(mapping).includes(f.key))
       .map(f => f.label);
 
+    const dependencyStatus = await moduleDependencyStatus(mod.id, req.authUser!.organizationId);
+    const missingDependencies = dependencyStatus.filter((d) => !d.satisfied).map((d) => d.module);
+
     res.json({
       totalRows: nonEmptyRows.length,
       validRows: validCount,
@@ -195,7 +230,9 @@ router.post("/migration/validate", requireAuth, requireManagerOrAbove, async (re
       errorCount: errors.filter(e => e.severity === "error").length,
       warningCount: errors.filter(e => e.severity === "warning").length,
       unmappedRequired,
-      canImport: unmappedRequired.length === 0 && errors.filter(e => e.severity === "error").length === 0,
+      dependencyStatus,
+      missingDependencies,
+      canImport: missingDependencies.length === 0 && unmappedRequired.length === 0 && errors.filter(e => e.severity === "error").length === 0,
     });
   } catch (e) { next(e); }
 });
@@ -212,6 +249,17 @@ router.post("/migration/execute", requireAuth, requireManagerOrAbove, async (req
 
     const orgId = req.authUser!.organizationId;
     const userId = req.authUser!.id;
+
+    const dependencyStatus = await moduleDependencyStatus(file.module, orgId);
+    const missingDependencies = dependencyStatus.filter((d) => !d.satisfied).map((d) => d.module);
+    if (missingDependencies.length > 0) {
+      res.status(409).json({
+        error: "Dépendances d'import manquantes",
+        missingDependencies,
+        dependencyStatus,
+      });
+      return;
+    }
 
     // Create session record (status = importing)
     const [session] = await db.insert(importSessionsTable).values({

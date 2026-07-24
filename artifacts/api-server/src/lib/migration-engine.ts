@@ -52,6 +52,10 @@ export interface ModuleDef {
   icon: string;
   description: string;
   category: string;
+  /** Ordre canonique recommandé dans le parcours d'import complet. */
+  order: number;
+  /** Modules parents à importer avant celui-ci (pré-validation advisory/bloquante). */
+  dependsOn?: string[];
   fields: FieldDef[];
 }
 
@@ -107,6 +111,7 @@ export const MODULES: ModuleDef[] = [
     icon: "Building2",
     description: "Importer la base clients et prospects",
     category: "CRM",
+    order: 7,
     fields: [
       { key: "name",              label: "Nom",                   required: true,  type: "string", examples: "SOGELEC Cameroun", aliases: ["nom", "raison_sociale", "company", "entreprise", "client_name", "nom_client"] },
       { key: "email",             label: "Email",                  required: false, type: "email",  examples: "contact@sogelec.cm", aliases: ["email", "e-mail", "courriel", "mail"] },
@@ -125,6 +130,8 @@ export const MODULES: ModuleDef[] = [
     icon: "Users",
     description: "Contacts liés aux clients",
     category: "CRM",
+    order: 8,
+    dependsOn: ["clients"],
     fields: [
       { key: "firstName",   label: "Prénom",        required: true,  type: "string", examples: "Jean-Pierre", aliases: ["prenom", "first_name", "prénom"] },
       { key: "lastName",    label: "Nom",            required: true,  type: "string", examples: "Mballa", aliases: ["nom", "last_name", "nom_famille"] },
@@ -140,6 +147,8 @@ export const MODULES: ModuleDef[] = [
     icon: "UserCheck",
     description: "RH — employés, contrats, salaires",
     category: "RH",
+    order: 14,
+    dependsOn: ["departments"],
     fields: [
       { key: "firstName",         label: "Prénom",           required: true,  type: "string", examples: "Marie", aliases: ["prenom", "first_name", "prénom"] },
       { key: "lastName",          label: "Nom",              required: true,  type: "string", examples: "Nguema", aliases: ["nom", "last_name"] },
@@ -160,6 +169,8 @@ export const MODULES: ModuleDef[] = [
     icon: "FileText",
     description: "Soldes ouverts, factures impayées et historique",
     category: "Ventes",
+    order: 12,
+    dependsOn: ["clients"],
     fields: [
       { key: "referenceNumber", label: "N° facture",      required: true,  type: "string", examples: "FAC-2024-001", aliases: ["reference", "ref", "numero", "numero_facture", "invoice_number"] },
       { key: "clientName",      label: "Client",           required: true,  type: "string", examples: "SOGELEC Cameroun", aliases: ["client", "nom_client", "societe", "company"] },
@@ -177,6 +188,8 @@ export const MODULES: ModuleDef[] = [
     icon: "CreditCard",
     description: "Paiements reçus, lettrage avec factures",
     category: "Ventes",
+    order: 13,
+    dependsOn: ["invoices"],
     fields: [
       { key: "invoiceReference", label: "N° facture",       required: true,  type: "string", examples: "FAC-2024-001", aliases: ["facture", "reference_facture", "invoice_ref", "invoice_number", "ref_facture"] },
       { key: "amount",           label: "Montant (FCFA)",   required: true,  type: "number", examples: "750000", aliases: ["montant", "amount", "montant_paye"] },
@@ -192,6 +205,7 @@ export const MODULES: ModuleDef[] = [
     icon: "BookOpen",
     description: "Comptes SYSCOHADA et balances d'ouverture",
     category: "Comptabilité",
+    order: 3,
     fields: [
       { key: "code",          label: "Code compte",  required: true,  type: "string", examples: "411000", aliases: ["code", "compte", "account_code", "numero_compte"] },
       { key: "label",         label: "Libellé",      required: true,  type: "string", examples: "Clients, ventes de biens", aliases: ["libelle", "label", "intitule", "description", "nom"] },
@@ -208,6 +222,8 @@ export const MODULES: ModuleDef[] = [
     icon: "Briefcase",
     description: "Portefeuille projets et chantiers",
     category: "Opérations",
+    order: 16,
+    dependsOn: ["clients"],
     fields: [
       { key: "name",        label: "Nom du projet",    required: true,  type: "string", examples: "Construction école Lomé Nord", aliases: ["nom", "name", "intitule", "projet", "titre"] },
       { key: "status",      label: "Statut",           required: false, type: "enum",   examples: "active", acceptedValues: ["planning", "active", "on_hold", "completed", "cancelled"], aliases: ["statut", "status", "etat", "avancement"] },
@@ -224,6 +240,7 @@ export const MODULES: ModuleDef[] = [
     icon: "Briefcase",
     description: "Fournisseurs, sous-traitants, prestataires",
     category: "Achats",
+    order: 9,
     fields: [
       { key: "code",         label: "Code fournisseur",     required: true,  type: "string", examples: "F0001",                aliases: ["code", "ref", "numero", "code_fournisseur", "supplier_code"] },
       { key: "name",         label: "Nom / Raison sociale", required: true,  type: "string", examples: "BATIM SARL",           aliases: ["nom", "name", "raison_sociale", "fournisseur", "supplier", "entreprise"] },
@@ -240,6 +257,7 @@ export const MODULES: ModuleDef[] = [
     icon: "Building2",
     description: "Structure organisationnelle — départements et pôles",
     category: "RH",
+    order: 1,
     fields: [
       { key: "code",        label: "Code",         required: true,  type: "string", examples: "ADMIN",                             aliases: ["code", "code_dept", "ref", "identifiant"] },
       { key: "name",        label: "Nom",           required: true,  type: "string", examples: "Administration",                    aliases: ["nom", "name", "intitule", "libelle", "departement"] },
@@ -253,6 +271,7 @@ export const MODULES: ModuleDef[] = [
     icon: "Briefcase",
     description: "Catalogue produits, services et prestations facturables",
     category: "Ventes",
+    order: 10,
     fields: [
       { key: "code",        label: "Code",               required: true,  type: "string", examples: "PREST-001",            aliases: ["code", "ref", "sku", "code_service", "code_produit", "article"] },
       { key: "name",        label: "Nom",                required: true,  type: "string", examples: "Audit informatique",    aliases: ["nom", "name", "designation", "libelle", "intitule", "service", "produit"] },
@@ -268,6 +287,7 @@ export const MODULES: ModuleDef[] = [
     icon: "Users",
     description: "Comptes utilisateurs — le mot de passe temporaire sera à changer à la 1ère connexion",
     category: "Admin",
+    order: 2,
     fields: [
       { key: "email",     label: "Email",    required: true,  type: "email",  examples: "a.diallo@hissadoconsulting.com", aliases: ["email", "mail", "courriel", "e-mail", "adresse_email"] },
       { key: "firstName", label: "Prénom",   required: true,  type: "string", examples: "Aminata",                        aliases: ["prenom", "first_name", "prénom", "firstname"] },
@@ -282,6 +302,7 @@ export const MODULES: ModuleDef[] = [
     icon: "Wrench",
     description: "Parc matériel, engins, outillage",
     category: "Opérations",
+    order: 17,
     fields: [
       { key: "name",        label: "Nom",              required: true,  type: "string", examples: "Pelle hydraulique CAT 320", aliases: ["nom", "name", "designation", "materiel", "libelle"] },
       { key: "code",        label: "Code / Référence", required: false, type: "string", examples: "EQ-001", aliases: ["code", "ref", "reference", "numero_serie", "immatriculation"] },
@@ -298,6 +319,7 @@ export const MODULES: ModuleDef[] = [
     icon: "PieChart",
     description: "Centres de coût / analytiques CAGE (département, projet, activité…)",
     category: "Comptabilité",
+    order: 4,
     fields: [
       { key: "code",         label: "Code",              required: true,  type: "string", examples: "CC-TRAV",      aliases: ["code", "ref", "identifiant", "code_centre"] },
       { key: "name",         label: "Nom",               required: true,  type: "string", examples: "Travaux publics", aliases: ["nom", "name", "libelle", "intitule", "centre"] },
@@ -313,6 +335,8 @@ export const MODULES: ModuleDef[] = [
     icon: "Landmark",
     description: "Comptes bancaires et caisses physiques (compte rattaché 521 / 571 requis)",
     category: "Comptabilité",
+    order: 5,
+    dependsOn: ["chart_of_accounts"],
     fields: [
       { key: "name",           label: "Nom",                  required: true,  type: "string", examples: "BICICI Compte courant",  aliases: ["nom", "name", "libelle", "intitule", "banque"] },
       { key: "type",           label: "Type",                 required: true,  type: "enum",   examples: "bank",                  acceptedValues: ["bank","cash"], aliases: ["type", "nature"] },
@@ -329,6 +353,8 @@ export const MODULES: ModuleDef[] = [
     icon: "Scale",
     description: "Écritures d'à-nouveaux — une ligne par compte (débit ou crédit). Requiert un journal AN et une période fiscale active.",
     category: "Comptabilité",
+    order: 6,
+    dependsOn: ["chart_of_accounts"],
     fields: [
       { key: "accountCode",  label: "Code compte",           required: true,  type: "string", examples: "411000",   aliases: ["code_compte", "compte", "account_code", "numero_compte"] },
       { key: "debit",        label: "Débit (FCFA)",          required: false, type: "number", examples: "2500000",  aliases: ["debit", "montant_debit", "solde_debiteur", "d"] },
@@ -342,6 +368,8 @@ export const MODULES: ModuleDef[] = [
     icon: "Package",
     description: "Entrée de stock initiale pour les articles existants (créés via Produits & Services ou le module inventaire)",
     category: "Opérations",
+    order: 11,
+    dependsOn: ["services"],
     fields: [
       { key: "sku",          label: "Code article (SKU)",     required: true,  type: "string", examples: "CIMENT-50KG",  aliases: ["sku", "code_article", "ref", "code_produit", "reference", "codeProduit"] },
       { key: "quantity",     label: "Quantité",               required: true,  type: "number", examples: "500",          aliases: ["quantite", "qty", "quantity", "stock", "qte"] },
@@ -356,6 +384,8 @@ export const MODULES: ModuleDef[] = [
     icon: "Calendar",
     description: "Soldes de congés des collaborateurs par type et par année",
     category: "RH",
+    order: 15,
+    dependsOn: ["collaborators", "users"],
     fields: [
       { key: "collaboratorEmail", label: "Email collaborateur", required: true,  type: "email",  examples: "m.nguema@org.com", aliases: ["email", "email_collaborateur", "collaborateur", "employe", "salarie"] },
       { key: "leaveType",         label: "Type de congé",       required: true,  type: "enum",   examples: "congé_payé",       acceptedValues: ["congé_payé","RTT","maladie","maternité","paternité","sans_solde","formation","exceptionnel","autre"], aliases: ["type_conge", "type", "conge", "leave_type"] },
@@ -371,6 +401,8 @@ export const MODULES: ModuleDef[] = [
     icon: "TrendingUp",
     description: "Lignes budgétaires par compte SYSCOHADA et par mois. Chaque fichier crée un budget.",
     category: "Comptabilité",
+    order: 18,
+    dependsOn: ["chart_of_accounts", "cost_centers"],
     fields: [
       { key: "budgetName",  label: "Nom du budget",    required: true,  type: "string", examples: "Budget 2024",  aliases: ["nom_budget", "budget_name", "budget", "nom", "intitule"] },
       { key: "accountCode", label: "Code compte",      required: true,  type: "string", examples: "622000",       aliases: ["code_compte", "compte", "account_code", "numero_compte"] },
@@ -1363,4 +1395,9 @@ async function importBudgets(f: ParsedFile, mapping: Record<string, string>, org
     }
   }
   return r;
+}
+
+
+export function orderedModules(): ModuleDef[] {
+  return [...MODULES].sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
 }

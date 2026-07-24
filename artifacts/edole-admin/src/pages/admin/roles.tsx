@@ -62,6 +62,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "clients.view_history", label: "Voir l'historique client" },
         { code: "clients.view_confidential", label: "Données confidentielles" },
         { code: "clients.export", label: "Exporter les clients" },
+        { code: "clients.manage", label: "Accès complet clients" },
       ]},
       { label: "Pipeline CRM", icon: Target, perms: [
         { code: "commercial.read", label: "Voir le pipeline" },
@@ -69,6 +70,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "commercial.update", label: "Modifier des opportunités" },
         { code: "commercial.delete", label: "Supprimer des opportunités" },
         { code: "commercial.export", label: "Exporter le pipeline" },
+        { code: "commercial.manage", label: "Accès complet CRM" },
       ]},
       { label: "Scoring & Santé", icon: Brain, perms: [
         { code: "scoring.view_client_health", label: "Score de santé client" },
@@ -95,6 +97,10 @@ const MODULE_DEFS: ModuleDef[] = [
       ]},
       { label: "Exports", icon: Upload, perms: [
         { code: "sales.export", label: "Exporter les documents commerciaux" },
+      ]},
+      { label: "Services", icon: Wrench, perms: [
+        { code: "services.read", label: "Voir les services" },
+        { code: "services.manage", label: "Gérer les services" },
       ]},
     ],
   },
@@ -189,6 +195,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "tasks.create", label: "Créer des tâches" },
         { code: "tasks.update", label: "Modifier des tâches" },
         { code: "tasks.delete", label: "Supprimer des tâches" },
+        { code: "tasks.manage", label: "Accès complet tâches" },
       ]},
       { label: "Documents", icon: FolderOpen, perms: [
         { code: "documents.read", label: "Voir les documents" },
@@ -326,6 +333,7 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "departments.manage", label: "Gérer les départements" },
         { code: "settings.read", label: "Voir les paramètres" },
         { code: "settings.manage", label: "Modifier les paramètres" },
+        { code: "notifications.manage", label: "Gérer les notifications" },
         { code: "support.read", label: "Tickets support (lecture)" },
         { code: "support.manage", label: "Gérer les tickets support" },
       ]},
