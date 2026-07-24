@@ -590,19 +590,13 @@ async function importClients(f: ParsedFile, mapping: Record<string, string>, org
 // ── Contacts ─────────────────────────────────────────────────────────────────
 
 async function importContacts(f: ParsedFile, mapping: Record<string, string>, orgId: string, db: AnyDB, r: ImportResult): Promise<ImportResult> {
-  const clientCache = new Map<string, string>();
-
-  const getClientId = async (name: string): Promise<string | null> => {
-    const k = name.toLowerCase();
-    if (clientCache.has(k)) return clientCache.get(k)!;
-    const rows = await db.select({ id: clientsTable.id }).from(clientsTable)
-      .where(and(eq(clientsTable.organizationId, orgId), isNull(clientsTable.deletedAt)));
-    for (const row of rows) clientCache.set(row.id, row.id);
-    const match = await db.select({ id: clientsTable.id }).from(clientsTable)
-      .where(and(eq(clientsTable.organizationId, orgId), isNull(clientsTable.deletedAt))).limit(200);
-    const found = match.find((_m: { id: string }) => true); // simplified
-    return found?.id ?? null;
-  };
+  // Résolution du client par NOM (normalisé) — même stratégie que les factures
+  // et projets. Correctif : l'implémentation précédente ignorait le nom et
+  // rattachait tous les contacts au premier client de l'organisation.
+  const clientsByName = new Map<string, string>();
+  const allClients = await db.select({ id: clientsTable.id, name: clientsTable.name })
+    .from(clientsTable).where(and(eq(clientsTable.organizationId, orgId), isNull(clientsTable.deletedAt)));
+  for (const c of allClients) clientsByName.set(c.name.toLowerCase().trim(), c.id);
 
   for (let i = 0; i < f.rows.length; i++) {
     const row = f.rows[i];
@@ -610,8 +604,8 @@ async function importContacts(f: ParsedFile, mapping: Record<string, string>, or
     const o = applyMapping(row, f.headers, mapping);
     if (!o.firstName || !o.lastName) { r.errors.push({ row: i + 2, message: "Prénom/Nom manquant" }); r.skipped++; continue; }
     try {
-      const clientId = o.clientName ? await getClientId(o.clientName) : null;
-      if (!clientId) { r.errors.push({ row: i + 2, message: "Client introuvable" }); r.skipped++; continue; }
+      const clientId = o.clientName ? (clientsByName.get(o.clientName.toLowerCase().trim()) ?? null) : null;
+      if (!clientId) { r.errors.push({ row: i + 2, message: `Client introuvable : "${o.clientName ?? ""}"` }); r.skipped++; continue; }
       const [rec] = await db.insert(clientContactsTable).values({
         id: randomUUID(), organizationId: orgId,
         clientId,

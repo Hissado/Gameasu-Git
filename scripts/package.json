@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check-routes": "tsx ./src/check-routes.ts",
+    "check-permissions": "tsx ./src/check-permissions.ts",
     "verify-purchases-exports": "python3 ./src/verify-purchases-exports.py"
   },
   "devDependencies": {
