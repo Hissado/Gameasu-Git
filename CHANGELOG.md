@@ -11,7 +11,9 @@ Restructuration du module Ressources Humaines autour d'une **source unique de v�
 - **Menu secondaire RH** (`hr/_layout.tsx`) désormais **généré** depuis le SSOT (fin du menu codé en dur).
 - **Nœuds non encore développés** (§7) : gabarit `hr/_placeholder.tsx` (titre, fil d'Ariane, description, état « en cours », éléments de niveau 4) — routes générées depuis le SSOT, **jamais de page blanche ni de lien inerte**.
 - **Non-régression** : toutes les routes RH existantes restent valides (aucune donnée perdue) ; seuls les nouveaux nœuds pointent vers le gabarit.
-- Reste : développement métier de chaque nœud `planned`, fils d'Ariane sur les pages existantes, permissions fines par sous-module (backend), redirections des routes suggérées, tests automatisés.
+- **Recrutement → Dossier de candidature** (métier complet) : nouvelle page `hr/recruitment-applications.tsx` bâtie sur le backend existant (`/recruitment/candidacies`) — liste filtrable (poste/étape/recherche) + fiche candidat (identité, poste, CV/lettre/LinkedIn, pipeline en 8 étapes, appréciation 1–5, entretien date+notes, décision Recruter/Rejeter avec motif). Nœud SSOT passé `ready`.
+- **Fils d'Ariane généralisés** : `AppBreadcrumb` consulte désormais la source unique de vérité RH (`rhBreadcrumb`) pour toute route `/rh/*` → fil d'Ariane profond (Accueil → Ressources Humaines → Sous-module → Page) sur **toutes** les pages RH, depuis un seul endroit (fin des motifs RH codés en dur).
+- Reste : développement métier des autres nœuds `planned`, permissions fines par sous-module (backend), redirections des routes suggérées, tests automatisés.
 
 ## Plan comptable par organisation — revue & socle protection (§5) — juillet 2026
 

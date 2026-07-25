@@ -205,6 +205,7 @@ const EtatsSalaires = lazy(() => import("@/pages/hr/etats-salaires"));
 const BtpSettings = lazy(() => import("@/pages/hr/btp-settings"));
 const HrSalaryAdvances = lazy(() => import("@/pages/hr/salary-advances"));
 const HrPlaceholder = lazy(() => import("@/pages/hr/_placeholder"));
+const HrRecruitmentApplications = lazy(() => import("@/pages/hr/recruitment-applications"));
 const FiscalEngine = lazy(() => import("@/pages/fiscal/engine"));
 const CompliancePage = lazy(() => import("@/pages/compliance/index"));
 const InvoiceScannerPage = lazy(() => import("@/pages/compliance/scanner"));
@@ -375,6 +376,7 @@ function AppRouter() {
                 <Route path="/rh/conges" component={HrLeaves} />
                 <Route path="/rh/paie" component={HrPayroll} />
                 <Route path="/rh/recrutement" component={HrRecruitment} />
+                <Route path="/rh/recrutement/dossier-candidature" component={HrRecruitmentApplications} />
                 <Route path="/rh/evaluations" component={HrEvaluations} />
                 <Route path="/rh/formations" component={HrTraining} />
                 <Route path="/rh/mouvements" component={HrMovements} />

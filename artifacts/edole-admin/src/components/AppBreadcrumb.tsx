@@ -1,5 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { ChevronRight, ArrowLeft, Home } from "lucide-react";
+import { rhBreadcrumb } from "@/config/rh-navigation";
 
 type Crumb = { label: string; href?: string };
 
@@ -197,9 +198,19 @@ export function AppBreadcrumb() {
 
   if (path === "/") return null;
 
+  // Fil d'Ariane RH profond depuis la SOURCE UNIQUE DE VÉRITÉ
+  // (config/rh-navigation.ts) : Accueil → Ressources Humaines → Sous-module → Page.
+  // Supersede les motifs RH codés en dur ci-dessous quand la route est connue du SSOT.
+  const rhTrail = path.startsWith("/rh/") ? rhBreadcrumb(path) : null;
+  const fromSsot: Crumb[] | null = rhTrail && rhTrail.length > 1
+    ? [{ label: "Accueil", href: "/" }, ...rhTrail.map((c, i) => ({ label: c.label, href: i < rhTrail.length - 1 ? c.route : undefined }))]
+    : null;
+
   // Try specific sub-section/detail match first
   const matched = ROUTES.find(r => r.pattern.test(path));
-  const crumbs: Crumb[] = matched
+  const crumbs: Crumb[] = fromSsot
+    ? fromSsot
+    : matched
     ? matched.crumbs
     : [{ label: "Accueil", href: "/" }, { label: TOP_LEVEL[path] ?? path.slice(1) }];
 

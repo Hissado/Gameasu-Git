@@ -3,8 +3,8 @@ import { useLocation } from "wouter";
 import { HrShell } from "./_layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Construction, ChevronRight } from "lucide-react";
-import { rhRouteEntries, rhBreadcrumb, RH_MODULE } from "@/config/rh-navigation";
+import { Construction } from "lucide-react";
+import { rhRouteEntries, RH_MODULE } from "@/config/rh-navigation";
 
 /**
  * Gabarit générique des nœuds RH « planned » (§7) : jamais de page blanche ni de
@@ -17,21 +17,10 @@ export default function HrPlaceholder() {
   const path = location.split("?")[0];
   const entry = rhRouteEntries().find((e) => e.route === path);
   const node = entry?.node;
-  const crumbs = rhBreadcrumb(path);
   const title = node?.label ?? "Ressources Humaines";
 
   return (
     <HrShell title={title} subtitle={node?.description}>
-      {/* Fil d'Ariane */}
-      <nav className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground mb-4">
-        {crumbs.map((c, i) => (
-          <span key={i} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight className="w-3 h-3" />}
-            <span className={i === crumbs.length - 1 ? "font-medium text-foreground" : ""}>{c.label}</span>
-          </span>
-        ))}
-      </nav>
-
       <Card className="border-dashed">
         <CardContent className="p-8 text-center">
           <div className="mx-auto w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mb-4">

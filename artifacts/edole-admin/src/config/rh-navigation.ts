@@ -54,7 +54,7 @@ export const RH_MODULE: { label: string; route: string; icon: string; children: 
     { key: "recruitment", label: "Recrutement", route: "/rh/recrutement", icon: "Briefcase", permission: READ, pageType: "tabs", status: "ready", component: "HrRecruitment",
       description: "Pipeline de recrutement : offres, candidatures, entretiens et décisions.",
       children: [
-        { key: "recruitment-applications", label: "Dossier de candidature", route: "/rh/recrutement/dossier-candidature", permission: READ, pageType: "tabs", status: "planned",
+        { key: "recruitment-applications", label: "Dossier de candidature", route: "/rh/recrutement/dossier-candidature", permission: READ, pageType: "tabs", status: "ready", component: "HrRecruitmentApplications",
           description: "Candidatures, fiche candidat, poste, CV, lettre de motivation, entretiens, appréciations et décision." },
         { key: "recruitment-offer-letter", label: "Lettre d'embauche", route: "/rh/recrutement/lettre-embauche", permission: READ, pageType: "workflow", status: "planned",
           elements: ["Modèles", "Génération", "Validation", "Signature", "Envoi", "Archivage"] },
