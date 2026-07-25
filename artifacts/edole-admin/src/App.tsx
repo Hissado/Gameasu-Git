@@ -206,6 +206,7 @@ const BtpSettings = lazy(() => import("@/pages/hr/btp-settings"));
 const HrSalaryAdvances = lazy(() => import("@/pages/hr/salary-advances"));
 const HrPlaceholder = lazy(() => import("@/pages/hr/_placeholder"));
 const HrRecruitmentApplications = lazy(() => import("@/pages/hr/recruitment-applications"));
+const HrRequestWorkflow = lazy(() => import("@/pages/hr/request-workflow"));
 const FiscalEngine = lazy(() => import("@/pages/fiscal/engine"));
 const CompliancePage = lazy(() => import("@/pages/compliance/index"));
 const InvoiceScannerPage = lazy(() => import("@/pages/compliance/scanner"));
@@ -377,6 +378,11 @@ function AppRouter() {
                 <Route path="/rh/paie" component={HrPayroll} />
                 <Route path="/rh/recrutement" component={HrRecruitment} />
                 <Route path="/rh/recrutement/dossier-candidature" component={HrRecruitmentApplications} />
+                <Route path="/rh/pointage/permissions" component={HrRequestWorkflow} />
+                <Route path="/rh/pointage/deplacements" component={HrRequestWorkflow} />
+                <Route path="/rh/pointage/missions" component={HrRequestWorkflow} />
+                <Route path="/rh/pointage/maladie" component={HrRequestWorkflow} />
+                <Route path="/rh/pointage/accident" component={HrRequestWorkflow} />
                 <Route path="/rh/evaluations" component={HrEvaluations} />
                 <Route path="/rh/formations" component={HrTraining} />
                 <Route path="/rh/mouvements" component={HrMovements} />
