@@ -20,7 +20,8 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { jobOffersTable, candidaciesTable, departmentsTable } from "@workspace/db";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { requireAuth, requireManagerOrAbove } from "../middlewares/auth";
+import { requireAuth } from "../middlewares/auth";
+import { requirePermission } from "../middlewares/permissions";
 
 const router = Router();
 router.use(requireAuth);
@@ -77,7 +78,7 @@ router.get("/recruitment/jobs", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post("/recruitment/jobs", requireManagerOrAbove, async (req, res, next) => {
+router.post("/recruitment/jobs", requirePermission("recruitment.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const {
@@ -137,7 +138,7 @@ router.get("/recruitment/jobs/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.patch("/recruitment/jobs/:id", requireManagerOrAbove, async (req, res, next) => {
+router.patch("/recruitment/jobs/:id", requirePermission("recruitment.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [offer] = await db.select().from(jobOffersTable)
@@ -169,7 +170,7 @@ router.patch("/recruitment/jobs/:id", requireManagerOrAbove, async (req, res, ne
   } catch (e) { next(e); }
 });
 
-router.delete("/recruitment/jobs/:id", requireManagerOrAbove, async (req, res, next) => {
+router.delete("/recruitment/jobs/:id", requirePermission("recruitment.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [offer] = await db.select().from(jobOffersTable)
@@ -283,7 +284,7 @@ router.get("/recruitment/candidacies/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.patch("/recruitment/candidacies/:id", requireManagerOrAbove, async (req, res, next) => {
+router.patch("/recruitment/candidacies/:id", requirePermission("recruitment.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [c] = await db.select().from(candidaciesTable)
@@ -305,7 +306,7 @@ router.patch("/recruitment/candidacies/:id", requireManagerOrAbove, async (req, 
   } catch (e) { next(e); }
 });
 
-router.delete("/recruitment/candidacies/:id", requireManagerOrAbove, async (req, res, next) => {
+router.delete("/recruitment/candidacies/:id", requirePermission("recruitment.manage"), async (req, res, next) => {
   try {
     const orgId = req.authUser!.organizationId;
     const [c] = await db.select().from(candidaciesTable)

@@ -59,7 +59,8 @@ export default function RecruitmentApplications() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const perms = usePermissions();
-  const canWrite = !perms.isReadOnly;
+  // Édition réservée à la permission fine « gérer le recrutement » (§8).
+  const canWrite = perms.has("recruitment.manage") && !perms.isReadOnly;
 
   const [search, setSearch] = useState("");
   const [jobId, setJobId] = useState("");

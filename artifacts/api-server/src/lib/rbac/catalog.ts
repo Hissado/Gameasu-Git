@@ -105,6 +105,10 @@ export const PERMISSIONS: PermissionDef[] = [
   { code: "hr.approve_expenses", label: "Approuver les notes de frais",                  category: "RH" },
   { code: "hr.export",           label: "Exporter les données RH",                       category: "RH" },
 
+  // ─── Recrutement ────────────────────────────────────────────────
+  { code: "recruitment.read",   label: "Consulter le recrutement (offres, candidatures)", category: "Recrutement" },
+  { code: "recruitment.manage", label: "Gérer le recrutement (candidatures, entretiens, décision)", category: "Recrutement" },
+
   // ─── Présence / Pointage ────────────────────────────────────────
   { code: "attendance.view",            label: "Voir les pointages",                 category: "Présences" },
   { code: "attendance.manage",          label: "Gérer les pointages",                category: "Présences" },
@@ -241,6 +245,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "dashboard.view_financial_kpis", "dashboard.view_hr_kpis",
       "users.read", "departments.read",
       "hr.read", "hr.manage", "hr.manage_leaves", "hr.manage_contracts",
+      "recruitment.read", "recruitment.manage",
       "clients.read", "clients.create", "clients.update", "clients.view_history",
       "services.read", "services.manage",
       "projects.read", "projects.create", "projects.update", "projects.approve", "projects.manage_budget", "projects.export",
@@ -328,6 +333,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "departments.read", "departments.manage",
       "hr.read", "hr.manage", "hr.view_salary", "hr.manage_payroll", "hr.manage_leaves",
       "hr.manage_contracts", "hr.view_sensitive", "hr.manage_expenses", "hr.approve_expenses", "hr.export",
+      "recruitment.read", "recruitment.manage",
       "attendance.view", "attendance.manage", "attendance.clock", "attendance.view_anomalies", "attendance.manage_settings",
       "projects.read", "tasks.read",
       "clients.read",
@@ -403,6 +409,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "departments.read",
       "roles.read",
       "hr.read",
+      "recruitment.read",
       "clients.read", "clients.read_all",
       "services.read",
       "projects.read", "projects.read_all",

@@ -222,6 +222,10 @@ const MODULE_DEFS: ModuleDef[] = [
         { code: "hr.manage_leaves", label: "Gérer les congés et absences" },
         { code: "hr.manage_contracts", label: "Gérer les contrats de travail" },
       ]},
+      { label: "Recrutement", icon: UsersRound, perms: [
+        { code: "recruitment.read", label: "Consulter le recrutement" },
+        { code: "recruitment.manage", label: "Gérer le recrutement" },
+      ]},
       { label: "Notes de frais", icon: Banknote, perms: [
         { code: "hr.manage_expenses", label: "Gérer les notes de frais" },
         { code: "hr.approve_expenses", label: "Approuver les notes de frais" },

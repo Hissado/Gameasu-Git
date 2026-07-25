@@ -51,14 +51,14 @@ export const RH_MODULE: { label: string; route: string; icon: string; children: 
       description: "Estimez le coût total employeur d'un collaborateur selon les règles de paie de l'organisation." },
 
     // 3 ─ Recrutement
-    { key: "recruitment", label: "Recrutement", route: "/rh/recrutement", icon: "Briefcase", permission: READ, pageType: "tabs", status: "ready", component: "HrRecruitment",
+    { key: "recruitment", label: "Recrutement", route: "/rh/recrutement", icon: "Briefcase", permission: "recruitment.read", pageType: "tabs", status: "ready", component: "HrRecruitment",
       description: "Pipeline de recrutement : offres, candidatures, entretiens et décisions.",
       children: [
-        { key: "recruitment-applications", label: "Dossier de candidature", route: "/rh/recrutement/dossier-candidature", permission: READ, pageType: "tabs", status: "ready", component: "HrRecruitmentApplications",
+        { key: "recruitment-applications", label: "Dossier de candidature", route: "/rh/recrutement/dossier-candidature", permission: "recruitment.read", pageType: "tabs", status: "ready", component: "HrRecruitmentApplications",
           description: "Candidatures, fiche candidat, poste, CV, lettre de motivation, entretiens, appréciations et décision." },
-        { key: "recruitment-offer-letter", label: "Lettre d'embauche", route: "/rh/recrutement/lettre-embauche", permission: READ, pageType: "workflow", status: "planned",
+        { key: "recruitment-offer-letter", label: "Lettre d'embauche", route: "/rh/recrutement/lettre-embauche", permission: "recruitment.read", pageType: "workflow", status: "planned",
           elements: ["Modèles", "Génération", "Validation", "Signature", "Envoi", "Archivage"] },
-        { key: "recruitment-medical", label: "Visite médicale", route: "/rh/recrutement/visite-medicale", permission: READ, pageType: "workflow", status: "planned",
+        { key: "recruitment-medical", label: "Visite médicale", route: "/rh/recrutement/visite-medicale", permission: "recruitment.read", pageType: "workflow", status: "planned",
           elements: ["Demande", "Rendez-vous", "Résultat", "Aptitude", "Restrictions", "Documents justificatifs"] },
       ] },
 

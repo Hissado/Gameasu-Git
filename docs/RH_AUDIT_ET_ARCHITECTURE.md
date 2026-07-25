@@ -97,3 +97,18 @@ Consommateurs générés depuis ce fichier :
   bibliothèques de modèles, composantes de bulletin, modes de paiement).
 - Permissions fines par sous-module (backend + frontend) et tests automatisés
   (routes, fils d'Ariane, états actifs, mobile, multi-tenant).
+
+## 5. Livré (itérations récentes)
+
+- **Recrutement → Dossier de candidature** : page métier complète sur le backend
+  existant (`hr/recruitment-applications.tsx`).
+- **Fils d'Ariane généralisés** : `AppBreadcrumb` dérive le fil RH profond du SSOT.
+- **Permissions fines Recrutement (§8)** : `recruitment.read` / `recruitment.manage`
+  au catalogue, accordées à Manager/RH (+ lecture Auditeur), câblées **backend**
+  (`routes/recruitment.ts` : mutations gardées par `recruitment.manage` au lieu du
+  rôle) **et frontend** (édition de la fiche candidat gardée par `recruitment.manage`),
+  exposées dans la grille des rôles.
+- **Test d'intégrité SSOT** : `scripts/src/check-rh-nav.ts`
+  (`pnpm --filter @workspace/scripts run check-rh-nav`) — routes uniques,
+  permissions existant au catalogue, nœuds `ready` avec composant + route déclarée,
+  nœuds `planned` atteignables. Filet anti-régression permanent.

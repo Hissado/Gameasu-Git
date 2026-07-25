@@ -13,7 +13,9 @@ Restructuration du module Ressources Humaines autour d'une **source unique de v�
 - **Non-régression** : toutes les routes RH existantes restent valides (aucune donnée perdue) ; seuls les nouveaux nœuds pointent vers le gabarit.
 - **Recrutement → Dossier de candidature** (métier complet) : nouvelle page `hr/recruitment-applications.tsx` bâtie sur le backend existant (`/recruitment/candidacies`) — liste filtrable (poste/étape/recherche) + fiche candidat (identité, poste, CV/lettre/LinkedIn, pipeline en 8 étapes, appréciation 1–5, entretien date+notes, décision Recruter/Rejeter avec motif). Nœud SSOT passé `ready`.
 - **Fils d'Ariane généralisés** : `AppBreadcrumb` consulte désormais la source unique de vérité RH (`rhBreadcrumb`) pour toute route `/rh/*` → fil d'Ariane profond (Accueil → Ressources Humaines → Sous-module → Page) sur **toutes** les pages RH, depuis un seul endroit (fin des motifs RH codés en dur).
-- Reste : développement métier des autres nœuds `planned`, permissions fines par sous-module (backend), redirections des routes suggérées, tests automatisés.
+- **Permissions fines Recrutement (§8)** : `recruitment.read` / `recruitment.manage` ajoutées au catalogue, accordées à Manager/RH (+ lecture Auditeur), câblées **backend** (mutations de `routes/recruitment.ts` gardées par `recruitment.manage` au lieu du rôle Manager) **et frontend** (édition de la fiche candidat), exposées dans la grille des rôles.
+- **Test d'intégrité de la source unique de vérité RH** : `scripts/src/check-rh-nav.ts` (`check-rh-nav`) — vérifie routes uniques, permissions présentes au catalogue, nœuds `ready` avec composant + route déclarée dans App.tsx, nœuds `planned` atteignables. Filet anti-régression permanent.
+- Reste : développement métier des autres nœuds `planned`, redirections des routes suggérées, extension des tests (mobile, multi-tenant E2E).
 
 ## Plan comptable par organisation — revue & socle protection (§5) — juillet 2026
 
