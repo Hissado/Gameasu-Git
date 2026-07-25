@@ -468,6 +468,40 @@ export const bankInfoRequestsTable = pgTable("bank_info_requests", {
 export type BankInfoRequest = typeof bankInfoRequestsTable.$inferSelect;
 
 // ─────────────────────────────────────────────────────────
+// DEMANDES RH (Pointage) — permission, déplacement, mission, maladie, accident
+// Workflow générique Demande → Étude → Pièces justificatives (§10).
+// ─────────────────────────────────────────────────────────
+export const hrRequestsTable = pgTable("hr_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizationsTable.id, { onDelete: "cascade" }),
+  // permission | business_travel | mission | sickness | accident
+  type: text("type").notNull(),
+  subject: text("subject").notNull(),
+  description: text("description"),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  // Workflow : submitted (Demande) | under_review (Étude) | approved | rejected
+  status: text("status").notNull().default("submitted"),
+  // Demandeur (utilisateur) et, si connu, le collaborateur concerné.
+  requesterId: uuid("requester_id").references(() => usersTable.id),
+  collaboratorId: uuid("collaborator_id").references(() => collaboratorsTable.id),
+  // Étude / décision
+  reviewerId: uuid("reviewer_id").references(() => usersTable.id),
+  reviewNotes: text("review_notes"),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  rejectionReason: text("rejection_reason"),
+  // Pièces justificatives : [{ name, url, uploadedAt }]
+  attachments: jsonb("attachments").$type<Array<{ name: string; url: string; uploadedAt: string }>>().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, (t) => ({
+  orgTypeIdx: index("hr_requests_org_type_idx").on(t.organizationId, t.type),
+  statusIdx: index("hr_requests_status_idx").on(t.status),
+}));
+
+export type HrRequest = typeof hrRequestsTable.$inferSelect;
+
+// ─────────────────────────────────────────────────────────
 // JOURNAL D'AUDIT RH
 // ─────────────────────────────────────────────────────────
 export const hrAuditLogsTable = pgTable("hr_audit_logs", {

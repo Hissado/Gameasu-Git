@@ -105,6 +105,10 @@ export const PERMISSIONS: PermissionDef[] = [
   { code: "hr.approve_expenses", label: "Approuver les notes de frais",                  category: "RH" },
   { code: "hr.export",           label: "Exporter les données RH",                       category: "RH" },
 
+  // ─── Recrutement ────────────────────────────────────────────────
+  { code: "recruitment.read",   label: "Consulter le recrutement (offres, candidatures)", category: "Recrutement" },
+  { code: "recruitment.manage", label: "Gérer le recrutement (candidatures, entretiens, décision)", category: "Recrutement" },
+
   // ─── Présence / Pointage ────────────────────────────────────────
   { code: "attendance.view",            label: "Voir les pointages",                 category: "Présences" },
   { code: "attendance.manage",          label: "Gérer les pointages",                category: "Présences" },
@@ -122,6 +126,8 @@ export const PERMISSIONS: PermissionDef[] = [
   // ─── Comptabilité ───────────────────────────────────────────────
   { code: "accounting.read",           label: "Consulter la comptabilité",              category: "Comptabilité" },
   { code: "accounting.manage",         label: "Saisir des écritures, gérer les périodes", category: "Comptabilité" },
+  { code: "accounting.manage_chart",   label: "Gérer le plan comptable (comptes, statuts)", category: "Comptabilité" },
+  { code: "accounting.manage_mapping", label: "Configurer le mappage comptable des modules", category: "Comptabilité" },
   { code: "accounting.approve_entries",label: "Valider des écritures comptables",       category: "Comptabilité" },
   { code: "accounting.manage_banks",   label: "Gérer les comptes bancaires",            category: "Comptabilité" },
   { code: "accounting.import",         label: "Importer des écritures comptables",      category: "Comptabilité" },
@@ -239,6 +245,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "dashboard.view_financial_kpis", "dashboard.view_hr_kpis",
       "users.read", "departments.read",
       "hr.read", "hr.manage", "hr.manage_leaves", "hr.manage_contracts",
+      "recruitment.read", "recruitment.manage",
       "clients.read", "clients.create", "clients.update", "clients.view_history",
       "services.read", "services.manage",
       "projects.read", "projects.create", "projects.update", "projects.approve", "projects.manage_budget", "projects.export",
@@ -277,7 +284,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "tasks.read",
       "commercial.read",
       "equipment.read",
-      "accounting.read", "accounting.manage", "accounting.approve_entries", "accounting.manage_banks", "accounting.export",
+      "accounting.read", "accounting.manage", "accounting.manage_chart", "accounting.manage_mapping", "accounting.approve_entries", "accounting.manage_banks", "accounting.export",
       "fpa.read", "fpa.manage", "fpa.export",
       "documents.read", "documents.manage",
       "messaging.use",
@@ -326,6 +333,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "departments.read", "departments.manage",
       "hr.read", "hr.manage", "hr.view_salary", "hr.manage_payroll", "hr.manage_leaves",
       "hr.manage_contracts", "hr.view_sensitive", "hr.manage_expenses", "hr.approve_expenses", "hr.export",
+      "recruitment.read", "recruitment.manage",
       "attendance.view", "attendance.manage", "attendance.clock", "attendance.view_anomalies", "attendance.manage_settings",
       "projects.read", "tasks.read",
       "clients.read",
@@ -352,7 +360,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "tasks.read",
       "commercial.read", "commercial.manage",
       "equipment.read",
-      "accounting.read", "accounting.manage", "accounting.approve_entries", "accounting.manage_banks", "accounting.export", "accounting.view_sensitive",
+      "accounting.read", "accounting.manage", "accounting.manage_chart", "accounting.manage_mapping", "accounting.approve_entries", "accounting.manage_banks", "accounting.export", "accounting.view_sensitive",
       "fpa.read", "fpa.manage", "fpa.approve", "fpa.export",
       "documents.read", "documents.manage",
       "messaging.use",
@@ -401,6 +409,7 @@ export const SYSTEM_ROLES: RoleSeed[] = [
       "departments.read",
       "roles.read",
       "hr.read",
+      "recruitment.read",
       "clients.read", "clients.read_all",
       "services.read",
       "projects.read", "projects.read_all",

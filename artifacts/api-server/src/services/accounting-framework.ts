@@ -121,7 +121,21 @@ const JOURNALS_STANDARD = [
   { code: "OD",  label: "Opérations diverses",  type: "misc",     defaultAccountCode: null  },
 ];
 
-async function insertAccounts(orgId: string, accounts: Acc[]) {
+// Préfixes de comptes « système » : requis par les automatisations Gameasu
+// (clients, fournisseurs, banque, caisse, TVA, ventes, achats, paie, virements).
+// Un compte dont le code commence par l'un d'eux est marqué isSystem → non
+// supprimable et non désactivable sans substitut (§5/§6).
+const SYSTEM_ACCOUNT_PREFIXES = [
+  "401", "411", "443", "445", "512", "521", "531", "571", "581",
+  "60", "70", "66", "421", "422", "431", "447",
+];
+
+export function isSystemAccountCode(code: string): boolean {
+  const c = code.trim();
+  return SYSTEM_ACCOUNT_PREFIXES.some((p) => c.startsWith(p));
+}
+
+async function insertAccounts(orgId: string, accounts: Acc[], framework: AccountingFramework) {
   const existing = await db.select({ code: chartOfAccountsTable.code })
     .from(chartOfAccountsTable)
     .where(eq(chartOfAccountsTable.organizationId, orgId));
@@ -134,6 +148,12 @@ async function insertAccounts(orgId: string, accounts: Acc[]) {
         code: a.code, label: a.label, classNum: a.classNum,
         type: a.type, normalBalance: a.normalBalance,
         isPostable: a.isPostable ?? true,
+        // Traçabilité & classification (plan comptable propre à l'organisation).
+        origin: "template",
+        sourceFramework: framework,
+        isSystem: isSystemAccountCode(a.code),
+        level: Math.max(1, a.code.trim().length - 1),
+        applicableFrameworks: [framework],
       })),
     );
   }
@@ -560,7 +580,7 @@ export async function seedAccountingFrameworkForOrg(
   const journals = JOURNALS_BY_FRAMEWORK[framework] ?? JOURNALS_STANDARD;
   const codes = BANK_CASH_CODES[framework] ?? { bank: "521", cash: "571" };
 
-  await insertAccounts(organizationId, accounts);
+  await insertAccounts(organizationId, accounts, framework);
   await insertJournals(organizationId, journals);
   await ensureFiscalPeriod(organizationId);
   await ensureBankAccounts(organizationId, codes.bank, codes.cash);

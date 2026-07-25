@@ -2,6 +2,37 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Module RH — source unique de vérité & ossature d'architecture — juillet 2026
+
+Restructuration du module Ressources Humaines autour d'une **source unique de vérité** (voir [`docs/RH_AUDIT_ET_ARCHITECTURE.md`](docs/RH_AUDIT_ET_ARCHITECTURE.md)).
+
+- **Audit de l'existant** : inventaire des 44 routes et 40 pages RH, mappées à l'arborescence cible (Module → Sous-module → Sous-sous-module → Élément).
+- **SSOT** (`config/rh-navigation.ts`) : arbre `RhNode` (15 sous-modules, ~80 nœuds) où chaque nœud porte route, permission, `pageType`, `status` (ready/planned) et le composant existant. C'est le **seul** endroit où la hiérarchie est définie ; il génère menu, routes et fils d'Ariane.
+- **Menu secondaire RH** (`hr/_layout.tsx`) désormais **généré** depuis le SSOT (fin du menu codé en dur).
+- **Nœuds non encore développés** (§7) : gabarit `hr/_placeholder.tsx` (titre, fil d'Ariane, description, état « en cours », éléments de niveau 4) — routes générées depuis le SSOT, **jamais de page blanche ni de lien inerte**.
+- **Non-régression** : toutes les routes RH existantes restent valides (aucune donnée perdue) ; seuls les nouveaux nœuds pointent vers le gabarit.
+- **Recrutement → Dossier de candidature** (métier complet) : nouvelle page `hr/recruitment-applications.tsx` bâtie sur le backend existant (`/recruitment/candidacies`) — liste filtrable (poste/étape/recherche) + fiche candidat (identité, poste, CV/lettre/LinkedIn, pipeline en 8 étapes, appréciation 1–5, entretien date+notes, décision Recruter/Rejeter avec motif). Nœud SSOT passé `ready`.
+- **Fils d'Ariane généralisés** : `AppBreadcrumb` consulte désormais la source unique de vérité RH (`rhBreadcrumb`) pour toute route `/rh/*` → fil d'Ariane profond (Accueil → Ressources Humaines → Sous-module → Page) sur **toutes** les pages RH, depuis un seul endroit (fin des motifs RH codés en dur).
+- **Permissions fines Recrutement (§8)** : `recruitment.read` / `recruitment.manage` ajoutées au catalogue, accordées à Manager/RH (+ lecture Auditeur), câblées **backend** (mutations de `routes/recruitment.ts` gardées par `recruitment.manage` au lieu du rôle Manager) **et frontend** (édition de la fiche candidat), exposées dans la grille des rôles.
+- **Test d'intégrité de la source unique de vérité RH** : `scripts/src/check-rh-nav.ts` (`check-rh-nav`) — vérifie routes uniques, permissions présentes au catalogue, nœuds `ready` avec composant + route déclarée dans App.tsx, nœuds `planned` atteignables. Filet anti-régression permanent.
+- **Pointage → Permissions / Déplacements / Missions / Maladie / Accident** (métier complet, 5 nœuds) : nouvelle table `hr_requests` (workflow générique Demande → Étude → Pièces justificatives, migration `lib/db/src/migrate-hr-requests.ts`), routes `routes/hr-requests.ts` (liste/création self-service + décision gardée par `hr.manage_leaves` + transitions de statut contrôlées + pièces justificatives), et **un seul composant réutilisable** `hr/request-workflow.tsx` (stepper, création, décision) servant les 5 routes. Nœuds SSOT passés `ready`.
+- Reste : développement métier des autres nœuds `planned`, redirections des routes suggérées, extension des tests (mobile, multi-tenant E2E).
+
+## Plan comptable par organisation — revue & socle protection (§5) — juillet 2026
+
+Revue de la logique du plan comptable au regard du cahier des charges en 18 points (voir [`docs/PLAN_COMPTABLE_PAR_ORGANISATION.md`](docs/PLAN_COMPTABLE_PAR_ORGANISATION.md)).
+
+- **Constat** : l'isolation multi-tenant et le semis par référentiel existent déjà — chaque organisation a sa **propre copie** du plan (`chart_of_accounts` : `organization_id` + unique `(org, code)`), semée depuis un **modèle par référentiel** (9 référentiels : SYSCOHADA, SMT, SYCEBNL, PCB, SFD, CIMA, CIPRES, PCE, autre) via `seedAccountingFrameworkForOrg`. Une modification d'un tenant n'affecte jamais les autres.
+- **Protection des comptes utilisés (§5) — implémentée** : nouvelle route `DELETE /accounting/chart-of-accounts/:id` qui refuse la suppression d'un compte déjà mouvementé (message normalisé, code `ACCOUNT_IN_USE`) ou porteur de sous-comptes ; le numéro de compte reste non modifiable ; la désactivation reste possible ; endpoint `/usage` (nombre d'écritures) ; unicité du code contrôlée à la création.
+- **Vue de gestion** : `GET /accounting/chart-of-accounts?includeInactive=true` expose aussi les comptes désactivés (défaut inchangé = actifs seulement).
+- **Modèle de compte enrichi (§3, §6) — Phase A-2** : `chart_of_accounts` gagne `customLabel`, `description`, `origin` (system/template/custom/imported), `isSystem`, `isCollective`, `level`, `currency`, `defaultTaxCode`, `defaultCostCenterId`, `sourceFramework`, `deactivatedAt`, `createdById`/`updatedById`, `updatedAt` (migration additive `lib/db/src/migrate-coa-enrich.ts`, à passer en préproduction). Le semis par référentiel tague désormais les comptes `origin='template'` + `sourceFramework`, et marque les codes critiques (401, 411, 52x, 57x, 44x, 60x, 70x, 66x, 42x, 43x, 447) comme comptes **système**.
+- **Protection système (§6)** : un compte système ne peut être ni supprimé ni désactivé sans compte de substitution.
+- **Permission granulaire (§15)** : `accounting.manage_chart` (créer/modifier/désactiver/supprimer un compte) câblée sur `POST`/`PUT`/`DELETE /accounting/chart-of-accounts`, accordée à comptable/financier/admin et exposée dans la grille des rôles.
+- **Mappage comptable des modules (§7/§12)** : table `account_mappings` (rôle → compte, par organisation) + service `getAccountCodeMap` + routes `GET`/`PUT /accounting/account-mappings` + permission `accounting.manage_mapping`. `postings.ts` (ventes, achats, paie, trésorerie, notes de frais) résout désormais les comptes via le mappage propre à l'organisation, avec repli sur les codes par défaut du référentiel — **comportement inchangé tant qu'aucun mappage n'est personnalisé** (migration `lib/db/src/migrate-account-mappings.ts`).
+- **Import du plan comptable (§8)** : l'exécuteur d'import `chart_of_accounts` valide le format des numéros (2–8 chiffres), rejette les doublons intra-fichier et les comptes déjà existants, **résout la hiérarchie** (compte parent = plus long préfixe présent), marque les feuilles imputables (`isPostable`), tague les comptes `origin='imported'` + `isSystem` + `level`, et produit un **rapport de couverture** signalant les comptes système recommandés absents du plan importé. Nouvelle colonne « Note d'utilisation ».
+- **UI plan comptable (§17)** : la page affiche les **badges d'origine** (Système / Modèle / Personnalisé / Importé), le libellé personnalisé (avec libellé officiel en rappel), une bascule « Afficher les comptes désactivés » (comptes inactifs grisés + badge). Reste : vue hiérarchique dépliable, nb d'écritures par compte, création/édition inline, écran de mappage.
+- Feuille de route P0→P3 documentée (versions, changement de référentiel, Cockpit/Portail Expert, tests).
+
 ## Refonte de la navigation (arborescence cible) — juillet 2026
 
 Réorganisation de la barre latérale globale et du panneau RH vers l'arborescence cible simplifiée (voir [`docs/RAPPORT_NAVIGATION_REFONTE.md`](docs/RAPPORT_NAVIGATION_REFONTE.md)). Aucune page perdue (cross-check anti-orphelin), aucun changement d'accès (moduleKey/permissionKey préservés).

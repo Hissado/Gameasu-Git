@@ -21,7 +21,9 @@ import {
   taxesTable,
   updateTaxSchema,
   orgFiscalSettingsTable,
+  accountMappingsTable,
 } from "@workspace/db";
+import { MAPPING_ROLES, getAccountCodeMap } from "../services/account-mapping";
 import { and, asc, desc, eq, gte, lte, sql, isNull, like, or, inArray } from "drizzle-orm";
 import { requireAuth, requireManagerOrAbove, requireAdmin } from "../middlewares/auth";
 import { requirePermission } from "../middlewares/permissions";
@@ -44,8 +46,12 @@ const toNum = (v: string | number | null | undefined): number => (v == null ? 0 
 // PLAN COMPTABLE
 // ════════════════════════════════════════════════════════════════
 router.get("/accounting/chart-of-accounts", async (req, res) => {
-  const { search, classNum } = req.query as Record<string, string>;
-  const conds = [eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId), eq(chartOfAccountsTable.isActive, true)];
+  const { search, classNum, includeInactive } = req.query as Record<string, string>;
+  // Vue de gestion : includeInactive=true expose aussi les comptes désactivés
+  // (nécessaire pour l'écran plan comptable). Défaut = actifs seulement
+  // (compat. avec les consommateurs internes : imputation, listes de saisie).
+  const conds = [eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId)];
+  if (includeInactive !== "true") conds.push(eq(chartOfAccountsTable.isActive, true));
   if (classNum) conds.push(eq(chartOfAccountsTable.classNum, parseInt(classNum)));
   if (search) {
     conds.push(or(
@@ -57,22 +63,199 @@ router.get("/accounting/chart-of-accounts", async (req, res) => {
   return res.json({ data: rows });
 });
 
-router.post("/accounting/chart-of-accounts", requireAdmin, async (req, res) => {
-  const { code, label, classNum, type, normalBalance, parentId, isPostable } = req.body;
+/** Nombre de lignes d'écriture imputées sur un compte (dans l'organisation). */
+async function accountUsageCount(orgId: string, accountId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(journalEntryLinesTable)
+    .where(and(
+      eq(journalEntryLinesTable.organizationId, orgId),
+      eq(journalEntryLinesTable.accountId, accountId),
+    ));
+  return row?.n ?? 0;
+}
+
+router.post("/accounting/chart-of-accounts", requirePermission("accounting.manage_chart"), async (req, res) => {
+  const { code, label, classNum, type, normalBalance, parentId, isPostable,
+          customLabel, description, currency, defaultTaxCode, defaultCostCenterId, isCollective } = req.body;
+  const orgId = req.authUser!.organizationId;
+  if (!code || !label) return res.status(400).json({ error: "Code et libellé obligatoires" });
+  const trimmedCode = String(code).trim();
+  // Unicité du code par organisation (message clair avant la contrainte DB).
+  const existing = await db.select({ id: chartOfAccountsTable.id }).from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.code, trimmedCode))).limit(1);
+  if (existing.length > 0) return res.status(409).json({ error: `Un compte porte déjà le code « ${code} » dans cette organisation.` });
   const [acc] = await db.insert(chartOfAccountsTable).values({
-      organizationId: req.authUser!.organizationId,
-    code, label, classNum, type, normalBalance, parentId, isPostable: isPostable ?? true,
+    organizationId: orgId,
+    code: trimmedCode, label, classNum, type, normalBalance, parentId, isPostable: isPostable ?? true,
+    // Compte créé manuellement par l'organisation → origin = custom (§6).
+    origin: "custom",
+    isSystem: false,
+    isCollective: isCollective ?? false,
+    level: Math.max(1, trimmedCode.length - 1),
+    customLabel: customLabel ?? null,
+    description: description ?? null,
+    currency: currency ?? null,
+    defaultTaxCode: defaultTaxCode ?? null,
+    defaultCostCenterId: defaultCostCenterId ?? null,
+    createdById: req.authUser!.id,
   }).returning();
   return res.status(201).json(acc);
 });
 
-router.put("/accounting/chart-of-accounts/:id", requireAdmin, async (req, res) => {
-  const { label, isActive, isPostable, normalBalance, type } = req.body;
+router.put("/accounting/chart-of-accounts/:id", requirePermission("accounting.manage_chart"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const id = req.params.id as string;
+  // Le numéro de compte (`code`) n'est volontairement PAS modifiable ici :
+  // renuméroter arbitrairement un compte déjà imputé casse la traçabilité
+  // comptable (§5). Une renumérotation passe par une procédure dédiée.
+  const { label, isActive, isPostable, normalBalance, type,
+          customLabel, description, currency, defaultTaxCode, defaultCostCenterId, isCollective } = req.body;
+  const [existing] = await db.select().from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).limit(1);
+  if (!existing) return res.status(404).json({ error: "Compte introuvable" });
+
+  // Protection des comptes système (§6) : ils ne peuvent pas être désactivés
+  // sans compte de substitution (workflow prévu en phase ultérieure).
+  if (existing.isSystem && isActive === false) {
+    return res.status(409).json({
+      error: "Ce compte est un compte système requis par les automatisations. Il ne peut pas être désactivé sans définir un compte de substitution.",
+      code: "SYSTEM_ACCOUNT_PROTECTED",
+    });
+  }
+
+  // Trace de la désactivation (§5) : horodatage lors du passage actif → inactif.
+  const deactivating = existing.isActive && isActive === false;
+  const reactivating = !existing.isActive && isActive === true;
+
   const [acc] = await db.update(chartOfAccountsTable)
-    .set({ label, isActive, isPostable, normalBalance, type })
-    .where(and(eq(chartOfAccountsTable.organizationId, req.authUser!.organizationId), eq(chartOfAccountsTable.id, req.params.id as string))).returning();
-  if (!acc) return res.status(404).json({ error: "Compte introuvable" });
+    .set({
+      label, isActive, isPostable, normalBalance, type,
+      customLabel, description, currency, defaultTaxCode, defaultCostCenterId, isCollective,
+      updatedById: req.authUser!.id,
+      ...(deactivating ? { deactivatedAt: new Date() } : {}),
+      ...(reactivating ? { deactivatedAt: null } : {}),
+    })
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).returning();
   return res.json(acc);
+});
+
+// Suppression protégée (§5) : un compte déjà mouvementé, système, ou porteur de
+// sous-comptes ne peut pas être supprimé (intégrité comptable) — il peut être
+// désactivé via PUT. Un compte non mouvementé est réellement supprimé.
+router.delete("/accounting/chart-of-accounts/:id", requirePermission("accounting.manage_chart"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const id = req.params.id as string;
+  const [acc] = await db.select().from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).limit(1);
+  if (!acc) return res.status(404).json({ error: "Compte introuvable" });
+
+  if (acc.isSystem) {
+    return res.status(409).json({
+      error: "Ce compte système ne peut pas être supprimé. Vous pouvez le remplacer par un compte de substitution dans le mappage comptable.",
+      code: "SYSTEM_ACCOUNT_PROTECTED",
+    });
+  }
+
+  const usage = await accountUsageCount(orgId, id);
+  if (usage > 0) {
+    return res.status(409).json({
+      error: "Ce compte contient déjà des écritures. Vous pouvez le désactiver, mais sa suppression n'est pas autorisée afin de préserver l'intégrité comptable.",
+      code: "ACCOUNT_IN_USE",
+      usage,
+    });
+  }
+  // Refus si des comptes enfants en dépendent (nœud de hiérarchie).
+  const [child] = await db.select({ id: chartOfAccountsTable.id }).from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.parentId, id))).limit(1);
+  if (child) {
+    return res.status(409).json({
+      error: "Ce compte possède des sous-comptes. Supprimez ou déplacez d'abord les sous-comptes.",
+      code: "ACCOUNT_HAS_CHILDREN",
+    });
+  }
+
+  await db.delete(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id)));
+  return res.json({ ok: true });
+});
+
+// Indicateur d'utilisation d'un compte (nb d'écritures) — pour l'UI (§17).
+router.get("/accounting/chart-of-accounts/:id/usage", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const id = req.params.id as string;
+  const [acc] = await db.select({ id: chartOfAccountsTable.id }).from(chartOfAccountsTable)
+    .where(and(eq(chartOfAccountsTable.organizationId, orgId), eq(chartOfAccountsTable.id, id))).limit(1);
+  if (!acc) return res.status(404).json({ error: "Compte introuvable" });
+  const usage = await accountUsageCount(orgId, id);
+  return res.json({ usage, deletable: usage === 0 });
+});
+
+// ════════════════════════════════════════════════════════════════
+// MAPPAGE COMPTABLE DES MODULES (§7)
+// ════════════════════════════════════════════════════════════════
+
+// Liste des rôles de mappage avec le compte actuellement utilisé par
+// l'organisation (personnalisé ou défaut du référentiel) et son existence.
+router.get("/accounting/account-mappings", async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const codeMap = await getAccountCodeMap(orgId, db);
+  const overrides = await db.select({ role: accountMappingsTable.role, code: accountMappingsTable.accountCode })
+    .from(accountMappingsTable).where(eq(accountMappingsTable.organizationId, orgId));
+  const overrideRoles = new Set(overrides.map((o) => o.role));
+  // Comptes existants (actifs) pour signaler un mappage pointant vers un compte absent.
+  const accounts = await db.select({ code: chartOfAccountsTable.code, label: chartOfAccountsTable.label })
+    .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
+  const accByCode = new Map(accounts.map((a) => [a.code, a.label]));
+
+  const data = MAPPING_ROLES.map((r) => ({
+    role: r.role,
+    label: r.label,
+    module: r.module,
+    defaultCode: r.defaultCode,
+    code: codeMap[r.role],
+    isCustom: overrideRoles.has(r.role),
+    accountExists: accByCode.has(codeMap[r.role]!),
+    accountLabel: accByCode.get(codeMap[r.role]!) ?? null,
+  }));
+  return res.json({ data });
+});
+
+// Enregistre/écrase les mappages personnalisés. Body : { mappings: [{role, accountCode}] }.
+// Un accountCode vide/égal au défaut supprime la personnalisation (retour au défaut).
+router.put("/accounting/account-mappings", requirePermission("accounting.manage_mapping"), async (req, res) => {
+  const orgId = req.authUser!.organizationId;
+  const { mappings } = req.body as { mappings?: Array<{ role: string; accountCode: string }> };
+  if (!Array.isArray(mappings)) return res.status(400).json({ error: "mappings[] requis" });
+
+  const knownRoles = new Map(MAPPING_ROLES.map((r) => [r.role, r.defaultCode]));
+  const accounts = await db.select({ code: chartOfAccountsTable.code })
+    .from(chartOfAccountsTable).where(eq(chartOfAccountsTable.organizationId, orgId));
+  const validCodes = new Set(accounts.map((a) => a.code));
+
+  const errors: string[] = [];
+  for (const m of mappings) {
+    const def = knownRoles.get(m.role);
+    if (def === undefined) { errors.push(`Rôle inconnu : ${m.role}`); continue; }
+    const code = (m.accountCode ?? "").trim();
+    // Vide ou = défaut → suppression de la personnalisation.
+    if (!code || code === def) {
+      await db.delete(accountMappingsTable).where(and(
+        eq(accountMappingsTable.organizationId, orgId),
+        eq(accountMappingsTable.role, m.role),
+      ));
+      continue;
+    }
+    if (!validCodes.has(code)) { errors.push(`Compte introuvable dans le plan : ${code} (rôle ${m.role})`); continue; }
+    await db.insert(accountMappingsTable)
+      .values({ organizationId: orgId, role: m.role, accountCode: code, updatedById: req.authUser!.id })
+      .onConflictDoUpdate({
+        target: [accountMappingsTable.organizationId, accountMappingsTable.role],
+        set: { accountCode: code, updatedById: req.authUser!.id, updatedAt: new Date() },
+      });
+  }
+  if (errors.length > 0) return res.status(400).json({ error: "Mappage partiellement invalide", details: errors });
+  return res.json({ ok: true });
 });
 
 // ════════════════════════════════════════════════════════════════

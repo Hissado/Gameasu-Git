@@ -13,6 +13,7 @@ import {
 } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
 import { getCurrentFiscalPeriod } from "./syscohada-seed";
+import { getAccountCodeMap } from "./account-mapping";
 
 /**
  * Garantit l'existence d'un compte du plan comptable pour l'organisation
@@ -316,6 +317,7 @@ export async function postCustomerInvoice(organizationId: string, invoiceId: str
     );
   }
 
+  const M = await getAccountCodeMap(inv.organizationId, exec);
   const entryOpts: PostEntryOpts = {
     organizationId: inv.organizationId,
     journalCode: "VTE",
@@ -327,13 +329,13 @@ export async function postCustomerInvoice(organizationId: string, invoiceId: str
     createdById: userId,
     lines: taxAmount > 0
       ? [
-          { accountCode: "411", debit: amount, thirdPartyType: "client", thirdPartyId: inv.clientId ?? undefined, description: "Client (TTC)" },
-          { accountCode: "706", credit: amount - taxAmount, description: "Prestations de services (HT)" },
-          { accountCode: "4431", credit: taxAmount, description: "TVA facturée" },
+          { accountCode: M.sales_client, debit: amount, thirdPartyType: "client", thirdPartyId: inv.clientId ?? undefined, description: "Client (TTC)" },
+          { accountCode: M.sales_revenue, credit: amount - taxAmount, description: "Prestations de services (HT)" },
+          { accountCode: M.sales_vat_collected, credit: taxAmount, description: "TVA facturée" },
         ]
       : [
-          { accountCode: "411", debit: amount, thirdPartyType: "client", thirdPartyId: inv.clientId ?? undefined, description: "Client" },
-          { accountCode: "706", credit: amount, description: "Prestations de services" },
+          { accountCode: M.sales_client, debit: amount, thirdPartyType: "client", thirdPartyId: inv.clientId ?? undefined, description: "Client" },
+          { accountCode: M.sales_revenue, credit: amount, description: "Prestations de services" },
         ],
   };
   return tx ? postEntryTx(tx, entryOpts) : postEntry(entryOpts);
@@ -352,7 +354,8 @@ export async function postCustomerPayment(organizationId: string, paymentId: str
     eq(invoicesTable.id, pay.invoiceId),
   )).limit(1))[0];
 
-  let treasuryCode = pay.method === "cash" ? "571" : "521";
+  const M = await getAccountCodeMap(organizationId, exec);
+  let treasuryCode = pay.method === "cash" ? M.treasury_cash : M.treasury_bank;
   let journalCode = pay.method === "cash" ? "CAI" : "BNQ";
   if (opts.bankAccountId) {
     const bank = (await exec.select().from(bankAccountsTable).where(and(
@@ -384,7 +387,7 @@ export async function postCustomerPayment(organizationId: string, paymentId: str
     createdById: opts.userId,
     lines: [
       { accountCode: treasuryCode, debit: amount, description: "Encaissement" },
-      { accountCode: "411", credit: amount, thirdPartyType: "client", thirdPartyId: inv?.clientId ?? undefined, description: "Client" },
+      { accountCode: M.sales_client, credit: amount, thirdPartyType: "client", thirdPartyId: inv?.clientId ?? undefined, description: "Client" },
     ],
   };
   return opts.tx ? postEntryTx(opts.tx, entryOpts) : postEntry(entryOpts);
@@ -399,18 +402,20 @@ export async function postSupplierInvoice(organizationId: string, supplierInvoic
   const amount = Number(sInv.totalAmount);
   if (amount <= 0) return null;
 
+  const M = await getAccountCodeMap(sInv.organizationId);
+
   let expenseAccountId = sInv.expenseAccountId;
   if (!expenseAccountId) {
     const fallback = (await db.select().from(chartOfAccountsTable).where(and(
       eq(chartOfAccountsTable.organizationId, sInv.organizationId),
-      eq(chartOfAccountsTable.code, "605"),
+      eq(chartOfAccountsTable.code, M.purchase_expense_default),
     )).limit(1))[0];
     if (!fallback) throw new Error("Compte de charge par défaut introuvable");
     expenseAccountId = fallback.id;
   }
 
   // TVA déductible (audit P0.3) : la charge est comptabilisée HT et la TVA
-  // récupérable au 4452. `taxAmount` existe déjà sur les factures fournisseurs.
+  // récupérable au compte mappé (défaut 4452). `taxAmount` existe déjà.
   const taxAmount = Math.min(Math.max(Number(sInv.taxAmount ?? 0), 0), amount);
 
   return postEntry({
@@ -425,12 +430,12 @@ export async function postSupplierInvoice(organizationId: string, supplierInvoic
     lines: taxAmount > 0
       ? [
           { accountId: expenseAccountId, debit: amount - taxAmount, projectId: sInv.projectId ?? undefined, description: "Charge (HT)" },
-          { accountCode: "4452", debit: taxAmount, description: "TVA récupérable sur achats" },
-          { accountCode: "401", credit: amount, thirdPartyType: "supplier", thirdPartyId: sInv.supplierId, description: "Fournisseur (TTC)" },
+          { accountCode: M.purchase_vat_deductible, debit: taxAmount, description: "TVA récupérable sur achats" },
+          { accountCode: M.purchase_supplier, credit: amount, thirdPartyType: "supplier", thirdPartyId: sInv.supplierId, description: "Fournisseur (TTC)" },
         ]
       : [
           { accountId: expenseAccountId, debit: amount, projectId: sInv.projectId ?? undefined, description: "Charge" },
-          { accountCode: "401", credit: amount, thirdPartyType: "supplier", thirdPartyId: sInv.supplierId, description: "Fournisseur" },
+          { accountCode: M.purchase_supplier, credit: amount, thirdPartyType: "supplier", thirdPartyId: sInv.supplierId, description: "Fournisseur" },
         ],
   });
 }
@@ -447,7 +452,8 @@ export async function postSupplierPayment(organizationId: string, paymentId: str
     eq(supplierInvoicesTable.id, pay.supplierInvoiceId),
   )).limit(1))[0];
 
-  let treasuryCode = pay.method === "cash" ? "571" : "521";
+  const M = await getAccountCodeMap(organizationId);
+  let treasuryCode = pay.method === "cash" ? M.treasury_cash : M.treasury_bank;
   let journalCode = pay.method === "cash" ? "CAI" : "BNQ";
   if (pay.bankAccountId) {
     const bank = (await db.select().from(bankAccountsTable).where(and(
@@ -476,7 +482,7 @@ export async function postSupplierPayment(organizationId: string, paymentId: str
     sourceId: pay.id,
     createdById: userId,
     lines: [
-      { accountCode: "401", debit: amount, thirdPartyType: "supplier", thirdPartyId: sInv?.supplierId, description: "Fournisseur" },
+      { accountCode: M.purchase_supplier, debit: amount, thirdPartyType: "supplier", thirdPartyId: sInv?.supplierId, description: "Fournisseur" },
       { accountCode: treasuryCode, credit: amount, description: "Décaissement" },
     ],
   });
@@ -518,10 +524,11 @@ export async function postPayrollRun(
   const net = Number(run.totalNetSalary ?? 0);
   if (gross <= 0) return null;
 
+  const M = await getAccountCodeMap(organizationId, exec);
   const doPost = async (t: any) => {
-    await ensureAccount(t, organizationId, { code: "4471", label: "État - IRPP retenu à la source", classNum: 4, type: "liability", normalBalance: "credit" });
+    await ensureAccount(t, organizationId, { code: M.payroll_income_tax_irpp, label: "État - IRPP retenu à la source", classNum: 4, type: "liability", normalBalance: "credit" });
     if (ipts > 0) {
-      await ensureAccount(t, organizationId, { code: "4472", label: "État - IPTS retenu à la source", classNum: 4, type: "liability", normalBalance: "credit" });
+      await ensureAccount(t, organizationId, { code: M.payroll_income_tax_ipts, label: "État - IPTS retenu à la source", classNum: 4, type: "liability", normalBalance: "credit" });
     }
     return postEntryTx(t, {
       organizationId,
@@ -533,12 +540,12 @@ export async function postPayrollRun(
       sourceId: run.id,
       createdById: userId,
       lines: [
-        { accountCode: "661", debit: gross, description: "Salaires bruts" },
-        ...(cnssEmployer > 0 ? [{ accountCode: "664", debit: cnssEmployer, description: "Charges sociales patronales" }] : []),
-        { accountCode: "421", credit: net, description: "Net à payer au personnel" },
-        ...(cnssEmployee + cnssEmployer > 0 ? [{ accountCode: "431", credit: cnssEmployee + cnssEmployer, description: "CNSS (parts salariale et patronale)" }] : []),
-        ...(irpp > 0 ? [{ accountCode: "4471", credit: irpp, description: "IRPP retenu à la source" }] : []),
-        ...(ipts > 0 ? [{ accountCode: "4472", credit: ipts, description: "IPTS retenu à la source" }] : []),
+        { accountCode: M.payroll_gross, debit: gross, description: "Salaires bruts" },
+        ...(cnssEmployer > 0 ? [{ accountCode: M.payroll_employer_charges, debit: cnssEmployer, description: "Charges sociales patronales" }] : []),
+        { accountCode: M.payroll_net, credit: net, description: "Net à payer au personnel" },
+        ...(cnssEmployee + cnssEmployer > 0 ? [{ accountCode: M.payroll_social, credit: cnssEmployee + cnssEmployer, description: "CNSS (parts salariale et patronale)" }] : []),
+        ...(irpp > 0 ? [{ accountCode: M.payroll_income_tax_irpp, credit: irpp, description: "IRPP retenu à la source" }] : []),
+        ...(ipts > 0 ? [{ accountCode: M.payroll_income_tax_ipts, credit: ipts, description: "IPTS retenu à la source" }] : []),
       ],
     });
   };
@@ -560,8 +567,9 @@ export async function postExpenseReport(
 ) {
   const amount = Number(expense.totalAmount ?? 0);
   if (amount <= 0) return null;
+  const M = await getAccountCodeMap(organizationId);
   const doPost = async (t: any) => {
-    await ensureAccount(t, organizationId, { code: "618", label: "Divers frais (voyages et déplacements)", classNum: 6, type: "expense", normalBalance: "debit" });
+    await ensureAccount(t, organizationId, { code: M.expense_report, label: "Divers frais (voyages et déplacements)", classNum: 6, type: "expense", normalBalance: "debit" });
     return postEntryTx(t, {
       organizationId,
       journalCode: "OD",
@@ -572,8 +580,8 @@ export async function postExpenseReport(
       sourceId: expense.id,
       createdById: userId,
       lines: [
-        { accountCode: "618", debit: amount, description: "Frais professionnels" },
-        { accountCode: "421", credit: amount, description: "Dette envers le collaborateur" },
+        { accountCode: M.expense_report, debit: amount, description: "Frais professionnels" },
+        { accountCode: M.payroll_net, credit: amount, description: "Dette envers le collaborateur" },
       ],
     });
   };
@@ -591,7 +599,8 @@ export async function postExpensePayment(
 ) {
   const amount = Number(expense.totalAmount ?? 0);
   if (amount <= 0) return null;
-  const treasuryCode = opts.method === "cash" ? "571" : "521";
+  const M = await getAccountCodeMap(organizationId, opts.tx ?? db);
+  const treasuryCode = opts.method === "cash" ? M.treasury_cash : M.treasury_bank;
   const journalCode = opts.method === "cash" ? "CAI" : "BNQ";
   const entryOpts: PostEntryOpts = {
     organizationId,
@@ -603,7 +612,7 @@ export async function postExpensePayment(
     sourceId: expense.id,
     createdById: opts.userId,
     lines: [
-      { accountCode: "421", debit: amount, description: "Solde de la dette collaborateur" },
+      { accountCode: M.payroll_net, debit: amount, description: "Solde de la dette collaborateur" },
       { accountCode: treasuryCode, credit: amount, description: "Décaissement" },
     ],
   };

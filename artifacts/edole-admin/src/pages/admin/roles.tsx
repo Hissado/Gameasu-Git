@@ -129,6 +129,8 @@ const MODULE_DEFS: ModuleDef[] = [
       { label: "Comptabilité", icon: Eye, perms: [
         { code: "accounting.read", label: "Consulter la comptabilité" },
         { code: "accounting.manage", label: "Saisir des écritures" },
+        { code: "accounting.manage_chart", label: "Gérer le plan comptable" },
+        { code: "accounting.manage_mapping", label: "Configurer le mappage comptable" },
         { code: "accounting.approve_entries", label: "Valider des écritures" },
         { code: "accounting.manage_banks", label: "Gérer les comptes bancaires" },
         { code: "accounting.view_sensitive", label: "Données financières sensibles" },
@@ -219,6 +221,10 @@ const MODULE_DEFS: ModuleDef[] = [
       { label: "Congés & Contrats", icon: FolderOpen, perms: [
         { code: "hr.manage_leaves", label: "Gérer les congés et absences" },
         { code: "hr.manage_contracts", label: "Gérer les contrats de travail" },
+      ]},
+      { label: "Recrutement", icon: UsersRound, perms: [
+        { code: "recruitment.read", label: "Consulter le recrutement" },
+        { code: "recruitment.manage", label: "Gérer le recrutement" },
       ]},
       { label: "Notes de frais", icon: Banknote, perms: [
         { code: "hr.manage_expenses", label: "Gérer les notes de frais" },
