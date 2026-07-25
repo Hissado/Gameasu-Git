@@ -2,6 +2,17 @@
 
 Historique détaillé des évolutions de la plateforme. Le fichier `replit.md` ne conserve que l'overview, l'architecture et les conventions courantes.
 
+## Module RH — source unique de vérité & ossature d'architecture — juillet 2026
+
+Restructuration du module Ressources Humaines autour d'une **source unique de vérité** (voir [`docs/RH_AUDIT_ET_ARCHITECTURE.md`](docs/RH_AUDIT_ET_ARCHITECTURE.md)).
+
+- **Audit de l'existant** : inventaire des 44 routes et 40 pages RH, mappées à l'arborescence cible (Module → Sous-module → Sous-sous-module → Élément).
+- **SSOT** (`config/rh-navigation.ts`) : arbre `RhNode` (15 sous-modules, ~80 nœuds) où chaque nœud porte route, permission, `pageType`, `status` (ready/planned) et le composant existant. C'est le **seul** endroit où la hiérarchie est définie ; il génère menu, routes et fils d'Ariane.
+- **Menu secondaire RH** (`hr/_layout.tsx`) désormais **généré** depuis le SSOT (fin du menu codé en dur).
+- **Nœuds non encore développés** (§7) : gabarit `hr/_placeholder.tsx` (titre, fil d'Ariane, description, état « en cours », éléments de niveau 4) — routes générées depuis le SSOT, **jamais de page blanche ni de lien inerte**.
+- **Non-régression** : toutes les routes RH existantes restent valides (aucune donnée perdue) ; seuls les nouveaux nœuds pointent vers le gabarit.
+- Reste : développement métier de chaque nœud `planned`, fils d'Ariane sur les pages existantes, permissions fines par sous-module (backend), redirections des routes suggérées, tests automatisés.
+
 ## Plan comptable par organisation — revue & socle protection (§5) — juillet 2026
 
 Revue de la logique du plan comptable au regard du cahier des charges en 18 points (voir [`docs/PLAN_COMPTABLE_PAR_ORGANISATION.md`](docs/PLAN_COMPTABLE_PAR_ORGANISATION.md)).
